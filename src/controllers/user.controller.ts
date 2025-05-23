@@ -5,7 +5,7 @@ import {
   DefaultTransactionalRepository,
   Filter,
   IsolationLevel,
-  repository
+  repository,
 } from '@loopback/repository';
 import {
   HttpErrors,
@@ -204,10 +204,10 @@ export class UserController {
     return this.userRepository.find(filter);
   }
 
-  @authenticate({
-    strategy: 'jwt',
-    options: {required: [PermissionKeys.ADMIN]},
-  })
+  // @authenticate({
+  //   strategy: 'jwt',
+  //   options: {required: [PermissionKeys.ADMIN]},
+  // })
   @get('/api/users/{id}', {
     responses: {
       '200': {

@@ -8,7 +8,7 @@ export class User extends Entity {
     generated: true,
   })
   id?: number;
-@property({
+  @property({
     type: 'string',
   })
   firstName: string;
@@ -22,6 +22,11 @@ export class User extends Entity {
     type: 'string',
   })
   dob: string;
+
+  @property({
+    type: 'string',
+  })
+  resumeUrl: string;
 
   @property({
     type: 'string',
@@ -59,6 +64,11 @@ export class User extends Entity {
   })
   avatar?: object;
 
+  @property({
+    type: 'object',
+  })
+  coverImage?: object;
+
   @property.array(String, {
     name: 'permissions',
   })
@@ -89,7 +99,6 @@ export class User extends Entity {
     type: 'date',
   })
   createdAt?: Date;
-
 
   @property({
     type: 'date',
