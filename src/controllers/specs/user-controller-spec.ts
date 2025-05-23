@@ -9,9 +9,6 @@ const CredentialsSchema: SchemaObject = {
       type: 'string',
       format: 'email',
     },
-    employeeId: {
-      type: 'string',
-    },
     password: {
       type: 'string',
       minLength: 6,

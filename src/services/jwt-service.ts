@@ -48,7 +48,7 @@ export class JWTService {
 
     let userProfile: UserProfile;
     try {
-      const decryptedToken = await verifyAsync(token, 'mushroom');
+      const decryptedToken = await verifyAsync(token, 'jobPortal');
       userProfile = Object.assign(
         {
           id: '',
