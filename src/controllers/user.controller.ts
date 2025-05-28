@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import {AuthenticationBindings, authenticate} from '@loopback/authentication';
 import {inject} from '@loopback/core';
+
 import {
   DefaultTransactionalRepository,
   Filter,
   IsolationLevel,
-  repository,
+  repository
 } from '@loopback/repository';
 import {
   HttpErrors,
@@ -17,7 +18,7 @@ import {
   patch,
   post,
   requestBody,
-  response,
+  response
 } from '@loopback/rest';
 import {UserProfile} from '@loopback/security';
 import * as _ from 'lodash';
@@ -146,22 +147,29 @@ export class UserController {
   }
 
   @get('/me')
-  @authenticate('jwt')
-  async whoAmI(
-    @inject(AuthenticationBindings.CURRENT_USER) currnetUser: UserProfile,
-  ): Promise<{}> {
-    console.log(currnetUser);
-    const user = await this.userRepository.findOne({
-      where: {
-        id: currnetUser.id,
-      },
-    });
-    const userData = _.omit(user, 'password');
-    return Promise.resolve({
-      ...userData,
-      displayName: `${userData?.firstName} ${userData?.lastName}`,
-    });
+@authenticate('jwt')
+async whoAmI(
+  @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
+): Promise<{}> {
+  const user = await this.userRepository.findOne({
+    where: {
+      id: currentUser.id,
+    },
+    include: [{relation: 'resumes'}],
+  });
+
+  if (!user) {
+    throw new HttpErrors.NotFound('User not found');
   }
+
+  const userData = _.omit(user, 'password');
+
+  return {
+    ...userData,
+    displayName: `${userData?.firstName ?? ''} ${userData?.lastName ?? ''}`,
+  };
+}
+
 
   @authenticate({
     strategy: 'jwt',
@@ -195,19 +203,19 @@ export class UserController {
         isDeleted: false,
       },
       fields: {password: false, otp: false, otpExpireAt: false},
-      include: [
-        {relation: 'creator'},
-        {relation: 'updater'},
-        {relation: 'department'},
-      ],
+      // include: [
+      //   {relation: 'creator'},
+      //   {relation: 'updater'},
+      //   {relation: 'department'},
+      // ],
     };
     return this.userRepository.find(filter);
   }
 
-  // @authenticate({
-  //   strategy: 'jwt',
-  //   options: {required: [PermissionKeys.ADMIN]},
-  // })
+  @authenticate({
+    strategy: 'jwt',
+    options: {required: [PermissionKeys.ADMIN, PermissionKeys.CUSTOMER]},
+  })
   @get('/api/users/{id}', {
     responses: {
       '200': {
@@ -230,7 +238,6 @@ export class UserController {
         otp: false,
         otpExpireAt: false,
       },
-      include: ['department'],
     });
     return Promise.resolve({
       ...user,
@@ -483,4 +490,6 @@ export class UserController {
       deletedAt: new Date(),
     });
   }
+
 }
+

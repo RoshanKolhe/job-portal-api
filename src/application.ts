@@ -19,6 +19,7 @@ import {BcryptHasher} from './services/hash.password.bcrypt';
 import {JWTService} from './services/jwt-service';
 import {MyUserService} from './services/user-service';
 
+
 export {ApplicationConfig};
 
 export class JobPortalApiApplication extends BootMixin(
@@ -82,6 +83,9 @@ export class JobPortalApiApplication extends BootMixin(
 
     // Configure the file upload service with multer options
     this.configure(FILE_UPLOAD_SERVICE).to(multerOptions);
+
+
+
   }
 }
 

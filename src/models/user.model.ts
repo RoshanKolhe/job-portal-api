@@ -1,4 +1,5 @@
-import {Entity, model, property} from '@loopback/repository';
+import {Entity, hasMany, model, property} from '@loopback/repository';
+import {Resume} from './resume.model';
 
 @model()
 export class User extends Entity {
@@ -13,6 +14,11 @@ export class User extends Entity {
   })
   firstName: string;
 
+  // @property({
+  //   type: 'string',
+  // })
+  // middleName: string;
+
   @property({
     type: 'string',
   })
@@ -23,10 +29,10 @@ export class User extends Entity {
   })
   dob: string;
 
-  @property({
-    type: 'string',
-  })
-  resumeUrl: string;
+  // @property({
+  //   type: 'string',
+  // })
+  // resumeUrl: string;
 
   @property({
     type: 'string',
@@ -67,7 +73,7 @@ export class User extends Entity {
   @property({
     type: 'object',
   })
-  coverImage?: object;
+  backgroundImage?: object;
 
   @property.array(String, {
     name: 'permissions',
@@ -115,6 +121,15 @@ export class User extends Entity {
     default: false,
   })
   isDeleted: boolean;
+
+  @property({
+      type: 'string',
+      default: false,
+    })
+    linkedinUrl?: string;
+
+  @hasMany(() => Resume)
+  resumes: Resume[];
 
   constructor(data?: Partial<User>) {
     super(data);

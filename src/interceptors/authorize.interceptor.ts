@@ -47,7 +47,6 @@ export class AuthorizeInterceptor implements Provider<Interceptor> {
     next: () => ValueOrPromise<InvocationResult>,
   ) {
     try {
-      console.log('here');
       // Add pre-invocation logic here
       if (this.metaData) {
         if (!this.metaData[0]?.options?.required) return await next();

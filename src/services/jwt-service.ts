@@ -30,7 +30,7 @@ export class JWTService {
     }
     let token = '';
     try {
-      token = await signAsync(userProfile, 'mushroom', {
+      token = await signAsync(userProfile, 'jobPortal', {
         expiresIn: '10m',
       });
     } catch (err) {
@@ -54,6 +54,7 @@ export class JWTService {
           id: '',
           email: '',
           name: '',
+          middleName:'',
           [securityId]: '',
           permissions: '',
           userType: '',
@@ -61,6 +62,7 @@ export class JWTService {
         {
           id: decryptedToken.id,
           name: decryptedToken.name,
+          middleName:decryptedToken.middleName,
           email: decryptedToken.email,
           [securityId]: decryptedToken.id,
           permissions: decryptedToken.permissions,
