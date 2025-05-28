@@ -59,7 +59,7 @@ async create(
     },
   })
   body: any,
-): Promise<Resume | {message: string}> {
+): Promise< {message: string, success:boolean}> {
   const {linkedinUrl, fileDetails, ...resumeRaw} = body;
 
   // ❌ If both missing, throw error
@@ -82,11 +82,11 @@ async create(
       userId: +currentUser.id,
     };
 
-    return this.resumeRepository.create(resume as Omit<Resume, 'id'>);
+    // return this.resumeRepository.create(resume as Omit<Resume, 'id'>);
   }
 
   // ✅ Only linkedinUrl was updated, no resume to return
-  return {message: 'LinkedIn URL updated successfully.'};
+  return {message: 'uploaded successfully.',success:true};
 }
 
 
