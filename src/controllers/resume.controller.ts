@@ -12,13 +12,12 @@ import {
   del,
   get,
   getModelSchemaRef,
-  HttpErrors,
   param,
   patch,
   post,
   put,
   requestBody,
-  response
+  response,
 } from '@loopback/rest';
 import {UserProfile} from '@loopback/security';
 import {Resume} from '../models';
@@ -27,71 +26,62 @@ import {ResumeRepository, UserRepository} from '../repositories';
 export class ResumeController {
   constructor(
     @repository(ResumeRepository)
-    public resumeRepository : ResumeRepository,
-     @repository(UserRepository)
-    public userRepository : UserRepository,
+    public resumeRepository: ResumeRepository,
+    @repository(UserRepository)
+    public userRepository: UserRepository,
   ) {}
 
-@post('/resumes')
-@response(200, {
-  description: 'Resume created or LinkedIn URL updated',
-  content: {'application/json': {schema: getModelSchemaRef(Resume)}},
-})
-@authenticate('jwt')
-async create(
-  @inject(AuthenticationBindings.CURRENT_USER)
-  currentUser: UserProfile,
-  @requestBody({
-    content: {
-      'application/json': {
-        schema: {
-          type: 'object',
-          properties: {
-            ...getModelSchemaRef(Resume, {
-              title: 'NewResume',
-              exclude: ['id'],
-            }).definitions?.Resume?.properties,
-            linkedinUrl: {type: 'string'},
-            fileDetails: {type: 'object'},
+  @post('/resumes')
+  @response(200, {
+    description: 'Resume created or LinkedIn URL updated',
+    content: {'application/json': {schema: getModelSchemaRef(Resume)}},
+  })
+  @authenticate('jwt')
+  async create(
+    @inject(AuthenticationBindings.CURRENT_USER)
+    currentUser: UserProfile,
+    @requestBody({
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              ...getModelSchemaRef(Resume, {
+                title: 'NewResume',
+                exclude: ['id'],
+              }).definitions?.Resume?.properties,
+              linkedinUrl: {type: 'string'},
+              fileDetails: {
+                type: 'object',
+                additionalProperties: true,
+              },
+            },
+            anyOf: [{required: ['linkedinUrl']}, {required: ['fileDetails']}],
           },
         },
       },
-    },
-  })
-  body: any,
-): Promise< {message: string, success:boolean}> {
-  const {linkedinUrl, fileDetails, ...resumeRaw} = body;
+    })
+    body: any,
+  ): Promise<{message: string; success: boolean}> {
+    const {linkedinUrl, fileDetails, ...resumeRaw} = body;
 
-  // ❌ If both missing, throw error
-  if (!linkedinUrl && !fileDetails) {
-    throw new HttpErrors.BadRequest(
-      'At least one of linkedinUrl or fileDetails must be provided.'
-    );
+    if (linkedinUrl) {
+      await this.userRepository.updateById(currentUser.id, {linkedinUrl});
+    }
+
+    if (fileDetails) {
+      const resume: Partial<Omit<Resume, 'id'>> = {
+        ...resumeRaw,
+        fileDetails,
+        userId: currentUser.id,
+      };
+
+      await this.resumeRepository.create(resume as Omit<Resume, 'id'>);
+    }
+
+    return {message: 'Uploaded successfully.', success: true};
   }
-
-  // ✅ Update user if linkedinUrl present
-  if (linkedinUrl) {
-    await this.userRepository.updateById(currentUser.id, {linkedinUrl});
-  }
-
-  // ✅ Create resume if fileDetails present
-  if (fileDetails) {
-    const resume: Partial<Omit<Resume, 'id'>> = {
-      ...resumeRaw,
-      fileDetails,
-      userId: +currentUser.id,
-    };
-
-    // return this.resumeRepository.create(resume as Omit<Resume, 'id'>);
-  }
-
-  // ✅ Only linkedinUrl was updated, no resume to return
-  return {message: 'uploaded successfully.',success:true};
-}
-
-
-
-
 
   @get('/resumes')
   @response(200, {
@@ -105,9 +95,7 @@ async create(
       },
     },
   })
-  async find(
-    @param.filter(Resume) filter?: Filter<Resume>,
-  ): Promise<Resume[]> {
+  async find(@param.filter(Resume) filter?: Filter<Resume>): Promise<Resume[]> {
     return this.resumeRepository.find(filter);
   }
 
@@ -141,7 +129,8 @@ async create(
   })
   async findById(
     @param.path.number('id') id: number,
-    @param.filter(Resume, {exclude: 'where'}) filter?: FilterExcludingWhere<Resume>
+    @param.filter(Resume, {exclude: 'where'})
+    filter?: FilterExcludingWhere<Resume>,
   ): Promise<Resume> {
     return this.resumeRepository.findById(id, filter);
   }
