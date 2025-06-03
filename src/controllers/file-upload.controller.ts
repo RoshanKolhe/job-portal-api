@@ -66,9 +66,11 @@ export class FileUploadController {
   private static getFilesAndFields(request: Request) {
     const uploadedFiles = request.files;
     const mapper = (f: globalThis.Express.Multer.File) => {
+      console.log('file', f);
       return {
         fieldname: f.fieldname,
         fileName: f.originalname,
+        newFileName: f.filename,
         fileUrl: `${process.env.API_ENDPOINT}/files/${f.filename}`, // Use f.filename instead of f.originalname
         encoding: f.encoding,
         mimetype: f.mimetype,

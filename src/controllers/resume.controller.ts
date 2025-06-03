@@ -52,6 +52,8 @@ export class ResumeController {
                 exclude: ['id'],
               }).definitions?.Resume?.properties,
               linkedinUrl: {type: 'string'},
+              fileDetails: {type: 'object'},
+            },
               fileDetails: {
                 type: 'object',
                 additionalProperties: true,
@@ -66,10 +68,19 @@ export class ResumeController {
   ): Promise<{message: string; success: boolean}> {
     const {linkedinUrl, fileDetails, ...resumeRaw} = body;
 
+    // ❌ If both missing, throw error
+    if (!linkedinUrl && !fileDetails) {
+      throw new HttpErrors.BadRequest(
+        'At least one of linkedinUrl or fileDetails must be provided.',
+      );
+    }
+
+    // ✅ Update user if linkedinUrl present
     if (linkedinUrl) {
       await this.userRepository.updateById(currentUser.id, {linkedinUrl});
     }
 
+    // ✅ Create resume if fileDetails present
     if (fileDetails) {
       const resume: Partial<Omit<Resume, 'id'>> = {
         ...resumeRaw,
@@ -80,7 +91,7 @@ export class ResumeController {
       await this.resumeRepository.create(resume as Omit<Resume, 'id'>);
     }
 
-    return {message: 'Uploaded successfully.', success: true};
+    return {message: 'uploaded successfully.', success: true};
   }
 
   @get('/resumes')
