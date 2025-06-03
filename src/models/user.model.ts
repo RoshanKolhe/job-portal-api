@@ -22,12 +22,12 @@ export class User extends Entity {
   @property({
     type: 'string',
   })
-  lastName: string;
+  lastName?: string;
 
   @property({
     type: 'string',
   })
-  dob: string;
+  dob?: string;
 
   // @property({
   //   type: 'string',
@@ -37,17 +37,17 @@ export class User extends Entity {
   @property({
     type: 'string',
   })
-  fullAddress: string;
+  fullAddress?: string;
 
   @property({
     type: 'string',
   })
-  city: string;
+  city?: string;
 
   @property({
     type: 'string',
   })
-  state: string;
+  state?: string;
 
   @property({
     type: 'string',
@@ -63,7 +63,7 @@ export class User extends Entity {
     type: 'string',
     required: true,
   })
-  phoneNumber: string;
+  phoneNumber?: string;
 
   @property({
     type: 'object',
@@ -99,7 +99,7 @@ export class User extends Entity {
   @property({
     type: 'string',
   })
-  otpExpireAt: string;
+  otpExpireAt?: string;
 
   @property({
     type: 'date',
@@ -127,6 +127,12 @@ export class User extends Entity {
       default: false,
     })
     linkedinUrl?: string;
+
+    @property({
+      type:'string',
+      default:'false',
+    })
+    provider:string;
 
   @hasMany(() => Resume)
   resumes: Resume[];

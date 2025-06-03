@@ -1,12 +1,41 @@
+
 import {ApplicationConfig, JobPortalApiApplication} from './application';
+const expressSession = require('express-session'); // ✅ safe in LB4
 
 export * from './application';
 
 export async function main(options: ApplicationConfig = {}) {
   const app = new JobPortalApiApplication(options);
 
-  const dotenv = require('dotenv').config();
+  require('dotenv').config();
+
   await app.boot();
+
+const expressSession = require('express-session');
+const passport = require('passport');
+require('./services/google-auth.service');
+
+passport.serializeUser((user: any, done: any) => done(null, user));
+passport.deserializeUser((user: any, done: any) => done(null, user));
+
+app.expressMiddleware('middleware.session', expressSession({
+  secret: 'keyboard cat',
+  resave: false,
+  saveUninitialized: false,
+}));
+
+
+app.expressMiddleware('middleware.passportSession', passport.session());
+
+  passport.serializeUser((user: any, done: any) => {
+    done(null, user);
+  });
+
+  passport.deserializeUser((user: any, done:any) => {
+    done(null, user);
+  });
+
+  // 👇 Start the app after middleware is applied
   await app.start();
 
   const url = app.restServer.url;
@@ -16,20 +45,14 @@ export async function main(options: ApplicationConfig = {}) {
   return app;
 }
 
+
 if (require.main === module) {
-  // Run the application
   const config = {
     rest: {
       port: +(process.env.PORT ?? 3000),
       host: process.env.HOST || '127.0.0.1',
-      // The `gracePeriodForClose` provides a graceful close for http/https
-      // servers with keep-alive clients. The default value is `Infinity`
-      // (don't force-close). If you want to immediately destroy all sockets
-      // upon stop, set its value to `0`.
-      // See https://www.npmjs.com/package/stoppable
-      gracePeriodForClose: 5000, // 5 seconds
+      gracePeriodForClose: 5000,
       openApiSpec: {
-        // useful when used with OpenAPI-to-GraphQL to locate your application
         setServersFromRequest: true,
       },
     },

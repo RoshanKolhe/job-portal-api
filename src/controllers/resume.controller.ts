@@ -12,7 +12,6 @@ import {
   del,
   get,
   getModelSchemaRef,
-  HttpErrors,
   param,
   patch,
   post,
@@ -42,6 +41,7 @@ export class ResumeController {
     @inject(AuthenticationBindings.CURRENT_USER)
     currentUser: UserProfile,
     @requestBody({
+      required: true,
       content: {
         'application/json': {
           schema: {
@@ -54,6 +54,12 @@ export class ResumeController {
               linkedinUrl: {type: 'string'},
               fileDetails: {type: 'object'},
             },
+              fileDetails: {
+                type: 'object',
+                additionalProperties: true,
+              },
+            },
+            anyOf: [{required: ['linkedinUrl']}, {required: ['fileDetails']}],
           },
         },
       },
