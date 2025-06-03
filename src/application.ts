@@ -1,5 +1,3 @@
-// ✅ Already clean and valid — NO need to use express manually
-
 import {
   AuthenticationComponent,
   registerAuthenticationStrategy,

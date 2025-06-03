@@ -30,6 +30,7 @@ export class LinkedinAuthService {
           clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
           callbackURL: 'http://localhost:3000/auth/linkedin/callback',
           scope: ['openid', 'profile', 'email'],
+
           passReqToCallback: true,
         },
         async (
