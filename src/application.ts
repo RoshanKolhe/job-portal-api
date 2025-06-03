@@ -26,8 +26,8 @@ import {EmailService} from './services/email.service';
 import {BcryptHasher} from './services/hash.password.bcrypt';
 import {JWTService} from './services/jwt-service';
 import {MyUserService} from './services/user-service';
-
 import {LinkedinAuthService} from './services/linkedIn-auth.services';
+import {GoogleAuthService} from './services/google-auth.service';
 export {ApplicationConfig};
 
 export class JobPortalApiApplication extends BootMixin(
@@ -68,6 +68,8 @@ export class JobPortalApiApplication extends BootMixin(
     this.bind('service.user.service').toClass(MyUserService);
 
     this.bind('service.linkedinAuth.service').toClass(LinkedinAuthService);
+
+    this.bind('service.googleAuth.service').toClass(GoogleAuthService);
     this.bind(EmailManagerBindings.SEND_MAIL).toClass(EmailService);
   }
 
