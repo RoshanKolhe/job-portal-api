@@ -70,6 +70,9 @@
     "loopback-connector-mysql": "^7.0.17",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.16",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "passport-linkedin-oauth2": "^2.0.0",
     "tslib": "^2.0.0"
   },
   "devDependencies": {
