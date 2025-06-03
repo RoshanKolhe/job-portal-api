@@ -61,7 +61,7 @@ export class ResumeController {
     body: any,
   ): Promise<{message: string; success: boolean}> {
     const {linkedinUrl, fileDetails, ...resumeRaw} = body;
-
+//working code
     // ❌ If both missing, throw error
     if (!linkedinUrl && !fileDetails) {
       throw new HttpErrors.BadRequest(
