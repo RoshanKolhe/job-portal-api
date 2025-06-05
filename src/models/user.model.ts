@@ -9,30 +9,17 @@ export class User extends Entity {
     generated: true,
   })
   id?: number;
+  
   @property({
     type: 'string',
+    required: true
   })
-  firstName: string;
-
-  // @property({
-  //   type: 'string',
-  // })
-  // middleName: string;
-
-  @property({
-    type: 'string',
-  })
-  lastName?: string;
+  fullName: string;
 
   @property({
     type: 'string',
   })
   dob?: string;
-
-  // @property({
-  //   type: 'string',
-  // })
-  // resumeUrl: string;
 
   @property({
     type: 'string',
@@ -51,11 +38,13 @@ export class User extends Entity {
 
   @property({
     type: 'string',
+    required: true
   })
   email: string;
 
   @property({
     type: 'string',
+    required: true
   })
   password: string;
 
@@ -74,6 +63,11 @@ export class User extends Entity {
     type: 'object',
   })
   backgroundImage?: object;
+
+  @property({
+    type: 'string'
+  })
+  profileDescription?: string;
 
   @property.array(String, {
     name: 'permissions',
@@ -123,16 +117,16 @@ export class User extends Entity {
   isDeleted: boolean;
 
   @property({
-      type: 'string',
-      default: false,
-    })
-    linkedinUrl?: string;
+    type: 'string',
+    default: false,
+  })
+  linkedinUrl?: string;
 
-    @property({
-      type:'string',
-      default:'false',
-    })
-    provider:string;
+  @property({
+    type:'string',
+    default:'false',
+  })
+  provider:string;
 
   @hasMany(() => Resume)
   resumes: Resume[];
