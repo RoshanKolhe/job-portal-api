@@ -140,6 +140,7 @@ export class ProfileAnalyticsController {
         data: finalAnalyticsData
       };
     } catch (error) {
+      console.log('error while getting analytics', error);
       const analyticsRepository = await this.profileAnalyticsRepository.findOne({where : {resumeId : requestBody.resumeId}, include : [{relation : 'user'}]});
       if(analyticsRepository){
         return {
