@@ -13,85 +13,72 @@ export class ProfileAnalytics extends Entity {
 
   @property({
     type: 'string',
-    required: true,
   })
-  relevant_job_class: string;
+  relevant_job_class?: string;
 
   @property({
-    type: 'number',
-    required: true,
-  })
-  FOBO_Score: number;
+    type: 'number'
+    })
+  FOBO_Score?: number;
 
   @property({
-    type: 'number',
-    required: true,
-  })
-  Augmented_Score: number;
+    type: 'number'
+    })
+  Augmented_Score?: number;
 
   @property({
-    type: 'string',
-    required: true,
-  })
-  Augmentation_Comment: string;
+    type: 'string'
+    })
+  Augmentation_Comment?: string;
 
   @property({
-    type: 'number',
-    required: true,
-  })
-  Automated_Score: number;
+    type: 'number'
+    })
+  Automated_Score?: number;
 
   @property({
-    type: 'string',
-    required: true,
-  })
-  Automated_Comment: string;
+    type: 'string'
+    })
+  Automated_Comment?: string;
 
   @property({
-    type: 'number',
-    required: true,
-  })
-  Human_Score: number;
+    type: 'number'
+    })
+  Human_Score?: number;
 
   @property({
-    type: 'string',
-    required: true,
-  })
-  Human_Comment: string;
+    type: 'string'
+    })
+  Human_Comment?: string;
 
   @property({
-    type: 'object',
-    required: true,
-  })
-  Comment: object;
+    type: 'object'
+    })
+  Comment?: object;
 
   @property({
     type: 'array',
-    itemType: 'object',
-    required: true,
-  })
-  Strategy: object[];
+    itemType: 'object'
+    })
+  Strategy?: object[];
 
   @property({
     type: 'array',
-    itemType: 'string',
-    required: true,
-  })
-  Task_Distribution_Automation: string[];
+    itemType: 'string'
+    })
+  Task_Distribution_Automation?: string[];
 
   @property({
     type: 'array',
-    itemType: 'string',
-    required: true,
-  })
-  Task_Distribution_Human: string[];
+    itemType: 'string'
+    })
+  Task_Distribution_Human?: string[];
 
   @property({
     type: 'array',
-    itemType: 'string',
-    required: true,
-  })
-  Task_Distribution_Augmentation: string[];
+    itemType: 'string'
+    })
+  Task_Distribution_Augmentation?: string[];
 
   @belongsTo(() => User)
   userId: number;
