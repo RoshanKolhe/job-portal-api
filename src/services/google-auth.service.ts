@@ -47,7 +47,7 @@ export class GoogleAuthService {
             if (!user) {
               user = await this.userRepository.create({
                 email,
-                firstName: profile.displayName,
+                fullName: profile.displayName,
                 permissions: [PermissionKeys.CUSTOMER],
                 isActive: true,
               });

@@ -42,7 +42,7 @@ export class LinkedinAuthService {
         ) => {
           try {
             const email = profile.emails?.[0]?.value;
-            const firstName = profile.displayName;
+            const fullName = profile.displayName;
 
             if (!email) {
               return done(new Error('Email not provided by LinkedIn'), null);
@@ -52,7 +52,7 @@ export class LinkedinAuthService {
             if (!user) {
               user = await this.userRepository.create({
                 email,
-                firstName,
+                fullName,
                 permissions: [PermissionKeys.CUSTOMER],
                 isActive: true,
               });

@@ -53,12 +53,6 @@ export class UserController {
     public jwtService: JWTService,
   ) {}
 
-  // @authenticate({
-  //   strategy: 'jwt',
-  //   options: {
-  //     required: [PermissionKeys.ADMIN],
-  //   },
-  // })
   @post('/register', {
     responses: {
       '200': {
@@ -147,28 +141,28 @@ export class UserController {
   }
 
   @get('/me')
-@authenticate('jwt')
-async whoAmI(
-  @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
-): Promise<{}> {
-  const user = await this.userRepository.findOne({
-    where: {
-      id: currentUser.id,
-    },
-    include: [{relation: 'resumes'}],
-  });
+  @authenticate('jwt')
+  async whoAmI(
+    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
+  ): Promise<{}> {
+    const user = await this.userRepository.findOne({
+      where: {
+        id: currentUser.id,
+      },
+      include: [{relation: 'resumes'}],
+    });
 
-  if (!user) {
-    throw new HttpErrors.NotFound('User not found');
+    if (!user) {
+      throw new HttpErrors.NotFound('User not found');
+    }
+
+    const userData = _.omit(user, 'password');
+
+    return {
+      ...userData,
+      displayName: `${userData?.fullName}`,
+    };
   }
-
-  const userData = _.omit(user, 'password');
-
-  return {
-    ...userData,
-    displayName: `${userData?.firstName ?? ''} ${userData?.lastName ?? ''}`,
-  };
-}
 
 
   @authenticate({

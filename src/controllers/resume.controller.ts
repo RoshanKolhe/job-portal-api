@@ -1,5 +1,3 @@
-import {authenticate, AuthenticationBindings} from '@loopback/authentication';
-import {inject} from '@loopback/core';
 import {
   Count,
   CountSchema,
@@ -9,83 +7,179 @@ import {
   Where,
 } from '@loopback/repository';
 import {
-  del,
+  post,
+  param,
   get,
   getModelSchemaRef,
-  HttpErrors,
-  param,
   patch,
-  post,
   put,
+  del,
   requestBody,
   response,
+  HttpErrors,
 } from '@loopback/rest';
-import {UserProfile} from '@loopback/security';
-import {Resume} from '../models';
+import {Resume, User} from '../models';
 import {ResumeRepository, UserRepository} from '../repositories';
+import { authenticate, AuthenticationBindings } from '@loopback/authentication';
+import { inject } from '@loopback/core';
+import {UserProfile} from '@loopback/security';
+import fs from 'fs';
+import FormData from 'form-data';
+import path from 'path';
+import { STORAGE_DIRECTORY } from '../keys';
+import axios from 'axios';
+import * as isEmail from 'isemail';
+import { BcryptHasher } from '../services/hash.password.bcrypt';
 
 export class ResumeController {
   constructor(
     @repository(ResumeRepository)
-    public resumeRepository: ResumeRepository,
+    public resumeRepository : ResumeRepository,
     @repository(UserRepository)
-    public userRepository: UserRepository,
+    public userRepository : UserRepository,
+    @inject(STORAGE_DIRECTORY) private storageDirectory: string,
+    @inject('service.hasher') public hasher: BcryptHasher,
   ) {}
 
+  // post new resume for login users
+  @authenticate({
+    strategy: 'jwt',
+  })
   @post('/resumes')
   @response(200, {
-    description: 'Resume created or LinkedIn URL updated',
+    description: 'Resume model instance',
     content: {'application/json': {schema: getModelSchemaRef(Resume)}},
   })
-  @authenticate('jwt')
   async create(
-    @inject(AuthenticationBindings.CURRENT_USER)
-    currentUser: UserProfile,
+    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
     @requestBody({
       content: {
         'application/json': {
-          schema: {
-            type: 'object',
-            properties: {
-              ...getModelSchemaRef(Resume, {
-                title: 'NewResume',
-                exclude: ['id'],
-              }).definitions?.Resume?.properties,
-              linkedinUrl: {type: 'string'},
-              fileDetails: {type: 'object'},
-            },
-          },
+          schema: getModelSchemaRef(Resume, {
+            title: 'NewResume',
+            exclude: ['id'],
+          }),
         },
       },
     })
-    body: any,
-  ): Promise<{message: string; success: boolean}> {
-    const {linkedinUrl, fileDetails, ...resumeRaw} = body;
-//working code
-    // ❌ If both missing, throw error
-    if (!linkedinUrl && !fileDetails) {
-      throw new HttpErrors.BadRequest(
-        'At least one of linkedinUrl or fileDetails must be provided.',
-      );
-    }
+    resume: Omit<Resume, 'id'>,
+  ): Promise<Resume> {
+    try{
+      const user = await this.userRepository.findById(currentUser.id);
 
-    // ✅ Update user if linkedinUrl present
-    if (linkedinUrl) {
-      await this.userRepository.updateById(currentUser.id, {linkedinUrl});
-    }
+      if(!user){
+        throw new HttpErrors.BadRequest('User not found');
+      }
 
-    // ✅ Create resume if fileDetails present
-    if (fileDetails) {
-      const resume: Partial<Omit<Resume, 'id'>> = {
-        ...resumeRaw,
-        fileDetails,
-        userId: currentUser.id,
+      const resumeData : Resume = {
+        ...resume,
+        userId: user.id
       };
 
-      await this.resumeRepository.create(resume as Omit<Resume, 'id'>);
-    }
+      return this.resumeRepository.create(resumeData);
 
-    return {message: 'uploaded successfully.', success: true};
+    }catch(error){
+      throw error;
+    }
+  }
+
+  // validate file path...
+  private validateFileName(fileName: string) {
+    const resolved = path.resolve(this.storageDirectory, fileName);
+    if (resolved.startsWith(this.storageDirectory)) return resolved;
+    // The resolved file is outside sandbox
+    throw new HttpErrors.BadRequest(`Invalid file name: ${fileName}`);
+  }
+
+  // get user info...
+  async getUserInfo(fileDetails: any): Promise<any> {
+    try {
+      const filePath = this.validateFileName(fileDetails.newFileName);
+      if (!filePath) throw new HttpErrors.NotFound('Resume Not Found');
+
+      const formData = new FormData();
+      formData.append('file', fs.createReadStream(filePath));
+      formData.append('user_id', `1`);
+      formData.append('X-apiKey', '2472118222258182');
+      formData.append('short_task_description', 'true');
+
+      const response = await axios.post(process.env.SERVER_URL + 'fobo', formData, {
+        headers: formData.getHeaders(),
+      });
+
+      const { Name, Email, Phone } = response.data?.data || {};
+
+      if (Name && Email && Phone && isEmail.validate(Email)) {
+        const existing = await this.userRepository.findOne({ where: { email: Email } });
+
+        if (!existing) {
+          const password = await this.hasher.generateRandomPassword();
+          const hashedPassword = await this.hasher.hashPassword(password);
+
+          const user = await this.userRepository.create({
+            fullName: Name,
+            email: Email,
+            phoneNumber: Phone,
+            isActive: true,
+            isDeleted: false,
+            password: hashedPassword,
+            permissions: ['customer'],
+          });
+
+          return user;
+        }
+        return existing;
+      }
+
+      return null;
+
+    } catch (error) {
+      console.error('Error in getUserInfo:', error.message, error.stack);
+      throw new HttpErrors.InternalServerError('Failed to fetch user info');
+    }
+  }
+
+  // post resume for guest users...
+  @post('/resumes/guest-upload')
+  async guestUploadResume(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: getModelSchemaRef(Resume, {
+            title: 'NewResume',
+            exclude: ['id'],
+          }),
+        },
+      },
+    })
+    resume: Omit<Resume, 'id'>,
+  ):Promise<Resume>{
+    try{
+      const {fileDetails} = resume;
+      const data = await this.getUserInfo(fileDetails);
+
+      if(data){
+        const newResume = await this.resumeRepository.create({...resume, userId: data?.id});
+
+        return newResume;
+      }
+
+      const resumeData = await this.resumeRepository.create(resume);
+      return resumeData;
+    }catch(error){
+      throw error;
+    }
+  }
+
+  @get('/resumes/count')
+  @response(200, {
+    description: 'Resume model count',
+    content: {'application/json': {schema: CountSchema}},
+  })
+  async count(
+    @param.where(Resume) where?: Where<Resume>,
+  ): Promise<Count> {
+    return this.resumeRepository.count(where);
   }
 
   @get('/resumes')
@@ -100,7 +194,9 @@ export class ResumeController {
       },
     },
   })
-  async find(@param.filter(Resume) filter?: Filter<Resume>): Promise<Resume[]> {
+  async find(
+    @param.filter(Resume) filter?: Filter<Resume>,
+  ): Promise<Resume[]> {
     return this.resumeRepository.find(filter);
   }
 
@@ -134,8 +230,7 @@ export class ResumeController {
   })
   async findById(
     @param.path.number('id') id: number,
-    @param.filter(Resume, {exclude: 'where'})
-    filter?: FilterExcludingWhere<Resume>,
+    @param.filter(Resume, {exclude: 'where'}) filter?: FilterExcludingWhere<Resume>
   ): Promise<Resume> {
     return this.resumeRepository.findById(id, filter);
   }
