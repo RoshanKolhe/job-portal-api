@@ -87,6 +87,7 @@ export class ProfileAnalyticsController {
         await this.profileAnalyticsRepository.updateById(analytics.id, {
           ...analytics,
           resumeId: resume.id,
+          userId: resume.userId,
           relevant_job_class: response.data.data.relevant_job_class,
           FOBO_Score: response.data.data.FOBO_Score,
           Augmented_Score: response.data.data.Augmented_Score,
