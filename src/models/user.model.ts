@@ -69,6 +69,11 @@ export class User extends Entity {
   })
   profileDescription?: string;
 
+  @property({
+    type: 'string'
+  })
+  designation?: string;
+
   @property.array(String, {
     name: 'permissions',
   })
