@@ -7,6 +7,7 @@ import fs from 'fs';
 import axios from 'axios';
 import FormData from 'form-data';
 import path from 'path';
+import {JobPortalDataSource} from '../datasources';
 import {STORAGE_DIRECTORY} from '../keys';
 import {
   ProfileAnalyticsRepository,
@@ -16,6 +17,8 @@ import {
 
 export class ProfileAnalyticsController {
   constructor(
+    @inject('datasources.job_portal')
+    public dataSource: JobPortalDataSource,
     @repository(ProfileAnalyticsRepository)
     public profileAnalyticsRepository: ProfileAnalyticsRepository,
     @repository(UserRepository)
@@ -59,7 +62,8 @@ export class ProfileAnalyticsController {
         throw new HttpErrors.BadRequest('Resume Not found');
       }
 
-      let res: any;
+      // let res: any;
+      // let res: any;
       const formData = new FormData();
 
       const filePath = this.validateFileName(resume.fileDetails.newFileName);
@@ -74,8 +78,6 @@ export class ProfileAnalyticsController {
       }
       formData.append('X-apiKey', 2472118222258182);
       formData.append('short_task_description', 'true');
-
-      console.log('formData',formData);
 
       const response = await axios.post(url, formData, {
         headers: formData.getHeaders(),
@@ -163,3 +165,14 @@ export class ProfileAnalyticsController {
     throw new HttpErrors.BadRequest(`Invalid file name: ${fileName}`);
   }
 }
+
+//code for the data validation
+//    const existingData = await this.profileAnalyticsRepository.findOne({
+//   where:{resumeId: resume.id , userId: user.id}
+// })
+// if(existingData){
+//   console.log('Retrun Previous Save Data');
+//   return existingData;
+// }else{
+//   throw new HttpErrors.NotFound('For Given ResumeId Data Will Not Found');
+// }
