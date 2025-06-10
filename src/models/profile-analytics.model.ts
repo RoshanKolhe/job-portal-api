@@ -93,11 +93,32 @@ export class ProfileAnalytics extends Entity {
   })
   Task_Distribution_Augmentation: string[];
 
-  @belongsTo(() => User)
-  userId: number;
+  @property({
+    type: 'date',
+  })
+  createdAt?: Date;
+
+  @property({
+    type: 'date',
+  })
+  updatedAt?: Date;
+
+  @property({
+    type: 'date',
+  })
+  deletedAt?: Date;
+
+  @property({
+    type: 'boolean',
+    default: false,
+  })
+  isDeleted: boolean;
 
   @belongsTo(() => Resume)
   resumeId: number;
+
+  @belongsTo(() => User)
+  userId: number;
 
   constructor(data?: Partial<ProfileAnalytics>) {
     super(data);

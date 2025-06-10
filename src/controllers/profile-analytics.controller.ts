@@ -3,11 +3,11 @@ import {inject} from '@loopback/core';
 import {repository} from '@loopback/repository';
 import {HttpErrors, post, requestBody} from '@loopback/rest';
 import {UserProfile} from '@loopback/security';
-import fs from 'fs';
-
 import axios from 'axios';
 import FormData from 'form-data';
+import fs from 'fs';
 import path from 'path';
+import {JobPortalDataSource} from '../datasources';
 import {STORAGE_DIRECTORY} from '../keys';
 import {
   ProfileAnalyticsRepository,
@@ -17,6 +17,8 @@ import {
 
 export class ProfileAnalyticsController {
   constructor(
+    @inject('datasources.job_portal')
+    public dataSource: JobPortalDataSource,
     @repository(ProfileAnalyticsRepository)
     public profileAnalyticsRepository: ProfileAnalyticsRepository,
     @repository(UserRepository)
@@ -59,7 +61,7 @@ export class ProfileAnalyticsController {
       if (!resume) {
         throw new HttpErrors.BadRequest('Resume Not found');
       }
-      let res: any;
+      // let res: any;
       const formData = new FormData();
 
       // const file = this.validateFileName(resume.fileDetails.newFileName);
@@ -82,15 +84,34 @@ export class ProfileAnalyticsController {
       formData.append('user_id', `${user.id}`);
       formData.append('X-apiKey', 2472118222258182);
       formData.append('short_task_description', 'true');
-      console.log(formData);
-      console.log('url', url);
 
       const response = await axios.post(url, formData, {
         headers: formData.getHeaders(), // VERY IMPORTANT!
       });
+
+      const data = response.data.data;
+
+      const profileAnalyticsData = {
+        relevant_job_class: data.relevant_job_class,
+        FOBO_Score: data.FOBO_Score,
+        Augmented_Score: data.Augmented_Score,
+        Augmentation_Comment: data.Augmentation_Comment,
+        Automated_Score: data.Automated_Score,
+        Automated_Comment: data.Automated_Comment,
+        Human_Score: data.Human_Score,
+        Human_Comment: data.Human_Comment,
+        Comment: data.Comment,
+        Strategy: data.Strategy,
+        Task_Distribution_Automation: data.Task_Distribution_Automation,
+        Task_Distribution_Human: data.Task_Distribution_Human,
+        Task_Distribution_Augmentation: data.Task_Distribution_Augmentation,
+        userId: user.id,
+        resumeId: resume.id,
+      };
+      await this.profileAnalyticsRepository.create(profileAnalyticsData);
+
       return response.data;
     } catch (error) {
-      console.log(error);
       throw error;
     }
   }
@@ -101,3 +122,14 @@ export class ProfileAnalyticsController {
     throw new HttpErrors.BadRequest(`Invalid file name: ${fileName}`);
   }
 }
+
+//code for the data validation
+//    const existingData = await this.profileAnalyticsRepository.findOne({
+//   where:{resumeId: resume.id , userId: user.id}
+// })
+// if(existingData){
+//   console.log('Retrun Previous Save Data');
+//   return existingData;
+// }else{
+//   throw new HttpErrors.NotFound('For Given ResumeId Data Will Not Found');
+// }

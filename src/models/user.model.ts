@@ -123,16 +123,10 @@ export class User extends Entity {
   isDeleted: boolean;
 
   @property({
-      type: 'string',
-      default: false,
-    })
-    linkedinUrl?: string;
-
-    @property({
-      type:'string',
-      default:'false',
-    })
-    provider:string;
+    type: 'string',
+    default: false,
+  })
+  linkedinUrl?: string;
 
   @hasMany(() => Resume)
   resumes: Resume[];
