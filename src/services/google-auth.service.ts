@@ -26,7 +26,7 @@ export class GoogleAuthService {
         {
           clientID: process.env.CLIENT_ID!,
           clientSecret: process.env.CLIENT_SECRET!,
-          callbackURL: 'http://localhost:3000/auth/google/callback',
+          callbackURL: 'https://api.altiv.ai/auth/google/callback',
           passReqToCallback: true,
         },
         async (
