@@ -43,6 +43,9 @@ export class ProfileAnalyticsController {
               linkedInUrl: {
                 type: 'string'
               },
+              viewDetails: {
+                type: 'boolean'
+              }
             },
           },
         },
@@ -51,6 +54,7 @@ export class ProfileAnalyticsController {
     requestBody: {
       resumeId: number;
       linkedInUrl: string;
+      viewDetails: boolean;
     },
   ): Promise<any> {
     try {
@@ -77,7 +81,7 @@ export class ProfileAnalyticsController {
         formData.append('linkedin_url', requestBody.linkedInUrl);
       }
       formData.append('X-apiKey', 2472118222258182);
-      formData.append('short_task_description', 'true');
+      formData.append('short_task_description', String(requestBody.viewDetails));
 
       const response = await axios.post(url, formData, {
         headers: formData.getHeaders(),

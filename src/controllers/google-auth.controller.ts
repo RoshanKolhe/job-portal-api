@@ -47,7 +47,7 @@ export class GoogleAuthController {
         }
 
         // ✅ Auth succeeded
-        res.redirect(`http://localhost:4200/success?token=${user.accessToken}`);
+        res.redirect(`https://altiv.ai/success?token=${user.accessToken}`);
         return resolve();
       })(req, res);
     });
