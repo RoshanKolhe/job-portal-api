@@ -1,14 +1,14 @@
-import {authenticate, AuthenticationBindings} from '@loopback/authentication';
-import {inject} from '@loopback/core';
-import {repository} from '@loopback/repository';
-import {HttpErrors, post, requestBody} from '@loopback/rest';
-import {UserProfile} from '@loopback/security';
+import { authenticate, AuthenticationBindings } from '@loopback/authentication';
+import { inject } from '@loopback/core';
+import { repository } from '@loopback/repository';
+import { HttpErrors, post, requestBody } from '@loopback/rest';
+import { UserProfile } from '@loopback/security';
 import fs from 'fs';
 import axios from 'axios';
 import FormData from 'form-data';
 import path from 'path';
-import {JobPortalDataSource} from '../datasources';
-import {STORAGE_DIRECTORY} from '../keys';
+import { JobPortalDataSource } from '../datasources';
+import { STORAGE_DIRECTORY } from '../keys';
 import {
   ProfileAnalyticsRepository,
   ResumeRepository,
@@ -26,7 +26,7 @@ export class ProfileAnalyticsController {
     @repository(ResumeRepository)
     public resumeRepository: ResumeRepository,
     @inject(STORAGE_DIRECTORY) private storageDirectory: string,
-  ) {}
+  ) { }
 
   // @authenticate('jwt')
   @post('/profile-analytics')
@@ -58,7 +58,7 @@ export class ProfileAnalyticsController {
     },
   ): Promise<any> {
     try {
-      const resume:any = await this.resumeRepository.findById(
+      const resume: any = await this.resumeRepository.findById(
         requestBody.resumeId,
       );
 
@@ -77,7 +77,7 @@ export class ProfileAnalyticsController {
       }
       formData.append('file', fs.createReadStream(filePath));
       formData.append('user_id', `1`);
-      if(requestBody.linkedInUrl && requestBody.linkedInUrl !== ''){
+      if (requestBody.linkedInUrl && requestBody.linkedInUrl !== '') {
         formData.append('linkedin_url', requestBody.linkedInUrl);
       }
       formData.append('X-apiKey', 2472118222258182);
@@ -87,9 +87,9 @@ export class ProfileAnalyticsController {
         headers: formData.getHeaders(),
       });
 
-      const analytics = await this.profileAnalyticsRepository.findOne({where : {resumeId : resume.id}});
+      const analytics = await this.profileAnalyticsRepository.findOne({ where: { resumeId: resume.id } });
 
-      if(analytics){
+      if (analytics) {
         await this.profileAnalyticsRepository.updateById(analytics.id, {
           ...analytics,
           resumeId: resume.id,
@@ -106,14 +106,14 @@ export class ProfileAnalyticsController {
           Strategy: response.data.data?.Strategy,
           Task_Distribution_Automation: response.data.data?.Task_Distribution_Automation,
           Task_Distribution_Human: response.data.data?.Task_Distribution_Human,
-          Task_Distribution_Augmentation: response.data.data?.Task_Distribution_Augmentation,        
+          Task_Distribution_Augmentation: response.data.data?.Task_Distribution_Augmentation,
         });
 
-        if(response.data.data?.user_id){
-          await this.userRepository.updateById(Number(response.data.data?.user_id),{profileDescription: response.data.data?.Profile_summary});
+        if (response.data.data?.user_id) {
+          await this.userRepository.updateById(Number(response.data.data?.user_id), { profileDescription: response.data.data?.Profile_summary });
         }
-        
-        const ProfileAnalyticsData = await this.profileAnalyticsRepository.findById(analytics.id, {include : [{relation : 'user'}]});
+
+        const ProfileAnalyticsData = await this.profileAnalyticsRepository.findById(analytics.id, { include: [{ relation: 'user' }] });
         return {
           success: true,
           message: 'Updated Profile Analytics data',
@@ -135,48 +135,98 @@ export class ProfileAnalyticsController {
         Strategy: response.data.data?.Strategy,
         Task_Distribution_Automation: response.data.data?.Task_Distribution_Automation,
         Task_Distribution_Human: response.data.data?.Task_Distribution_Human,
-        Task_Distribution_Augmentation: response.data.data?.Task_Distribution_Augmentation,        
+        Task_Distribution_Augmentation: response.data.data?.Task_Distribution_Augmentation,
       });
 
-      const finalAnalyticsData = await this.profileAnalyticsRepository.findById(analyticsData.id, {include : [{relation : 'user'}]});
+      const finalAnalyticsData = await this.profileAnalyticsRepository.findById(analyticsData.id, { include: [{ relation: 'user' }] });
 
-       return {
+      return {
         success: true,
         message: 'New Profile Analytics data',
         data: finalAnalyticsData
       };
     } catch (error) {
       console.log('error while getting analytics', error);
-      const analyticsRepository = await this.profileAnalyticsRepository.findOne({where : {resumeId : requestBody.resumeId}, include : [{relation : 'user'}]});
-      if(analyticsRepository){
+      const analyticsRepository = await this.profileAnalyticsRepository.findOne({ where: { resumeId: requestBody.resumeId }, include: [{ relation: 'user' }] });
+      if (analyticsRepository) {
         return {
           success: true,
           message: "old analytics data",
           data: analyticsRepository
         };
       }
-      return{
+      return {
         success: false,
         message: 'No data found'
       }
     }
   }
-  
+
   private validateFileName(fileName: string) {
     const resolved = path.resolve(this.storageDirectory, fileName);
     if (resolved.startsWith(this.storageDirectory)) return resolved;
     // The resolved file is outside sandbox
     throw new HttpErrors.BadRequest(`Invalid file name: ${fileName}`);
   }
-}
 
-//code for the data validation
-//    const existingData = await this.profileAnalyticsRepository.findOne({
-//   where:{resumeId: resume.id , userId: user.id}
-// })
-// if(existingData){
-//   console.log('Retrun Previous Save Data');
-//   return existingData;
-// }else{
-//   throw new HttpErrors.NotFound('For Given ResumeId Data Will Not Found');
-// }
+  // API for last FOBO analytics
+  // @authenticate({ strategy: 'jwt' })
+  @post('/last-fobo-score/')
+  async fetchLastFoboScore(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              resumeIds: {
+                type: 'array',
+                items: { type: 'number' },
+              },
+            },
+            required: ['resumeIds'],
+          },
+        },
+      },
+    })
+    requestBody: {
+      resumeIds: number[];
+    }
+  ): Promise<{ success: boolean; message: string; analytics: object | null }> {
+    try {
+      const { resumeIds } = requestBody;
+
+      if (!resumeIds || resumeIds.length === 0) {
+        return {
+          success: false,
+          message: 'No resumeIds provided',
+          analytics: null,
+        };
+      }
+
+      // Fetch all analytics entries for given resumeIds
+      const analytics = await this.profileAnalyticsRepository.find({
+        where: {
+          resumeId: { inq: resumeIds },
+        },
+        order: ['createdAt DESC'], // Ensure ordering from newest to oldest
+      });
+
+      if (!analytics || analytics.length === 0) {
+        return {
+          success: false,
+          message: 'No analytics found for provided resumeIds',
+          analytics: null,
+        };
+      }
+
+      // Return only the latest one (first after DESC sort)
+      return {
+        success: true,
+        message: 'Last FOBO score fetched successfully',
+        analytics: analytics[0], // most recent
+      };
+    } catch (error) {
+      throw error;
+    }
+  }}
