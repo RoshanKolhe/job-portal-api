@@ -1,6 +1,7 @@
-import {inject} from '@loopback/core';
-import {get, Request, Response, RestBindings} from '@loopback/rest';
-import {GoogleAuthService} from '../services/google-auth.service';
+import { inject } from '@loopback/core';
+import { get, Request, Response, RestBindings } from '@loopback/rest';
+import { GoogleAuthService } from '../services/google-auth.service';
+import _ from 'lodash';
 
 const passport = require('passport'); // Ensure this loads after the strategy is registered
 
@@ -38,16 +39,20 @@ export class GoogleAuthController {
     @inject(RestBindings.Http.RESPONSE) res: Response,
   ): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      passport.authenticate('google', {session: false}, (err: any, user: any, info: any) => {
-        console.log('Callback triggered:', {err, user, info}); // 🔍 Debug info
+      passport.authenticate('google', { session: false }, (err: any, user: any, info: any) => {
+        console.log('Callback triggered:', { err, user, info }); // 🔍 Debug info
 
         if (err || !user) {
-          res.status(401).json({error: 'Authentication failed'});
+          res.status(401).json({ error: 'Authentication failed' });
           return reject(err || new Error('User not found'));
         }
 
+        const userData = _.omit(user.user, 'password');
+
         // ✅ Auth succeeded
-        res.redirect(`https://altiv.ai/success?token=${user.accessToken}`);
+        const userProfile = encodeURIComponent(JSON.stringify(userData));
+
+        res.redirect(`https://altiv.ai/auth/google?accessToken=${user.accessToken}&userProfile=${userProfile}`);
         return resolve();
       })(req, res);
     });
@@ -61,6 +66,6 @@ export class GoogleAuthController {
     },
   })
   loginFailed() {
-    return {message: 'Login failed. Please try again.'};
+    return { message: 'Login failed. Please try again.' };
   }
 }

@@ -170,7 +170,7 @@ export class ProfileAnalyticsController {
   }
 
   // API for last FOBO analytics
-  // @authenticate({ strategy: 'jwt' })
+  @authenticate({ strategy: 'jwt' })
   @post('/last-fobo-score/')
   async fetchLastFoboScore(
     @requestBody({
