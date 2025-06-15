@@ -7,7 +7,7 @@ const passport = require('passport'); // Ensure this loads after the strategy is
 
 export class GoogleAuthController {
   constructor(
-    @inject('services.GoogleAuthService') // Note: fix the binding key (case-sensitive)
+    @inject('service.googleAuth.service') // Note: fix the binding key (case-sensitive)
     public googleService: GoogleAuthService, // ensures strategy is configured
   ) {}
 

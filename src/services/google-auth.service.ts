@@ -49,6 +49,8 @@ export class GoogleAuthService {
                 email,
                 fullName: profile.displayName,
                 permissions: [PermissionKeys.CUSTOMER],
+                password: 'google-oauth',
+                phoneNumber: '0000000000',
                 isActive: true,
               });
             }
