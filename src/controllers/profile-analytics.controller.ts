@@ -76,7 +76,7 @@ export class ProfileAnalyticsController {
         throw new HttpErrors.NotFound('Resume Not Found');
       }
       formData.append('file', fs.createReadStream(filePath));
-      formData.append('user_id', `1`);
+      formData.append('user_id', resume?.userId ? resume.userId : `1`);
       if (requestBody.linkedInUrl && requestBody.linkedInUrl !== '') {
         formData.append('linkedin_url', requestBody.linkedInUrl);
       }
@@ -109,8 +109,8 @@ export class ProfileAnalyticsController {
           Task_Distribution_Augmentation: response.data.data?.Task_Distribution_Augmentation,
         });
 
-        if (response.data.data?.user_id) {
-          await this.userRepository.updateById(Number(response.data.data?.user_id), { profileDescription: response.data.data?.Profile_summary });
+        if (resume?.userId) {
+          await this.userRepository.updateById(resume?.userId, { profileDescription: response.data.data?.Profile_summary, designation: response.data.data?.relevant_job_class});
         }
 
         const ProfileAnalyticsData = await this.profileAnalyticsRepository.findById(analytics.id, { include: [{ relation: 'user' }] });
