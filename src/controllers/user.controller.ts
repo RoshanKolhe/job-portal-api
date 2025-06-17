@@ -95,10 +95,13 @@ export class UserController {
         transaction: tx,
       });
       const savedUserData = _.omit(savedUser, 'password');
+      const userProfile = this.userService.convertToUserProfile(savedUser);
+      const token = await this.jwtService.generateToken(userProfile);
       tx.commit();
       return Promise.resolve({
         success: true,
-        userData: savedUserData,
+        accessToken: token,
+        userData: userData,
         message: `User registered successfully`,
       });
     } catch (err) {
@@ -136,7 +139,7 @@ export class UserController {
     const allUserData = await this.userRepository.findById(userData.id);
     return Promise.resolve({
       accessToken: token,
-      user: allUserData,
+      user: userData,
     });
   }
 
