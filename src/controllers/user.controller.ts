@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import {AuthenticationBindings, authenticate} from '@loopback/authentication';
-import {inject} from '@loopback/core';
+import { AuthenticationBindings, authenticate } from '@loopback/authentication';
+import { inject } from '@loopback/core';
 
 import {
   DefaultTransactionalRepository,
@@ -20,21 +20,22 @@ import {
   requestBody,
   response
 } from '@loopback/rest';
-import {UserProfile} from '@loopback/security';
+import { UserProfile } from '@loopback/security';
 import * as _ from 'lodash';
-import {PermissionKeys} from '../authorization/permission-keys';
-import {JobPortalDataSource} from '../datasources';
-import {EmailManagerBindings} from '../keys';
-import {User} from '../models';
-import {Credentials, UserRepository} from '../repositories';
-import {EmailManager} from '../services/email.service';
-import {BcryptHasher} from '../services/hash.password.bcrypt';
-import {JWTService} from '../services/jwt-service';
-import {MyUserService} from '../services/user-service';
-import {validateCredentials} from '../services/validator';
+import { PermissionKeys } from '../authorization/permission-keys';
+import { JobPortalDataSource } from '../datasources';
+import { EmailManagerBindings } from '../keys';
+import { User } from '../models';
+import { Credentials, PlanRepository, UserRepository } from '../repositories';
+import { EmailManager } from '../services/email.service';
+import { BcryptHasher } from '../services/hash.password.bcrypt';
+import { JWTService } from '../services/jwt-service';
+import { MyUserService } from '../services/user-service';
+import { validateCredentials } from '../services/validator';
 import generateResetPasswordTemplate from '../templates/reset-password.template';
 import SITE_SETTINGS from '../utils/config';
-import {CredentialsRequestBody} from './specs/user-controller-spec';
+import { CredentialsRequestBody } from './specs/user-controller-spec';
+import { EventHistoryService } from '../services/event-history.service';
 
 export class UserController {
   constructor(
@@ -44,14 +45,17 @@ export class UserController {
     public emailManager: EmailManager,
     @repository(UserRepository)
     public userRepository: UserRepository,
-
+    @repository(PlanRepository)
+    public planRepository: PlanRepository,
     @inject('service.hasher')
     public hasher: BcryptHasher,
     @inject('service.user.service')
     public userService: MyUserService,
     @inject('service.jwt.service')
     public jwtService: JWTService,
-  ) {}
+    @inject('service.eventhistory.service')
+    public eventHistoryService: EventHistoryService,
+  ) { }
 
   @post('/register', {
     responses: {
@@ -81,29 +85,62 @@ export class UserController {
       validateCredentials(userData);
       const user = await this.userRepository.findOne({
         where: {
-          or: [{email: userData.email}],
+          or: [{ email: userData.email }],
         },
       });
-      console.log(user);
       if (user) {
         throw new HttpErrors.BadRequest('User Already Exists');
       }
 
       // userData.permissions = [PermissionKeys.ADMIN];
       userData.password = await this.hasher.hashPassword(userData.password);
-      const savedUser = await this.userRepository.create(userData, {
-        transaction: tx,
-      });
-      const savedUserData = _.omit(savedUser, 'password');
-      const userProfile = this.userService.convertToUserProfile(savedUser);
-      const token = await this.jwtService.generateToken(userProfile);
-      tx.commit();
-      return Promise.resolve({
-        success: true,
-        accessToken: token,
-        userData: userData,
-        message: `User registered successfully`,
-      });
+
+      const plan = await this.planRepository.findOne({ where: { isFreePlan: true } });
+      if (plan?.id) {
+        const savedUser = await this.userRepository.create({ ...userData, currentPlanId: plan.id }, {
+          transaction: tx,
+        });
+        const savedUserData = _.omit(savedUser, 'password');
+        const userProfile = this.userService.convertToUserProfile(savedUser);
+        const token = await this.jwtService.generateToken(userProfile);
+        if (savedUser.id) {
+          await this.eventHistoryService.addNewEvent(
+            'registration',
+            'registration of user done',
+            'registration-page',
+            savedUser.id
+          );
+        }
+        tx.commit();
+        return Promise.resolve({
+          success: true,
+          accessToken: token,
+          userData: userData,
+          message: `User registered successfully`,
+        });
+      } else {
+        const savedUser = await this.userRepository.create(userData, {
+          transaction: tx,
+        });
+        const savedUserData = _.omit(savedUser, 'password');
+        const userProfile = this.userService.convertToUserProfile(savedUser);
+        const token = await this.jwtService.generateToken(userProfile);
+        if (savedUser.id) {
+          await this.eventHistoryService.addNewEvent(
+            'registration',
+            'registration of user done',
+            'registration-page',
+            savedUser.id
+          );
+        }
+        tx.commit();
+        return Promise.resolve({
+          success: true,
+          accessToken: token,
+          userData: userData,
+          message: `User registered successfully`,
+        });
+      }
     } catch (err) {
       tx.rollback();
       throw err;
@@ -137,6 +174,14 @@ export class UserController {
     const userData = _.omit(user, 'password');
     const token = await this.jwtService.generateToken(userProfile);
     const allUserData = await this.userRepository.findById(userData.id);
+    if (userData.id) {
+      await this.eventHistoryService.addNewEvent(
+        'login',
+        'login of user done',
+        'login-page',
+        userData.id
+      );
+    }
     return Promise.resolve({
       accessToken: token,
       user: userData,
@@ -152,7 +197,7 @@ export class UserController {
       where: {
         id: currentUser.id,
       },
-      include: [{relation: 'resumes'}],
+      include: [{ relation: 'resumes' }],
     });
 
     if (!user) {
@@ -196,10 +241,10 @@ export class UserController {
       ...filter,
       where: {
         ...filter?.where,
-        id: {neq: currentUser.id},
+        id: { neq: currentUser.id },
         isDeleted: false,
       },
-      fields: {password: false, otp: false, otpExpireAt: false},
+      fields: { password: false, otp: false, otpExpireAt: false },
       // include: [
       //   {relation: 'creator'},
       //   {relation: 'updater'},
@@ -211,7 +256,7 @@ export class UserController {
 
   @authenticate({
     strategy: 'jwt',
-    options: {required: [PermissionKeys.ADMIN, PermissionKeys.CUSTOMER]},
+    options: { required: [PermissionKeys.ADMIN, PermissionKeys.CUSTOMER] },
   })
   @get('/api/users/{id}', {
     responses: {
@@ -253,7 +298,7 @@ export class UserController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(User, {partial: true}),
+          schema: getModelSchemaRef(User, { partial: true }),
         },
       },
     })
@@ -274,7 +319,7 @@ export class UserController {
     // Validate email uniqueness only if email is being updated
     if (user.email && user.email !== existingUser.email) {
       const emailExists = await this.userRepository.findOne({
-        where: {email: user.email, id: {neq: id}}, // Exclude the current user
+        where: { email: user.email, id: { neq: id } }, // Exclude the current user
       });
 
       if (emailExists) {
@@ -466,7 +511,7 @@ export class UserController {
 
   @authenticate({
     strategy: 'jwt',
-    options: {required: [PermissionKeys.ADMIN]},
+    options: { required: [PermissionKeys.ADMIN] },
   })
   @del('/user/{id}')
   @response(204, {

@@ -2,6 +2,7 @@ import { inject } from '@loopback/core';
 import { get, Request, Response, RestBindings } from '@loopback/rest';
 import { GoogleAuthService } from '../services/google-auth.service';
 import _ from 'lodash';
+import { EventHistoryService } from '../services/event-history.service';
 
 const passport = require('passport'); // Ensure this loads after the strategy is registered
 
@@ -9,6 +10,8 @@ export class GoogleAuthController {
   constructor(
     @inject('service.googleAuth.service') // Note: fix the binding key (case-sensitive)
     public googleService: GoogleAuthService, // ensures strategy is configured
+    @inject('service.eventhistory.service')
+    public eventHistoryService: EventHistoryService,
   ) {}
 
   @get('/auth/google', {
@@ -40,7 +43,7 @@ export class GoogleAuthController {
   ): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       passport.authenticate('google', { session: false }, (err: any, user: any, info: any) => {
-        console.log('Callback triggered:', { err, user, info }); // 🔍 Debug info
+        console.log('Callback triggered:', { err, user, info }); 
 
         if (err || !user) {
           res.status(401).json({ error: 'Authentication failed' });
@@ -51,7 +54,14 @@ export class GoogleAuthController {
 
         // ✅ Auth succeeded
         const userProfile = encodeURIComponent(JSON.stringify(userData));
-
+        if(userData.id){
+           this.eventHistoryService.addNewEvent(
+            'google-login',
+            'google-login of user done',
+            'google-login-page',
+            userData.id
+          );
+        }
         res.redirect(`https://altiv.ai/auth/google?accessToken=${user.accessToken}&userProfile=${userProfile}`);
         return resolve();
       })(req, res);

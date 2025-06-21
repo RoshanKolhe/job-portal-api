@@ -30,6 +30,7 @@ import { STORAGE_DIRECTORY } from '../keys';
 import axios from 'axios';
 import * as isEmail from 'isemail';
 import { BcryptHasher } from '../services/hash.password.bcrypt';
+import { EventHistoryService } from '../services/event-history.service';
 
 export class ResumeController {
   constructor(
@@ -39,6 +40,8 @@ export class ResumeController {
     public userRepository : UserRepository,
     @inject(STORAGE_DIRECTORY) private storageDirectory: string,
     @inject('service.hasher') public hasher: BcryptHasher,
+    @inject('service.eventhistory.service')
+    public eventHistoryService: EventHistoryService,
   ) {}
 
   // post new resume for login users
@@ -75,6 +78,15 @@ export class ResumeController {
         ...resume,
         userId: user.id
       };
+
+      if(user.id){
+        await this.eventHistoryService.addNewEvent(
+          'resume upload',
+          'resume uploaded done',
+          'resume-upload-page',
+          user.id
+        );
+      }
 
       return this.resumeRepository.create(resumeData);
 
@@ -126,6 +138,21 @@ export class ResumeController {
             permissions: ['customer'],
           });
 
+          if(user.id){
+             await this.eventHistoryService.addNewEvent(
+              'user registration with resume upload',
+              'user registration with resume upload of user done',
+              'resume-upload-page',
+              user.id
+            );
+
+            await this.eventHistoryService.addNewEvent(
+              'resume upload',
+              'resume upload of user done',
+              'resume-upload-page',
+              user.id
+            );
+          }
           return user;
         }
         return existing;

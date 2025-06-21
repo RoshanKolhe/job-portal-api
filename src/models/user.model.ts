@@ -1,5 +1,7 @@
-import {Entity, hasMany, model, property} from '@loopback/repository';
+import {Entity, hasMany, model, property, belongsTo} from '@loopback/repository';
 import {Resume} from './resume.model';
+import {Subscription} from './subscription.model';
+import {Plan} from './plan.model';
 
 @model()
 export class User extends Entity {
@@ -9,7 +11,7 @@ export class User extends Entity {
     generated: true,
   })
   id?: number;
-  
+
   @property({
     type: 'string',
     required: true
@@ -128,13 +130,19 @@ export class User extends Entity {
   linkedinUrl?: string;
 
   @property({
-    type:'string',
-    default:'false',
+    type: 'string',
+    default: 'false',
   })
-  provider:string;
+  provider: string;
 
   @hasMany(() => Resume)
   resumes: Resume[];
+
+  @belongsTo(() => Subscription)
+  activeSubscriptionId: number;
+
+  @belongsTo(() => Plan)
+  currentPlanId: number;
 
   constructor(data?: Partial<User>) {
     super(data);

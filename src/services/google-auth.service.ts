@@ -1,17 +1,19 @@
-import {BindingScope, inject, injectable} from '@loopback/core';
-import {repository} from '@loopback/repository';
+import { BindingScope, inject, injectable } from '@loopback/core';
+import { repository } from '@loopback/repository';
 import passport from 'passport';
-import {PermissionKeys} from '../authorization/permission-keys';
-import {UserRepository} from '../repositories';
-import {JWTService} from '../services/jwt-service';
-import {MyUserService} from '../services/user-service';
+import { PermissionKeys } from '../authorization/permission-keys';
+import { PlanRepository, UserRepository } from '../repositories';
+import { JWTService } from '../services/jwt-service';
+import { MyUserService } from '../services/user-service';
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
-@injectable({scope: BindingScope.SINGLETON})
+@injectable({ scope: BindingScope.SINGLETON })
 export class GoogleAuthService {
   constructor(
     @repository(UserRepository)
     public userRepository: UserRepository,
+    @repository(PlanRepository)
+    public planRepository: PlanRepository,
     @inject('service.jwt.service')
     public jwtService: JWTService,
     @inject('service.user.service')
@@ -43,15 +45,27 @@ export class GoogleAuthService {
               return done(new Error('Email not provided by Google'), null);
             }
 
-            let user = await this.userRepository.findOne({where: {email}});
+            let user = await this.userRepository.findOne({ where: { email } });
+            const plan = await this.planRepository.findOne({ where: { isFreePlan: true } });
             if (!user) {
-              user = await this.userRepository.create({
-                email,
-                fullName: profile.displayName,
-                permissions: [PermissionKeys.CUSTOMER],
-                password: 'google-oauth',
-                isActive: true,
-              });
+              if (plan?.id) {
+                user = await this.userRepository.create({
+                  email,
+                  fullName: profile.displayName,
+                  permissions: [PermissionKeys.CUSTOMER],
+                  password: 'google-oauth',
+                  isActive: true,
+                  currentPlanId: plan.id
+                });
+              } else {
+                user = await this.userRepository.create({
+                  email,
+                  fullName: profile.displayName,
+                  permissions: [PermissionKeys.CUSTOMER],
+                  password: 'google-oauth',
+                  isActive: true,
+                });
+              }
             }
 
             const userProfile = this.userService.convertToUserProfile(user);

@@ -14,6 +14,7 @@ import {
   ResumeRepository,
   UserRepository,
 } from '../repositories';
+import { EventHistoryService } from '../services/event-history.service';
 
 export class ProfileAnalyticsController {
   constructor(
@@ -25,6 +26,8 @@ export class ProfileAnalyticsController {
     public userRepository: UserRepository,
     @repository(ResumeRepository)
     public resumeRepository: ResumeRepository,
+    @inject('service.eventhistory.service')
+    public eventHistoryService: EventHistoryService,
     @inject(STORAGE_DIRECTORY) private storageDirectory: string,
   ) { }
 
@@ -116,6 +119,12 @@ export class ProfileAnalyticsController {
 
         if (resume?.userId) {
           await this.userRepository.updateById(resume?.userId, { profileDescription: response.data.data?.Profile_summary, designation: response.data.data?.relevant_job_class});
+          await this.eventHistoryService.addNewEvent(
+            'FOBO score analysis',
+            'FOBO score analysis done and updated existing in database',
+            'Fobo-analysis-page',
+            resume.userId
+          );
         }
 
         const ProfileAnalyticsData = await this.profileAnalyticsRepository.findById(analytics.id, { include: [{ relation: 'user' }] });
@@ -145,6 +154,12 @@ export class ProfileAnalyticsController {
 
       const finalAnalyticsData = await this.profileAnalyticsRepository.findById(analyticsData.id, { include: [{ relation: 'user' }] });
 
+      await this.eventHistoryService.addNewEvent(
+        'FOBO score analysis',
+        'FOBO score analysis done and created new in database',
+        'Fobo-analysis-page',
+        resume.userId
+      );
       return {
         success: true,
         message: 'New Profile Analytics data',
@@ -152,7 +167,15 @@ export class ProfileAnalyticsController {
       };
     } catch (error) {
       console.log('error while getting analytics', error);
-      const analyticsRepository = await this.profileAnalyticsRepository.findOne({ where: { resumeId: requestBody.resumeId }, include: [{ relation: 'user' }] });
+      const analyticsRepository : any = await this.profileAnalyticsRepository.findOne({ where: { resumeId: requestBody.resumeId }, include: [{ relation: 'user' }] });
+      if(analyticsRepository?.resume?.userId){
+        await this.eventHistoryService.addNewEvent(
+          'FOBO score analysis',
+          'Returning old FOBO score from database',
+          'Fobo-analysis-page',
+          analyticsRepository?.resume?.userId
+        );
+      }
       if (analyticsRepository) {
         return {
           success: true,

@@ -4,7 +4,6 @@ import {JobPortalDataSource} from '../datasources';
 import {TimeStampRepositoryMixin} from '../mixins/timestamp-repository-mixin';
 import {WaitList, WaitListRelations} from '../models';
 
-
 export class WaitListRepository extends TimeStampRepositoryMixin<
   WaitList,
   typeof WaitList.prototype.id,

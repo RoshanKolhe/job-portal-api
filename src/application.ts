@@ -28,6 +28,9 @@ import {JWTService} from './services/jwt-service';
 import {MyUserService} from './services/user-service';
 import {LinkedinAuthService} from './services/linkedIn-auth.services';
 import {GoogleAuthService} from './services/google-auth.service';
+import { EventHistoryService } from './services/event-history.service';
+import { StripeService } from './services/stripe.service';
+import { CheckDailyEntriesAtNoon } from './services/cronjob.service';
 export {ApplicationConfig};
 
 export class JobPortalApiApplication extends BootMixin(
@@ -70,6 +73,9 @@ export class JobPortalApiApplication extends BootMixin(
     this.bind('service.linkedinAuth.service').toClass(LinkedinAuthService);
 
     this.bind('service.googleAuth.service').toClass(GoogleAuthService);
+    this.bind('service.eventhistory.service').toClass(EventHistoryService);
+    this.bind('service.stripe.service').toClass(StripeService);
+    this.bind('service.cronjob.service').toClass(CheckDailyEntriesAtNoon);
     this.bind(EmailManagerBindings.SEND_MAIL).toClass(EmailService);
   }
 
