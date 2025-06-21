@@ -73,8 +73,27 @@ export class ProfileAnalyticsController {
         throw new HttpErrors.BadRequest('Resume Not found');
       }
 
-      // let res: any;
-      // let res: any;
+      const analytics = await this.profileAnalyticsRepository.findOne({ where: { resumeId: resume.id } });
+
+      if (analytics) {
+        if (resume?.userId) {
+          await this.eventHistoryService.addNewEvent(
+            'FOBO score analysis',
+            'FOBO score analysis done and updated existing in database',
+            'Fobo-analysis-page',
+            resume.userId
+          );
+        }
+
+        const ProfileAnalyticsData = await this.profileAnalyticsRepository.findById(analytics.id, { include: [{ relation: 'user' }] });
+
+        return {
+          success: true,
+          message: 'Updated Profile Analytics data',
+          data: ProfileAnalyticsData
+        };
+      }
+
       const formData = new FormData();
 
       const filePath = this.validateFileName(resume.fileDetails.newFileName);
@@ -95,13 +114,9 @@ export class ProfileAnalyticsController {
         headers: formData.getHeaders(),
       });
 
-      const analytics = await this.profileAnalyticsRepository.findOne({ where: { resumeId: resume.id } });
-
-      if (analytics) {
-        await this.profileAnalyticsRepository.updateById(analytics.id, {
-          ...analytics,
+      if (response?.data?.status === 'success' && response?.data?.data) {
+        const analyticsData = await this.profileAnalyticsRepository.create({
           resumeId: resume.id,
-          userId: resume.userId,
           relevant_job_class: response.data.data?.relevant_job_class,
           FOBO_Score: response.data.data?.FOBO_Score,
           Augmented_Score: response.data.data?.Augmented_Score,
@@ -117,58 +132,30 @@ export class ProfileAnalyticsController {
           Task_Distribution_Augmentation: response.data.data?.Task_Distribution_Augmentation,
         });
 
-        if (resume?.userId) {
-          await this.userRepository.updateById(resume?.userId, { profileDescription: response.data.data?.Profile_summary, designation: response.data.data?.relevant_job_class});
-          await this.eventHistoryService.addNewEvent(
-            'FOBO score analysis',
-            'FOBO score analysis done and updated existing in database',
-            'Fobo-analysis-page',
-            resume.userId
-          );
-        }
+        await this.eventHistoryService.addNewEvent(
+          'FOBO score analysis',
+          'FOBO score analysis done and created new in database',
+          'Fobo-analysis-page',
+          resume.userId
+        );
 
-        const ProfileAnalyticsData = await this.profileAnalyticsRepository.findById(analytics.id, { include: [{ relation: 'user' }] });
+        const finalAnalyticsData = await this.profileAnalyticsRepository.findById(analyticsData.id, { include: [{ relation: 'user' }] });
+
         return {
           success: true,
-          message: 'Updated Profile Analytics data',
-          data: ProfileAnalyticsData
+          message: 'New Profile Analytics data',
+          data: finalAnalyticsData
         };
       }
 
-      const analyticsData = await this.profileAnalyticsRepository.create({
-        resumeId: resume.id,
-        relevant_job_class: response.data.data?.relevant_job_class,
-        FOBO_Score: response.data.data?.FOBO_Score,
-        Augmented_Score: response.data.data?.Augmented_Score,
-        Augmentation_Comment: response.data.data?.Augmentation_Comment,
-        Automated_Score: response.data.data?.Automated_Score,
-        Automated_Comment: response.data.data?.Automated_Comment,
-        Human_Score: response.data.data?.Human_Score,
-        Human_Comment: response.data.data?.Human_Comment,
-        Comment: response.data.data?.Comment,
-        Strategy: response.data.data?.Strategy,
-        Task_Distribution_Automation: response.data.data?.Task_Distribution_Automation,
-        Task_Distribution_Human: response.data.data?.Task_Distribution_Human,
-        Task_Distribution_Augmentation: response.data.data?.Task_Distribution_Augmentation,
-      });
+      if (response?.data?.status === 'error' && response?.data?.data === null) {
+        throw new HttpErrors[500];
+      }
 
-      const finalAnalyticsData = await this.profileAnalyticsRepository.findById(analyticsData.id, { include: [{ relation: 'user' }] });
-
-      await this.eventHistoryService.addNewEvent(
-        'FOBO score analysis',
-        'FOBO score analysis done and created new in database',
-        'Fobo-analysis-page',
-        resume.userId
-      );
-      return {
-        success: true,
-        message: 'New Profile Analytics data',
-        data: finalAnalyticsData
-      };
     } catch (error) {
       console.log('error while getting analytics', error);
-      const analyticsRepository : any = await this.profileAnalyticsRepository.findOne({ where: { resumeId: requestBody.resumeId }, include: [{ relation: 'user' }] });
-      if(analyticsRepository?.resume?.userId){
+      const analyticsRepository: any = await this.profileAnalyticsRepository.findOne({ where: { resumeId: requestBody.resumeId }, include: [{ relation: 'user' }] });
+      if (analyticsRepository?.resume?.userId) {
         await this.eventHistoryService.addNewEvent(
           'FOBO score analysis',
           'Returning old FOBO score from database',
@@ -182,10 +169,8 @@ export class ProfileAnalyticsController {
           message: "old analytics data",
           data: analyticsRepository
         };
-      }
-      return {
-        success: false,
-        message: 'No data found'
+      }else{
+        throw new HttpErrors.BadGateway('Something went wrong');
       }
     }
   }
@@ -257,4 +242,5 @@ export class ProfileAnalyticsController {
     } catch (error) {
       throw error;
     }
-  }}
+  }
+}

@@ -332,9 +332,11 @@ export class UserController {
 
     await this.userRepository.updateById(id, user);
 
+    const updatedUserData = await this.userRepository.findById(id);
     return {
       success: true,
       message: `User profile updated successfully`,
+      data: updatedUserData
     };
   }
 

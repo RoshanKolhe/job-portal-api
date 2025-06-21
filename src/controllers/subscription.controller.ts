@@ -319,4 +319,17 @@ export class SubscriptionController {
   async deleteById(@param.path.number('id') id: number): Promise<void> {
     await this.subscriptionRepository.deleteById(id);
   }
+
+  // fetching subscriptions by user
+  // @authenticate({
+  //   strategy: 'jwt',
+  //   options: {
+  //     required : [
+  //       PermissionKeys.ADMIN,
+  //       PermissionKeys.CUSTOMER
+  //     ]
+  //   }
+  // })
+  // @get('subscriptions/subscriptions-by-user')
+
 }
