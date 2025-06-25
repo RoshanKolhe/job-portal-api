@@ -44,6 +44,15 @@ export class WaitListController {
     })
     waitList: Omit<WaitList, 'id'>,
   ): Promise<WaitList> {
+    const existingWaitlist = await this.waitListRepository.findOne({
+      where : {
+        email: waitList.email
+      }
+    });
+
+    if(existingWaitlist){
+      return existingWaitlist;
+    }
     return this.waitListRepository.create(waitList);
   }
 
