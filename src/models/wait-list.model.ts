@@ -15,6 +15,12 @@ export class WaitList extends Entity {
   })
   email: string;
 
+  @property({
+    type: 'string',
+    required: true
+  })
+  type: string;
+
    @property({
     type: 'date',
   })

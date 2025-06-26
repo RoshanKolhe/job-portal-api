@@ -16,20 +16,21 @@ import {
   del,
   requestBody,
   response,
+  HttpErrors,
 } from '@loopback/rest';
-import {WaitList} from '../models';
-import {WaitListRepository} from '../repositories';
+import { WaitList } from '../models';
+import { WaitListRepository } from '../repositories';
 
 export class WaitListController {
   constructor(
     @repository(WaitListRepository)
-    public waitListRepository : WaitListRepository,
-  ) {}
+    public waitListRepository: WaitListRepository,
+  ) { }
 
   @post('/wait-lists')
   @response(200, {
     description: 'WaitList model instance',
-    content: {'application/json': {schema: getModelSchemaRef(WaitList)}},
+    content: { 'application/json': { schema: getModelSchemaRef(WaitList) } },
   })
   async create(
     @requestBody({
@@ -43,23 +44,61 @@ export class WaitListController {
       },
     })
     waitList: Omit<WaitList, 'id'>,
-  ): Promise<WaitList> {
+  ): Promise<{ success: boolean; message: string; isNew: boolean; data: WaitList }> {
     const existingWaitlist = await this.waitListRepository.findOne({
-      where : {
-        email: waitList.email
+      where: {
+        and: [
+          { email: waitList.email },
+          { type: waitList.type }
+        ]
       }
     });
 
-    if(existingWaitlist){
-      return existingWaitlist;
+    if (existingWaitlist) {
+      if (existingWaitlist.type === "subscription") {
+        return {
+          success: true,
+          isNew: false,
+          message: 'You’re already subscribed.',
+          data: existingWaitlist
+        };
+      } else if (existingWaitlist.type === "notification") {
+        return {
+          success: true,
+          isNew: false,
+          message: 'You’ve already registered for notifications.',
+          data: existingWaitlist
+        };
+      }
+
+      throw new HttpErrors.BadRequest('Invalid waitlist type.');
     }
-    return this.waitListRepository.create(waitList);
+
+    const newWaitList = await this.waitListRepository.create(waitList);
+
+    if (newWaitList.type === "subscription") {
+      return {
+        success: true,
+        isNew: true,
+        message: 'Your subscription has been added successfully.',
+        data: newWaitList
+      };
+    } else if (newWaitList.type === "notification") {
+      return {
+        success: true,
+        isNew: true,
+        message: 'Thank you. Your registration for notifications was successful. You’ll be the first to know about important updates.',
+        data: newWaitList
+      };
+    }
+
+    throw new HttpErrors.BadRequest('Invalid waitlist type.');
   }
 
   @get('/wait-lists/count')
   @response(200, {
     description: 'WaitList model count',
-    content: {'application/json': {schema: CountSchema}},
+    content: { 'application/json': { schema: CountSchema } },
   })
   async count(
     @param.where(WaitList) where?: Where<WaitList>,
@@ -74,7 +113,7 @@ export class WaitListController {
       'application/json': {
         schema: {
           type: 'array',
-          items: getModelSchemaRef(WaitList, {includeRelations: true}),
+          items: getModelSchemaRef(WaitList, { includeRelations: true }),
         },
       },
     },
@@ -88,13 +127,13 @@ export class WaitListController {
   @patch('/wait-lists')
   @response(200, {
     description: 'WaitList PATCH success count',
-    content: {'application/json': {schema: CountSchema}},
+    content: { 'application/json': { schema: CountSchema } },
   })
   async updateAll(
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(WaitList, {partial: true}),
+          schema: getModelSchemaRef(WaitList, { partial: true }),
         },
       },
     })
@@ -109,13 +148,13 @@ export class WaitListController {
     description: 'WaitList model instance',
     content: {
       'application/json': {
-        schema: getModelSchemaRef(WaitList, {includeRelations: true}),
+        schema: getModelSchemaRef(WaitList, { includeRelations: true }),
       },
     },
   })
   async findById(
     @param.path.number('id') id: number,
-    @param.filter(WaitList, {exclude: 'where'}) filter?: FilterExcludingWhere<WaitList>
+    @param.filter(WaitList, { exclude: 'where' }) filter?: FilterExcludingWhere<WaitList>
   ): Promise<WaitList> {
     return this.waitListRepository.findById(id, filter);
   }
@@ -129,7 +168,7 @@ export class WaitListController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(WaitList, {partial: true}),
+          schema: getModelSchemaRef(WaitList, { partial: true }),
         },
       },
     })
