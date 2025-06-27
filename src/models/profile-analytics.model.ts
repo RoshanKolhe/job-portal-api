@@ -101,6 +101,11 @@ export class ProfileAnalytics extends Entity {
   })
   isDeleted: boolean;
 
+  @property({
+    type: 'string',
+  })
+  linkedInUrl: string;
+
   @belongsTo(() => Resume)
   resumeId: number;
 
