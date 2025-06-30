@@ -28,6 +28,9 @@ import { inject } from '@loopback/core';
 import { UserProfile } from '@loopback/security';
 import { StripeService } from '../services/stripe.service';
 import Stripe from 'stripe';
+import { RazorPayService } from '../services/razorpay.service';
+import * as crypto from 'crypto';
+const Razorpay = require('razorpay');
 
 export class SubscriptionController {
   private stripe: Stripe;
@@ -42,6 +45,8 @@ export class SubscriptionController {
     public planRepository: PlanRepository,
     @inject('service.stripe.service')
     public stripeService: StripeService,
+    @inject('service.razorpay.service')
+    public razorpayService: RazorPayService,
   ) {
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
   }
@@ -73,10 +78,9 @@ export class SubscriptionController {
       },
     })
     subscription: Omit<Subscription, 'id'>,
-  ): Promise<any> {
+  ): Promise<{ success: boolean; paymentMethod: number; paymentObject: object }> {
     try {
       const user = await this.userRepository.findById(currentUser.id);
-
       if (!user) {
         throw new HttpErrors.Unauthorized('Access denied');
       }
@@ -86,7 +90,6 @@ export class SubscriptionController {
       }
 
       const plan = await this.planRepository.findById(subscription.planId);
-
       if (!plan) {
         throw new HttpErrors.NotFound(`Plan with planId ${subscription.planId} not found`);
       }
@@ -95,7 +98,8 @@ export class SubscriptionController {
         planId: subscription.planId,
         userId: user.id,
         status: 'pending',
-        planData: plan
+        paymentMethod: subscription.paymentMethod,
+        planData: plan,
       };
 
       const newSubscription = await this.subscriptionRepository.create(newSubscriptionData);
@@ -103,14 +107,128 @@ export class SubscriptionController {
       const checkOutData = {
         ...newSubscription,
         ...plan,
-        ...user
+        ...user,
+      };
+
+      let response;
+
+      if (newSubscription.paymentMethod === 0) {
+        response = await this.stripeService.createCheckoutSession(checkOutData);
+      } else if (newSubscription.paymentMethod === 1) {
+        response = await this.razorpayService.createOrder(checkOutData);
+      } else {
+        throw new HttpErrors.BadRequest('Invalid payment method selected');
       }
 
-      const response = await this.stripeService.createCheckoutSession(checkOutData);
-
-      return response;
+      return {
+        success: true,
+        paymentMethod: newSubscription.paymentMethod,
+        paymentObject: response,
+      };
     } catch (error) {
       throw error;
+    }
+  }
+
+  @post('/subscriptions/callback/verify')
+  async verifyRazorpayPayment(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              subscription_id: { type: 'number' },
+              razorpay_order_id: { type: 'string' },
+              razorpay_payment_id: { type: 'string' },
+              razorpay_signature: { type: 'string' },
+            },
+            required: [
+              'subscription_id',
+              'razorpay_order_id',
+              'razorpay_payment_id',
+              'razorpay_signature',
+            ],
+          },
+        },
+      },
+    })
+    body: {
+      subscription_id: number;
+      razorpay_order_id: string;
+      razorpay_payment_id: string;
+      razorpay_signature: string;
+    },
+  ): Promise<void> {
+    const { subscription_id, razorpay_order_id, razorpay_payment_id, razorpay_signature } = body;
+    const secret = process.env.RAZORPAY_KEY_SECRET;
+
+    const subscription = await this.subscriptionRepository.findById(subscription_id);
+    if (!subscription) {
+      throw new HttpErrors.NotFound('Subscription not found');
+    }
+
+    if (!secret) {
+      throw new HttpErrors.InternalServerError('Razorpay secret key not configured');
+    }
+
+    const hmac = crypto.createHmac('sha256', secret);
+    hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
+    const digest = hmac.digest('hex');
+
+    try {
+      const razorpay = new Razorpay({
+        key_id: process.env.RAZORPAY_KEY_ID!,
+        key_secret: secret,
+      });
+
+      const payment = await razorpay.payments.fetch(razorpay_payment_id);
+
+      const paymentDetails = {
+        order_id: payment.order_id,
+        payment_id: payment.id,
+        status: payment.status,
+        method: payment.method,
+        email: payment.email,
+        contact: payment.contact,
+      };
+
+      if (digest === razorpay_signature && payment.status === 'captured') {
+        const plan = await this.planRepository.findById(subscription.planId);
+
+        const updateData: Partial<typeof subscription> = {
+          paymentDetails,
+          status: 'success',
+        };
+
+        if (plan) {
+          const expiryDate = new Date();
+          expiryDate.setDate(expiryDate.getDate() + plan.days);
+          updateData.expiryDate = expiryDate;
+        }
+
+        await this.subscriptionRepository.updateById(subscription.id, updateData);
+        await this.userRepository.updateById(subscription.userId, {
+          activeSubscriptionId: subscription.id,
+          currentPlanId: subscription.planId,
+        });
+
+        this.res.redirect(`${process.env.REACT_APP_SITE_URL}/payment/success?subscriptionId=${subscription.id}`);
+      } else {
+        // Invalid signature or payment failed
+        await this.subscriptionRepository.updateById(subscription.id, {
+          paymentDetails,
+          status: 'failed',
+        });
+
+        this.res.redirect(`${process.env.REACT_APP_SITE_URL}/payment/cancel?subscriptionId=${subscription.id}`);
+      }
+    } catch (error) {
+      console.error('Razorpay verify error:', error);
+      await this.subscriptionRepository.updateById(subscription.id, {
+        status: 'failed',
+      });
+      this.res.redirect(`${process.env.REACT_APP_SITE_URL}/payment/cancel?subscriptionId=${subscription.id}`);
     }
   }
 
@@ -125,7 +243,7 @@ export class SubscriptionController {
     try {
       const subscription = await this.subscriptionRepository.findById(id);
 
-      if(!subscription){
+      if (!subscription) {
         throw new HttpErrors[500];
       }
 
@@ -141,7 +259,7 @@ export class SubscriptionController {
           const expiryDate = new Date();
           expiryDate.setDate(expiryDate.getDate() + plan.days);
           await this.subscriptionRepository.updateById(subscription.id, { paymentDetails: session, status: 'success', expiryDate: expiryDate });
-          await this.userRepository.updateById(subscription.userId, { activeSubscriptionId: subscription.id,  currentPlanId: subscription.planId });
+          await this.userRepository.updateById(subscription.userId, { activeSubscriptionId: subscription.id, currentPlanId: subscription.planId });
           res.redirect(`${process.env.REACT_APP_SITE_URL}/payment/success?subscriptionId=${id}`);
         }
       } else {

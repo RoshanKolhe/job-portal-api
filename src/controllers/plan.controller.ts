@@ -189,4 +189,20 @@ export class PlanController {
   async deleteById(@param.path.number('id') id: number): Promise<void> {
     await this.planRepository.deleteById(id);
   }
+
+  @get('/plans/plan-by-type/{type}')
+  @response(200, {
+    description: 'Plan model instance',
+    content: {
+      'application/json': {
+        schema: getModelSchemaRef(Plan, { includeRelations: true }),
+      },
+    },
+  })
+  async findByPlanType(
+    @param.path.number('type') type: number,
+    @param.filter(Plan, { exclude: 'where' }) filter?: FilterExcludingWhere<Plan>
+  ): Promise<Plan[]> {
+    return this.planRepository.find({where: {planType: type}}, filter);
+  }
 }

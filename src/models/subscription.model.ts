@@ -17,6 +17,12 @@ export class Subscription extends Entity {
   status?: string;
 
   @property({
+    type: 'number',
+    required: true
+  })
+  paymentMethod: number;  // 0 for stripe, 1 for razorpay
+
+  @property({
     type: 'object',
   })
   paymentDetails: object;

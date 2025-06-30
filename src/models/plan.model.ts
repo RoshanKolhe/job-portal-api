@@ -10,10 +10,22 @@ export class Plan extends Entity {
   id?: number;
 
   @property({
+    type: 'number',
+    required: true
+  })
+  planType: number; // 0 for data science, 1 for marketing, 2 for product management
+
+  @property({
     type: 'string',
     required: true
   })
   planName: string;
+
+  @property({
+    type: 'string',
+    required: true
+  })
+  subTitle: string;
 
   @property({
     type: 'number',

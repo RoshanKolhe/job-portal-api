@@ -31,6 +31,7 @@ import {GoogleAuthService} from './services/google-auth.service';
 import { EventHistoryService } from './services/event-history.service';
 import { StripeService } from './services/stripe.service';
 import { CheckDailyEntriesAtNoon } from './services/cronjob.service';
+import { RazorPayService } from './services/razorpay.service';
 export {ApplicationConfig};
 
 export class JobPortalApiApplication extends BootMixin(
@@ -75,6 +76,7 @@ export class JobPortalApiApplication extends BootMixin(
     this.bind('service.googleAuth.service').toClass(GoogleAuthService);
     this.bind('service.eventhistory.service').toClass(EventHistoryService);
     this.bind('service.stripe.service').toClass(StripeService);
+    this.bind('service.razorpay.service').toClass(RazorPayService);
     this.bind('service.cronjob.service').toClass(CheckDailyEntriesAtNoon);
     this.bind(EmailManagerBindings.SEND_MAIL).toClass(EmailService);
   }
