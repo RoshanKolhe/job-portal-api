@@ -249,6 +249,8 @@ export class SubscriptionController {
 
       // Fetch session data from Stripe
       const session = await this.stripe.checkout.sessions.retrieve(sessionId);
+      console.log('session data', session);
+      console.log('subscription data', subscription);
       if (session.payment_status === 'paid' && session.status === 'complete') {
         const plan = await this.planRepository.findById(subscription.planId);
         if (!plan) {
