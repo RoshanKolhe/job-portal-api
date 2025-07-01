@@ -263,7 +263,9 @@ export class SubscriptionController {
           expiryDate.setDate(expiryDate.getDate() + plan.days);
           console.log('entered here')
           await this.subscriptionRepository.updateById(subscription.id, { paymentDetails: session, status: 'success', expiryDate: expiryDate });
+          console.log('user data updated and redirected to success');
           await this.userRepository.updateById(subscription.userId, { activeSubscriptionId: subscription.id, currentPlanId: subscription.planId });
+          console.log('subscription data updated and redirected to success');
           res.redirect(`${process.env.REACT_APP_SITE_URL}/payment/success?subscriptionId=${id}`);
         }
       } else {
