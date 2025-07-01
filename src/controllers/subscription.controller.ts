@@ -106,8 +106,8 @@ export class SubscriptionController {
 
       const checkOutData = {
         ...newSubscription,
-        ...plan,
-        ...user,
+        // ...plan,
+        // ...user,
       };
 
       let response;
