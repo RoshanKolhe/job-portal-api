@@ -253,6 +253,7 @@ export class SubscriptionController {
       console.log('subscription data', subscription);
       if (session.payment_status === 'paid' && session.status === 'complete') {
         const plan = await this.planRepository.findById(subscription.planId);
+        console.log('plan data', plan);
         if (!plan) {
           await this.subscriptionRepository.updateById(subscription.id, { paymentDetails: session, status: 'success' });
           await this.userRepository.updateById(subscription.userId, { activeSubscriptionId: subscription.id, currentPlanId: subscription.planId });
@@ -260,6 +261,7 @@ export class SubscriptionController {
         } else {
           const expiryDate = new Date();
           expiryDate.setDate(expiryDate.getDate() + plan.days);
+          console.log('entered here')
           await this.subscriptionRepository.updateById(subscription.id, { paymentDetails: session, status: 'success', expiryDate: expiryDate });
           await this.userRepository.updateById(subscription.userId, { activeSubscriptionId: subscription.id, currentPlanId: subscription.planId });
           res.redirect(`${process.env.REACT_APP_SITE_URL}/payment/success?subscriptionId=${id}`);
