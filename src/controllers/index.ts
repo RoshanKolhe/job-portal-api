@@ -12,3 +12,4 @@ export * from './plan.controller';
 export * from './subscription.controller';
 export * from './user-subscription.controller';
 export * from './user-plan.controller';
+export * from './jobs.controller';
