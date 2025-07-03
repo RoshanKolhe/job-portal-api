@@ -221,14 +221,14 @@ export class SubscriptionController {
           status: 'failed',
         });
 
-        this.res.redirect(`${process.env.REACT_APP_SITE_URL}/payment/cancel?subscriptionId=${subscription.id}`);
+        this.res.redirect(`http://localhost:3030/payment/cancel?subscriptionId=${subscription.id}`);
       }
     } catch (error) {
       console.error('Razorpay verify error:', error);
       await this.subscriptionRepository.updateById(subscription.id, {
         status: 'failed',
       });
-      this.res.redirect(`${process.env.REACT_APP_SITE_URL}/payment/cancel?subscriptionId=${subscription.id}`);
+      this.res.redirect(`http://localhost:3030/payment/cancel?subscriptionId=${subscription.id}`);
     }
   }
 
@@ -266,11 +266,11 @@ export class SubscriptionController {
           console.log('user data updated and redirected to success');
           await this.userRepository.updateById(subscription.userId, { activeSubscriptionId: subscription.id, currentPlanId: subscription.planId });
           console.log('subscription data updated and redirected to success');
-          res.redirect(`${process.env.REACT_APP_SITE_URL}/payment/success?subscriptionId=${id}`);
+          res.redirect(`http://localhost:3030/payment/success?subscriptionId=${id}`);
         }
       } else {
         await this.subscriptionRepository.updateById(subscription.id, { paymentDetails: session, status: 'failed' });
-        res.redirect(`${process.env.REACT_APP_SITE_URL}/payment/cancel?subscriptionId=${id}`);
+        res.redirect(`http://localhost:3030/payment/cancel?subscriptionId=${id}`);
       }
 
     } catch (error) {
@@ -291,7 +291,7 @@ export class SubscriptionController {
     }
     await this.subscriptionRepository.updateById(subscription.id, { status: 'failed' });
 
-    this.res.redirect(`${process.env.REACT_APP_SITE_URL}/payment/cancel?subscriptionId=${id}`);
+    this.res.redirect(`http://localhost:3030/payment/cancel?subscriptionId=${id}`);
   }
 
   @get('/subscriptions/count')
@@ -329,6 +329,45 @@ export class SubscriptionController {
     @param.filter(Subscription) filter?: Filter<Subscription>,
   ): Promise<Subscription[]> {
     return this.subscriptionRepository.find(filter);
+  }
+
+  @authenticate({
+    strategy: 'jwt',
+    options: {
+      required: [
+        PermissionKeys.ADMIN,
+        PermissionKeys.CUSTOMER
+      ]
+    }
+  })
+  @get('/subscriptions/user')
+  @response(200, {
+    description: 'Array of Subscription model instances',
+    content: {
+      'application/json': {
+        schema: {
+          type: 'array',
+          items: getModelSchemaRef(Subscription, { includeRelations: true }),
+        },
+      },
+    },
+  })
+  async findByUser(
+    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
+  ): Promise<Subscription[]> {
+    try{
+      const user = await this.userRepository.findById(currentUser.id);
+
+      if(!user){
+        throw new HttpErrors.Unauthorized('Unauthorized access');
+      }
+
+      const subscriptions = await this.subscriptionRepository.find({where : {userId: user.id}});
+
+      return subscriptions;
+    }catch(error){
+      throw error;
+    }
   }
 
   @authenticate({

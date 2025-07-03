@@ -344,7 +344,6 @@ export class JobsController {
     // dummy objects
   ];
 
-
   // Job detailed by id...
   @get('/jobs/{id}')
   async fetchJobById(
