@@ -372,7 +372,14 @@ export class SubscriptionController {
         throw new HttpErrors.Unauthorized('Unauthorized access');
       }
 
-      const subscriptions = await this.subscriptionRepository.find({where : {userId: user.id}});
+      const subscriptions = await this.subscriptionRepository.find(
+        {
+          where : {
+            userId: user.id
+          },
+          order: ['createdAt DESC']
+        }
+      );
 
       return subscriptions;
     }catch(error){
