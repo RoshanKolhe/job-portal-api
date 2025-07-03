@@ -159,7 +159,8 @@ export class SubscriptionController {
       razorpay_payment_id: string;
       razorpay_signature: string;
     },
-  ): Promise<void> {
+    @inject(RestBindings.Http.RESPONSE) res: Response
+  ): Promise<{success: boolean; endpoint: string | null}> {
     const { subscription_id, razorpay_order_id, razorpay_payment_id, razorpay_signature } = body;
     const secret = process.env.RAZORPAY_KEY_SECRET;
 
@@ -213,7 +214,10 @@ export class SubscriptionController {
           currentPlanId: subscription.planId,
         });
 
-        this.res.redirect(`http://localhost:3030/payment/success?subscriptionId=${subscription.id}`);
+        return {
+          success: true,
+          endpoint: `payment/success?subscriptionId=${subscription.id}`
+        }
       } else {
         // Invalid signature or payment failed
         await this.subscriptionRepository.updateById(subscription.id, {
@@ -221,14 +225,20 @@ export class SubscriptionController {
           status: 'failed',
         });
 
-        this.res.redirect(`http://localhost:3030/payment/cancel?subscriptionId=${subscription.id}`);
+        return {
+          success: false,
+          endpoint: null
+        }
       }
     } catch (error) {
       console.error('Razorpay verify error:', error);
       await this.subscriptionRepository.updateById(subscription.id, {
         status: 'failed',
       });
-      this.res.redirect(`http://localhost:3030/payment/cancel?subscriptionId=${subscription.id}`);
+      return {
+        success: false,
+        endpoint: null
+      }
     }
   }
 
