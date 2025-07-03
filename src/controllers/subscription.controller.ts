@@ -213,7 +213,7 @@ export class SubscriptionController {
           currentPlanId: subscription.planId,
         });
 
-        this.res.redirect(`${process.env.REACT_APP_SITE_URL}/payment/success?subscriptionId=${subscription.id}`);
+        this.res.redirect(`http://localhost:3030/payment/success?subscriptionId=${subscription.id}`);
       } else {
         // Invalid signature or payment failed
         await this.subscriptionRepository.updateById(subscription.id, {
