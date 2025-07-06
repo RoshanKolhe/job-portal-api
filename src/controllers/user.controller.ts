@@ -461,7 +461,7 @@ export class UserController {
     }
   }
 
-  @authenticate('jwt')
+  // @authenticate('jwt')
   @post('/setNewPassword')
   async setNewPassword(
     @requestBody({
