@@ -49,8 +49,8 @@ app.expressMiddleware('middleware.passportSession', passport.session());
 if (require.main === module) {
   const config = {
     rest: {
-      port: +(process.env.PORT ?? 3034),
-      host: process.env.HOST || '127.0.0.1',
+      port: +(process.env.PORT ?? 5012),
+      host: process.env.HOST || '0.0.0.0',
       gracePeriodForClose: 5000,
       openApiSpec: {
         setServersFromRequest: true,
