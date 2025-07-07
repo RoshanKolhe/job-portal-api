@@ -62,7 +62,7 @@ export class GoogleAuthController {
             userData.id
           );
         }
-        res.redirect(`https://altiv.ai/auth/google?accessToken=${user.accessToken}&userProfile=${userProfile}`);
+        res.redirect(`${process.env.REACT_APP_SITE_URL}/auth/google?accessToken=${user.accessToken}&userProfile=${userProfile}`);
         return resolve();
       })(req, res);
     });

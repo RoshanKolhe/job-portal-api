@@ -340,6 +340,7 @@ export class UserController {
     };
   }
 
+  // send reset link for password
   @post('/sendResetPasswordLink')
   async sendResetPasswordLink(
     @requestBody({
