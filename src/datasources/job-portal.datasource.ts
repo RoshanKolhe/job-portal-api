@@ -7,8 +7,8 @@ const config = {
   url: '',
   host: 'localhost',
   port: 3306,
-  user: 'altivUser',
-  password: 'altivPassword',
+  user: 'root',
+  password: '',
   database: 'job_portal'
 };
 
