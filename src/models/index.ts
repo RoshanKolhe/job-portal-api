@@ -6,3 +6,4 @@ export * from './wait-list.model';
 export * from './event-history.model';
 export * from './subscription.model';
 export * from './plan.model';
+export * from './jobs.model';

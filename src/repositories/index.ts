@@ -8,3 +8,4 @@ export * from './wait-list.repository';
 export * from './event-history.repository';
 export * from './subscription.repository';
 export * from './plan.repository';
+export * from './jobs.repository';
