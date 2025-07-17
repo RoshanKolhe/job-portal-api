@@ -338,7 +338,7 @@ export class SubscriptionController {
   async find(
     @param.filter(Subscription) filter?: Filter<Subscription>,
   ): Promise<Subscription[]> {
-    return this.subscriptionRepository.find(filter);
+    return this.subscriptionRepository.find({...filter, include: [{relation : 'user'}]});
   }
 
   @authenticate({
