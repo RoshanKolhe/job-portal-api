@@ -1,8 +1,10 @@
 import {
   Count,
   CountSchema,
+  DefaultTransactionalRepository,
   Filter,
   FilterExcludingWhere,
+  IsolationLevel,
   repository,
   Where,
 } from '@loopback/repository';
@@ -16,26 +18,33 @@ import {
   del,
   requestBody,
   response,
+  HttpErrors,
 } from '@loopback/rest';
-import { Plan } from '../models';
-import { PlanRepository } from '../repositories';
+import { Courses, Jobs, Plan } from '../models';
+import { CoursesRepository, PlanRepository } from '../repositories';
 import { authenticate } from '@loopback/authentication';
 import { PermissionKeys } from '../authorization/permission-keys';
+import { inject } from '@loopback/core';
+import { JobPortalDataSource } from '../datasources';
 
 export class PlanController {
   constructor(
+    @inject('datasources.job_portal')
+    public dataSource: JobPortalDataSource,
     @repository(PlanRepository)
     public planRepository: PlanRepository,
+    @repository(CoursesRepository)
+    public coursesRepository: CoursesRepository,
   ) { }
 
-  @authenticate({
-    strategy: 'jwt',
-    options: {
-      required: [
-        PermissionKeys.ADMIN
-      ]
-    }
-  })
+  // @authenticate({
+  //   strategy: 'jwt',
+  //   options: {
+  //     required: [
+  //       PermissionKeys.ADMIN
+  //     ]
+  //   }
+  // })
   @post('/plans')
   @response(200, {
     description: 'Plan model instance',
@@ -45,16 +54,64 @@ export class PlanController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Plan, {
-            title: 'NewPlan',
-            exclude: ['id'],
-          }),
+          schema: {
+            type: 'object',
+            properties: {
+              plan: getModelSchemaRef(Plan, {
+                title: 'NewPlan',
+                exclude: ['id'],
+              }),
+              productData: {
+                oneOf: [
+                  getModelSchemaRef(Courses, {
+                    title: 'NewCourse',
+                    exclude: ['id'],
+                  }),
+                  getModelSchemaRef(Jobs, {
+                    title: 'NewService',
+                    exclude: ['id'],
+                  }),
+                ],
+              },
+            },
+            required: ['plan', 'productData'],
+          },
         },
       },
     })
-    plan: Omit<Plan, 'id'>,
+    body: {
+      plan: Omit<Plan, 'id'>;
+      productData: Omit<Courses, 'id'> | Omit<Jobs, 'id'>;
+    },
   ): Promise<Plan> {
-    return this.planRepository.create(plan);
+    const repo = new DefaultTransactionalRepository(Plan, this.dataSource);
+    const tx = await repo.beginTransaction(IsolationLevel.READ_COMMITTED);
+    try {
+      const { plan, productData } = body;
+
+      if (plan.planGroup === 0) {
+        // create course
+
+        const savedCourse = await this.coursesRepository.create(productData);
+
+        if (savedCourse) {
+          const planData = { ...plan, coursesId: savedCourse.id };
+          const savedPlan = await this.planRepository.create(planData);
+          tx.commit();
+          return await this.planRepository.findById(savedPlan.id, { include: [{ relation: 'courses' }] });
+        }
+      }
+
+      // if(plan.planGroup === 1){
+      //   // create service
+      // }
+
+      tx.commit();
+      throw new HttpErrors.BadRequest('Incorrect product group');
+    } catch (error) {
+      tx.rollback();
+      throw error;
+    }
   }
 
   @get('/plans/count')
@@ -83,7 +140,7 @@ export class PlanController {
   async find(
     @param.filter(Plan) filter?: Filter<Plan>,
   ): Promise<Plan[]> {
-    return this.planRepository.find(filter);
+    return this.planRepository.find({ ...filter, include: [{ relation: 'courses' }] });
   }
 
   @authenticate({
@@ -129,16 +186,8 @@ export class PlanController {
     return this.planRepository.findById(id, filter);
   }
 
-  @authenticate({
-    strategy: 'jwt',
-    options: {
-      required: [
-        PermissionKeys.ADMIN
-      ]
-    }
-  })
   @patch('/plans/{id}')
-  @response(204, {
+  @response(200, {
     description: 'Plan PATCH success',
   })
   async updateById(
@@ -146,13 +195,66 @@ export class PlanController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Plan, { partial: true }),
+          schema: {
+            type: 'object',
+            properties: {
+              plan: getModelSchemaRef(Plan, { partial: true }),
+              productData: {
+                oneOf: [
+                  getModelSchemaRef(Courses, { partial: true }),
+                  getModelSchemaRef(Jobs, { partial: true }),
+                ],
+              },
+            },
+            required: ['plan', 'productData'],
+          },
         },
       },
     })
-    plan: Plan,
+    body: {
+      plan: Partial<Plan>;
+      productData: Partial<Courses> | Partial<Jobs>;
+    },
   ): Promise<void> {
-    await this.planRepository.updateById(id, plan);
+    const { plan, productData } = body;
+    const existingPlan = await this.planRepository.findById(id);
+
+    if (!existingPlan) throw new HttpErrors.NotFound('Plan not found');
+
+    const txRepo = new DefaultTransactionalRepository(Plan, this.dataSource);
+    const tx = await txRepo.beginTransaction(IsolationLevel.READ_COMMITTED);
+
+    try {
+      if (plan.planGroup !== undefined && plan.planGroup !== existingPlan.planGroup) {
+        // PlanGroup changed, handle switch
+        if (existingPlan.planGroup === 0 && existingPlan.coursesId) {
+          await this.coursesRepository.deleteById(existingPlan.coursesId);
+        }
+        // if (existingPlan.planGroup === 1 && existingPlan.jobsId) {
+        //   await this.jobsRepository.deleteById(existingPlan.jobsId);
+        // }
+
+        if (plan.planGroup === 0) {
+          const newCourse = await this.coursesRepository.create(productData as Courses);
+          plan.coursesId = newCourse.id;
+          // plan.jobsId = undefined;
+        } 
+        // else if (plan.planGroup === 1) {
+        //   const newJob = await this.jobsRepository.create(productData as Jobs);
+        //   plan.jobsId = newJob.id;
+        //   plan.coursesId = undefined;
+        // } 
+        else {
+          throw new HttpErrors.BadRequest('Invalid planGroup');
+        }
+      }
+
+      await this.planRepository.updateById(id, plan);
+      await tx.commit();
+    } catch (error) {
+      await tx.rollback();
+      throw error;
+    }
   }
 
   @authenticate({
@@ -203,6 +305,6 @@ export class PlanController {
     @param.path.number('type') type: number,
     @param.filter(Plan, { exclude: 'where' }) filter?: FilterExcludingWhere<Plan>
   ): Promise<Plan[]> {
-    return this.planRepository.find({where: {planType: type}}, filter);
+    return this.planRepository.find({ where: { planType: type } }, filter);
   }
 }

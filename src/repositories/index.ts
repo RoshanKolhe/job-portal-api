@@ -9,3 +9,4 @@ export * from './event-history.repository';
 export * from './subscription.repository';
 export * from './plan.repository';
 export * from './jobs.repository';
+export * from './courses.repository';

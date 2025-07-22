@@ -1,4 +1,5 @@
-import { Entity, model, property } from '@loopback/repository';
+import { Entity, model, property, belongsTo} from '@loopback/repository';
+import {Courses} from './courses.model';
 
 @model()
 export class Plan extends Entity {
@@ -16,16 +17,25 @@ export class Plan extends Entity {
   planType: number; // 0 for data science, 1 for marketing, 2 for product management
 
   @property({
-    type: 'string',
+    type: 'number',
     required: true
   })
-  planName: string;
+  planGroup: number;
+  // 0 for course, 1 for service
 
-  @property({
-    type: 'string',
-    required: true
-  })
-  subTitle: string;
+  // @property({
+  //   type: 'string',
+  //   required: true
+  // })
+  // planName: string;
+
+  // @property({
+  //   type: 'string',
+  //   required: true
+  // })
+  @belongsTo(() => Courses)
+  coursesId: number;
+  // subTitle: string;
 
   @property({
     type: 'number',
@@ -49,15 +59,15 @@ export class Plan extends Entity {
   })
   days: number;   // monthly - 28days, yearly - 365 days, weekly - 7days
 
-  @property({
-    type: 'string'
-  })
-  features?: string;
+  // @property({
+  //   type: 'string'
+  // })
+  // features?: string;
 
-  @property({
-    type: 'object'
-  })
-  planIcon?: object;
+  // @property({
+  //   type: 'object'
+  // })
+  // planIcon?: object;
 
   @property({
     type: 'boolean',

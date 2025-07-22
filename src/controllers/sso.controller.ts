@@ -75,6 +75,8 @@ export class SsoController {
 
       const token = await this.retrieveAccessToken();
 
+      console.log('token', token);
+
       const response = await axios.post(
         'https://altiv.learnworlds.com/admin/api/sso',
         payload,

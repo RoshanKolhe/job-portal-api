@@ -14,3 +14,4 @@ export * from './user-subscription.controller';
 export * from './user-plan.controller';
 export * from './jobs.controller';
 export * from './sso.controller';
+export * from './plan-courses.controller';
