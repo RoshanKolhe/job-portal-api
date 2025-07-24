@@ -90,7 +90,7 @@ export class SsoController {
         }
       );
 
-      return response.data;
+      return {...response.data, token};
     } catch (error) {
       console.error('SSO Login Error:', error);
       throw new HttpErrors.InternalServerError('Failed to generate SSO URL');

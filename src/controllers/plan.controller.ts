@@ -183,7 +183,7 @@ export class PlanController {
     @param.path.number('id') id: number,
     @param.filter(Plan, { exclude: 'where' }) filter?: FilterExcludingWhere<Plan>
   ): Promise<Plan> {
-    return this.planRepository.findById(id, filter);
+    return this.planRepository.findById(id, {...filter, include: [{relation : 'courses'}]});
   }
 
   @patch('/plans/{id}')
