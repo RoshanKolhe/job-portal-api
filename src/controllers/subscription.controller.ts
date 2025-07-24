@@ -89,7 +89,7 @@ export class SubscriptionController {
         throw new HttpErrors.BadGateway('Plan details not found in request body');
       }
 
-      const plan = await this.planRepository.findById(subscription.planId);
+      const plan = await this.planRepository.findById(subscription.planId, {include: [{relation: 'courses'}]});
       if (!plan) {
         throw new HttpErrors.NotFound(`Plan with planId ${subscription.planId} not found`);
       }

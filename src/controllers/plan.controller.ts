@@ -305,6 +305,6 @@ export class PlanController {
     @param.path.number('type') type: number,
     @param.filter(Plan, { exclude: 'where' }) filter?: FilterExcludingWhere<Plan>
   ): Promise<Plan[]> {
-    return this.planRepository.find({ where: { planType: type } }, filter);
+    return this.planRepository.find({ where: { planType: type }, include: [{relation: 'courses'}] }, filter);
   }
 }
