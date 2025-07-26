@@ -8,3 +8,5 @@ export * from './subscription.model';
 export * from './plan.model';
 export * from './jobs.model';
 export * from './courses.model';
+export * from './blogs.model';
+export * from './comments.model'

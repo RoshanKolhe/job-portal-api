@@ -9,16 +9,18 @@ export async function migrate(args: string[]) {
   await app.migrateSchema({
     existingSchema,
     models: [
-      'User', 
-      'Resume', 
-      'ProfileAnalytics', 
-      'ContactUs', 
-      'WaitList', 
-      'EventHistory', 
-      'Subscription', 
-      'Plan', 
+      'User',
+      'Resume',
+      'ProfileAnalytics',
+      'ContactUs',
+      'WaitList',
+      'EventHistory',
+      'Subscription',
+      'Plan',
       'Jobs',
-      'Courses'
+      'Courses',
+      'Blogs',
+      'Comments'
     ],
   });
 
