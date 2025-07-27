@@ -2,7 +2,7 @@ import { repository } from "@loopback/repository";
 import { UserRepository } from "../repositories";
 import { authenticate, AuthenticationBindings } from "@loopback/authentication";
 import { PermissionKeys } from "../authorization/permission-keys";
-import { get, HttpErrors } from "@loopback/rest";
+import { get, HttpErrors, param } from "@loopback/rest";
 import { inject } from "@loopback/core";
 import { UserProfile } from "@loopback/security";
 import axios from "axios";
@@ -47,9 +47,10 @@ export class SsoController {
     strategy: 'jwt',
     options: { required: [PermissionKeys.ADMIN, PermissionKeys.CUSTOMER] }
   })
-  @get('/sso/sso-login')
+  @get('/sso/sso-login/{productId}')
   async ssoLogin(
-    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile
+    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
+    @param.path.string('productId') productId: string,
   ): Promise<any> {
     try {
       const user: any = await this.userRepository.findById(currentUser.id);
@@ -66,7 +67,7 @@ export class SsoController {
       } = {
         email: user.email,
         username: `${user.fullName}${user.id}`,
-        redirectUrl: "https://altiv.learnworlds.com/courses"
+        redirectUrl: `https://altiv.learnworlds.com/course/${productId}`
       };
 
       if (user.avatar?.fileUrl) {
