@@ -47,10 +47,11 @@ export class SsoController {
     strategy: 'jwt',
     options: { required: [PermissionKeys.ADMIN, PermissionKeys.CUSTOMER] }
   })
-  @get('/sso/sso-login/{productId}')
+  @get('/sso/sso-login/{productId}/{accessToken}')
   async ssoLogin(
     @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
     @param.path.string('productId') productId: string,
+    @param.path.string('accessToken') accessToken: string,
   ): Promise<any> {
     try {
       const user: any = await this.userRepository.findById(currentUser.id);
@@ -74,16 +75,16 @@ export class SsoController {
         payload.avatar = user.avatar.fileUrl;
       }
 
-      const token = await this.retrieveAccessToken();
+      // const token = await this.retrieveAccessToken();
 
-      console.log('token', token);
+      // console.log('token', token);
 
       const response = await axios.post(
         'https://altiv.learnworlds.com/admin/api/sso',
         payload,
         {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${accessToken}`,
             'Lw-Client': process.env.LEARNWORLDS_CLIENT_ID!,
             'Content-Type': 'application/json'
           },
@@ -91,7 +92,7 @@ export class SsoController {
         }
       );
 
-      return {...response.data, token};
+      return {...response.data, accessToken};
     } catch (error) {
       console.error('SSO Login Error:', error);
       throw new HttpErrors.InternalServerError('Failed to generate SSO URL');
