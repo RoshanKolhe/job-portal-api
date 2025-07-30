@@ -60,6 +60,10 @@ export class SsoController {
         throw new HttpErrors.BadRequest('User not found');
       }
 
+      if (user?.lmsToken?.trim()?.toLowerCase() !== accessToken?.trim()?.toLowerCase()) {
+        await this.userRepository.updateById(user.id, { lmsToken: accessToken });
+      }
+
       const payload: {
         email: string;
         username: string;
@@ -92,7 +96,7 @@ export class SsoController {
         }
       );
 
-      return {...response.data, accessToken};
+      return { ...response.data, accessToken };
     } catch (error) {
       console.error('SSO Login Error:', error);
       throw new HttpErrors.InternalServerError('Failed to generate SSO URL');

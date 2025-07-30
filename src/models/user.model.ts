@@ -1,7 +1,7 @@
-import {Entity, hasMany, model, property, belongsTo} from '@loopback/repository';
-import {Resume} from './resume.model';
-import {Subscription} from './subscription.model';
-import {Plan} from './plan.model';
+import { Entity, hasMany, model, property, belongsTo } from '@loopback/repository';
+import { Resume } from './resume.model';
+import { Subscription } from './subscription.model';
+import { Plan } from './plan.model';
 
 @model()
 export class User extends Entity {
@@ -134,6 +134,11 @@ export class User extends Entity {
     default: 'false',
   })
   provider: string;
+
+  @property({
+    type: 'string',
+  })
+  lmsToken?: string;
 
   @hasMany(() => Resume)
   resumes: Resume[];
