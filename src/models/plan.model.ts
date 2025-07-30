@@ -20,22 +20,10 @@ export class Plan extends Entity {
     type: 'number',
     required: true
   })
-  planGroup: number;
-  // 0 for course, 1 for service
+  planGroup: number; // 0 for course, 1 for service
 
-  // @property({
-  //   type: 'string',
-  //   required: true
-  // })
-  // planName: string;
-
-  // @property({
-  //   type: 'string',
-  //   required: true
-  // })
   @belongsTo(() => Courses)
   coursesId: number;
-  // subTitle: string;
 
   @property({
     type: 'number',
@@ -58,16 +46,6 @@ export class Plan extends Entity {
     type: 'number',
   })
   days: number;   // monthly - 28days, yearly - 365 days, weekly - 7days
-
-  // @property({
-  //   type: 'string'
-  // })
-  // features?: string;
-
-  // @property({
-  //   type: 'object'
-  // })
-  // planIcon?: object;
 
   @property({
     type: 'boolean',

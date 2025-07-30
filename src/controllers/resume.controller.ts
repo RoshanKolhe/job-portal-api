@@ -31,6 +31,7 @@ import axios from 'axios';
 import * as isEmail from 'isemail';
 import { BcryptHasher } from '../services/hash.password.bcrypt';
 import { EventHistoryService } from '../services/event-history.service';
+import { PermissionKeys } from '../authorization/permission-keys';
 
 export class ResumeController {
   constructor(
@@ -297,5 +298,23 @@ export class ResumeController {
   })
   async deleteById(@param.path.number('id') id: number): Promise<void> {
     await this.resumeRepository.deleteById(id);
+  }
+
+  // resumes by userId
+  @authenticate({
+    strategy: 'jwt',
+    options: {required: [PermissionKeys.ADMIN]}
+  })
+  @get('/resumes/resume-by-id/{userId}')
+  async fetchResumesByUserId(
+    @param.path.number('userId') userId: number,
+  ): Promise<Resume[]>{
+    try{
+      const resumes = await this.resumeRepository.find({where: {userId: userId}});
+
+      return resumes;
+    }catch(error){
+      throw error;
+    }
   }
 }
