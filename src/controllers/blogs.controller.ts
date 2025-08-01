@@ -75,8 +75,13 @@ export class BlogsController {
   })
   async find(
     @param.filter(Blogs) filter?: Filter<Blogs>,
-  ): Promise<Blogs[]> {
-    return this.blogsRepository.find(filter);
+  ): Promise<{blogs: Blogs[], count: number}> {
+    const blogs = await this.blogsRepository.find(filter);
+    const count = await this.blogsRepository.count();
+    return{
+      blogs,
+      count: count.count
+    }
   }
 
   @get('/blogs/{id}')
