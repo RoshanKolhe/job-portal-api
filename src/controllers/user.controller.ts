@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { AuthenticationBindings, authenticate } from '@loopback/authentication';
-import { inject } from '@loopback/core';
+import {AuthenticationBindings, authenticate} from '@loopback/authentication';
+import {inject} from '@loopback/core';
 
 import {
   DefaultTransactionalRepository,
@@ -20,22 +20,22 @@ import {
   requestBody,
   response
 } from '@loopback/rest';
-import { UserProfile } from '@loopback/security';
+import {UserProfile} from '@loopback/security';
 import * as _ from 'lodash';
-import { PermissionKeys } from '../authorization/permission-keys';
-import { JobPortalDataSource } from '../datasources';
-import { EmailManagerBindings } from '../keys';
-import { User } from '../models';
-import { Credentials, PlanRepository, UserRepository } from '../repositories';
-import { EmailManager } from '../services/email.service';
-import { BcryptHasher } from '../services/hash.password.bcrypt';
-import { JWTService } from '../services/jwt-service';
-import { MyUserService } from '../services/user-service';
-import { validateCredentials } from '../services/validator';
+import {PermissionKeys} from '../authorization/permission-keys';
+import {JobPortalDataSource} from '../datasources';
+import {EmailManagerBindings} from '../keys';
+import {EventHistory, User} from '../models';
+import {Credentials, EventHistoryRepository, PlanRepository, UserRepository} from '../repositories';
+import {EmailManager} from '../services/email.service';
+import {EventHistoryService} from '../services/event-history.service';
+import {BcryptHasher} from '../services/hash.password.bcrypt';
+import {JWTService} from '../services/jwt-service';
+import {MyUserService} from '../services/user-service';
+import {validateCredentials} from '../services/validator';
 import generateResetPasswordTemplate from '../templates/reset-password.template';
 import SITE_SETTINGS from '../utils/config';
-import { CredentialsRequestBody } from './specs/user-controller-spec';
-import { EventHistoryService } from '../services/event-history.service';
+import {CredentialsRequestBody} from './specs/user-controller-spec';
 
 export class UserController {
   constructor(
@@ -47,6 +47,8 @@ export class UserController {
     public userRepository: UserRepository,
     @repository(PlanRepository)
     public planRepository: PlanRepository,
+    @repository(EventHistoryRepository)
+    public eventHistoryRepository: EventHistoryRepository,
     @inject('service.hasher')
     public hasher: BcryptHasher,
     @inject('service.user.service')
@@ -55,6 +57,7 @@ export class UserController {
     public jwtService: JWTService,
     @inject('service.eventhistory.service')
     public eventHistoryService: EventHistoryService,
+
   ) { }
 
   @post('/register', {
@@ -85,7 +88,7 @@ export class UserController {
       validateCredentials(userData);
       const user = await this.userRepository.findOne({
         where: {
-          or: [{ email: userData.email }],
+          or: [{email: userData.email}],
         },
       });
       if (user) {
@@ -95,9 +98,9 @@ export class UserController {
       // userData.permissions = [PermissionKeys.ADMIN];
       userData.password = await this.hasher.hashPassword(userData.password);
 
-      const plan = await this.planRepository.findOne({ where: { isFreePlan: true } });
+      const plan = await this.planRepository.findOne({where: {isFreePlan: true}});
       if (plan?.id) {
-        const savedUser = await this.userRepository.create({ ...userData, currentPlanId: plan.id }, {
+        const savedUser = await this.userRepository.create({...userData, currentPlanId: plan.id}, {
           transaction: tx,
         });
         const savedUserData = _.omit(savedUser, 'password');
@@ -197,7 +200,7 @@ export class UserController {
       where: {
         id: currentUser.id,
       },
-      include: [{ relation: 'resumes' }],
+      include: [{relation: 'resumes'}],
     });
 
     if (!user) {
@@ -241,10 +244,10 @@ export class UserController {
       ...filter,
       where: {
         ...filter?.where,
-        id: { neq: currentUser.id },
+        id: {neq: currentUser.id},
         isDeleted: false,
       },
-      fields: { password: false, otp: false, otpExpireAt: false },
+      fields: {password: false, otp: false, otpExpireAt: false},
       // include: [
       //   {relation: 'creator'},
       //   {relation: 'updater'},
@@ -256,7 +259,7 @@ export class UserController {
 
   @authenticate({
     strategy: 'jwt',
-    options: { required: [PermissionKeys.ADMIN, PermissionKeys.CUSTOMER] },
+    options: {required: [PermissionKeys.ADMIN, PermissionKeys.CUSTOMER]},
   })
   @get('/api/users/{id}', {
     responses: {
@@ -298,7 +301,7 @@ export class UserController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(User, { partial: true }),
+          schema: getModelSchemaRef(User, {partial: true}),
         },
       },
     })
@@ -319,7 +322,7 @@ export class UserController {
     // Validate email uniqueness only if email is being updated
     if (user.email && user.email !== existingUser.email) {
       const emailExists = await this.userRepository.findOne({
-        where: { email: user.email, id: { neq: id } }, // Exclude the current user
+        where: {email: user.email, id: {neq: id}}, // Exclude the current user
       });
 
       if (emailExists) {
@@ -374,7 +377,7 @@ export class UserController {
     if (user) {
       const userProfile = this.userService.convertToUserProfile(user);
       const token = await this.jwtService.generate10MinToken(userProfile);
-      const resetPasswordLink = `${process.env.REACT_APP_SITE_URL}/auth/admin/new-password?token=${token}`;
+      const resetPasswordLink = `${process.env.REACT_APP_SITE_URL}/auth/jwt/new-password?token=${token}`;
       const template = generateResetPasswordTemplate({
         userData: userProfile,
         resetLink: resetPasswordLink,
@@ -515,7 +518,7 @@ export class UserController {
 
   @authenticate({
     strategy: 'jwt',
-    options: { required: [PermissionKeys.ADMIN] },
+    options: {required: [PermissionKeys.ADMIN]},
   })
   @del('/user/{id}')
   @response(204, {
@@ -537,5 +540,22 @@ export class UserController {
     });
   }
 
+  // events by userId
+  @authenticate({
+    strategy: 'jwt',
+    options: {required: [PermissionKeys.ADMIN]}
+  })
+  @get('/user/events/{userId}')
+  async fetchResumesByUserId(
+    @param.path.number('userId') userId: number,
+  ): Promise<EventHistory[]> {
+    try {
+      const events = await this.eventHistoryRepository.find({where: {userId: userId}});
+
+      return events;
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
