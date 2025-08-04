@@ -25,8 +25,8 @@ import * as _ from 'lodash';
 import { PermissionKeys } from '../authorization/permission-keys';
 import { JobPortalDataSource } from '../datasources';
 import { EmailManagerBindings } from '../keys';
-import { User } from '../models';
-import { Credentials, PlanRepository, UserRepository } from '../repositories';
+import { EventHistory, User } from '../models';
+import { Credentials, EventHistoryRepository, PlanRepository, UserRepository } from '../repositories';
 import { EmailManager } from '../services/email.service';
 import { BcryptHasher } from '../services/hash.password.bcrypt';
 import { JWTService } from '../services/jwt-service';
@@ -55,7 +55,9 @@ export class UserController {
     public jwtService: JWTService,
     @inject('service.eventhistory.service')
     public eventHistoryService: EventHistoryService,
-  ) { }
+    @repository(EventHistoryRepository)
+    public eventHistoryRepository: EventHistoryRepository,
+  ) {}
 
   @post('/register', {
     responses: {
@@ -403,6 +405,69 @@ export class UserController {
     }
   }
 
+    // send reset link for password
+  @post('/admin/sendResetPasswordLink')
+  async adminSendResetPasswordLink(
+    @requestBody({
+      description: 'Input for sending reset password link',
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              email: {
+                type: 'string',
+                format: 'email',
+                description: 'The email address of the user',
+              },
+            },
+            required: ['email'],
+          },
+        },
+      },
+    })
+    userData: {
+      email: string;
+    },
+  ): Promise<object> {
+    const user = await this.userRepository.findOne({
+      where: {
+        email: userData.email,
+      },
+    });
+    if (user) {
+      const userProfile = this.userService.convertToUserProfile(user);
+      const token = await this.jwtService.generate10MinToken(userProfile);
+      const resetPasswordLink = `${process.env.REACT_APP_ADMIN_SITE_URL}/auth/admin/new-password?token=${token}`;
+      const template = generateResetPasswordTemplate({
+        userData: userProfile,
+        resetLink: resetPasswordLink,
+      });
+      console.log(template);
+      const mailOptions = {
+        from: SITE_SETTINGS.fromMail,
+        to: userData.email,
+        subject: template.subject,
+        html: template.html,
+      };
+
+      try {
+        await this.emailManager.sendMail(mailOptions);
+        return {
+          success: true,
+          message: `Password reset link sent to ${userData.email}. Please check your inbox.`,
+        };
+      } catch (err) {
+        throw new HttpErrors.UnprocessableEntity(
+          err.message || 'Mail sending failed',
+        );
+      }
+    } else {
+      throw new HttpErrors.BadRequest("Email Doesn't Exist");
+    }
+  }
+
   @authenticate('jwt')
   @post('/setPassword')
   async setPassword(
@@ -537,5 +602,18 @@ export class UserController {
     });
   }
 
+  // fetch events by userId
+  @get('/user/events/{userId}')
+  async fetchResumesByUserId(
+    @param.path.number('userId') userId: number,
+  ): Promise<EventHistory[]> {
+    try {
+      const events = await this.eventHistoryRepository.find({ where: { userId: userId } });
+
+      return events;
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
