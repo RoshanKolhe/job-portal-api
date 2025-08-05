@@ -22,19 +22,20 @@ import {
 } from '@loopback/rest';
 import {UserProfile} from '@loopback/security';
 import * as _ from 'lodash';
-import { PermissionKeys } from '../authorization/permission-keys';
-import { JobPortalDataSource } from '../datasources';
-import { EmailManagerBindings } from '../keys';
-import { EventHistory, User } from '../models';
-import { Credentials, EventHistoryRepository, PlanRepository, UserRepository } from '../repositories';
-import { EmailManager } from '../services/email.service';
-import { BcryptHasher } from '../services/hash.password.bcrypt';
-import { JWTService } from '../services/jwt-service';
-import { MyUserService } from '../services/user-service';
-import { validateCredentials } from '../services/validator';
+import {PermissionKeys} from '../authorization/permission-keys';
+import {JobPortalDataSource} from '../datasources';
+import {EmailManagerBindings} from '../keys';
+import {EventHistory, User} from '../models';
+import {Credentials, EventHistoryRepository, PlanRepository, UserRepository} from '../repositories';
+import {EmailManager} from '../services/email.service';
+import {BcryptHasher} from '../services/hash.password.bcrypt';
+import {JWTService} from '../services/jwt-service';
+import {MyUserService} from '../services/user-service';
+import {validateCredentials} from '../services/validator';
 import generateResetPasswordTemplate from '../templates/reset-password.template';
 import SITE_SETTINGS from '../utils/config';
 import {CredentialsRequestBody} from './specs/user-controller-spec';
+import {EventHistoryService} from '../services/event-history.service';
 
 export class UserController {
   constructor(
@@ -404,194 +405,7 @@ export class UserController {
     }
   }
 
-  // send reset link for password
-  @post('/admin/sendResetPasswordLink')
-  async adminSendResetPasswordLink(
-    @requestBody({
-      description: 'Input for sending reset password link',
-      required: true,
-      content: {
-        'application/json': {
-          schema: {
-            type: 'object',
-            properties: {
-              email: {
-                type: 'string',
-                format: 'email',
-                description: 'The email address of the user',
-              },
-            },
-            required: ['email'],
-          },
-        },
-      },
-    })
-    userData: {
-      email: string;
-    },
-  ): Promise<object> {
-    const user = await this.userRepository.findOne({
-      where: {
-        email: userData.email,
-      },
-    });
-    if (user) {
-      const userProfile = this.userService.convertToUserProfile(user);
-      const token = await this.jwtService.generate10MinToken(userProfile);
-      const resetPasswordLink = `${process.env.REACT_APP_ADMIN_SITE_URL}/auth/jwt/new-password?token=${token}`;
-      const template = generateResetPasswordTemplate({
-        userData: userProfile,
-        resetLink: resetPasswordLink,
-      });
-      console.log(template);
-      const mailOptions = {
-        from: SITE_SETTINGS.fromMail,
-        to: userData.email,
-        subject: template.subject,
-        html: template.html,
-      };
 
-      try {
-        await this.emailManager.sendMail(mailOptions);
-        return {
-          success: true,
-          message: `Password reset link sent to ${userData.email}. Please check your inbox.`,
-        };
-      } catch (err) {
-        throw new HttpErrors.UnprocessableEntity(
-          err.message || 'Mail sending failed',
-        );
-      }
-    } else {
-      throw new HttpErrors.BadRequest("Email Doesn't Exist");
-    }
-  }
-
-    // send reset link for password
-  @post('/admin/sendResetPasswordLink')
-  async adminSendResetPasswordLink(
-    @requestBody({
-      description: 'Input for sending reset password link',
-      required: true,
-      content: {
-        'application/json': {
-          schema: {
-            type: 'object',
-            properties: {
-              email: {
-                type: 'string',
-                format: 'email',
-                description: 'The email address of the user',
-              },
-            },
-            required: ['email'],
-          },
-        },
-      },
-    })
-    userData: {
-      email: string;
-    },
-  ): Promise<object> {
-    const user = await this.userRepository.findOne({
-      where: {
-        email: userData.email,
-      },
-    });
-    if (user) {
-      const userProfile = this.userService.convertToUserProfile(user);
-      const token = await this.jwtService.generate10MinToken(userProfile);
-      const resetPasswordLink = `${process.env.REACT_APP_ADMIN_SITE_URL}/auth/jwt/new-password?token=${token}`;
-      const template = generateResetPasswordTemplate({
-        userData: userProfile,
-        resetLink: resetPasswordLink,
-      });
-      console.log(template);
-      const mailOptions = {
-        from: SITE_SETTINGS.fromMail,
-        to: userData.email,
-        subject: template.subject,
-        html: template.html,
-      };
-
-      try {
-        await this.emailManager.sendMail(mailOptions);
-        return {
-          success: true,
-          message: `Password reset link sent to ${userData.email}. Please check your inbox.`,
-        };
-      } catch (err) {
-        throw new HttpErrors.UnprocessableEntity(
-          err.message || 'Mail sending failed',
-        );
-      }
-    } else {
-      throw new HttpErrors.BadRequest("Email Doesn't Exist");
-    }
-  }
-
-    // send reset link for password
-  @post('/admin/sendResetPasswordLink')
-  async adminSendResetPasswordLink(
-    @requestBody({
-      description: 'Input for sending reset password link',
-      required: true,
-      content: {
-        'application/json': {
-          schema: {
-            type: 'object',
-            properties: {
-              email: {
-                type: 'string',
-                format: 'email',
-                description: 'The email address of the user',
-              },
-            },
-            required: ['email'],
-          },
-        },
-      },
-    })
-    userData: {
-      email: string;
-    },
-  ): Promise<object> {
-    const user = await this.userRepository.findOne({
-      where: {
-        email: userData.email,
-      },
-    });
-    if (user) {
-      const userProfile = this.userService.convertToUserProfile(user);
-      const token = await this.jwtService.generate10MinToken(userProfile);
-      const resetPasswordLink = `${process.env.REACT_APP_ADMIN_SITE_URL}/auth/jwt/new-password?token=${token}`;
-      const template = generateResetPasswordTemplate({
-        userData: userProfile,
-        resetLink: resetPasswordLink,
-      });
-      console.log(template);
-      const mailOptions = {
-        from: SITE_SETTINGS.fromMail,
-        to: userData.email,
-        subject: template.subject,
-        html: template.html,
-      };
-
-      try {
-        await this.emailManager.sendMail(mailOptions);
-        return {
-          success: true,
-          message: `Password reset link sent to ${userData.email}. Please check your inbox.`,
-        };
-      } catch (err) {
-        throw new HttpErrors.UnprocessableEntity(
-          err.message || 'Mail sending failed',
-        );
-      }
-    } else {
-      throw new HttpErrors.BadRequest("Email Doesn't Exist");
-    }
-  }
 
   @authenticate('jwt')
   @post('/setPassword')
@@ -726,35 +540,7 @@ export class UserController {
       deletedAt: new Date(),
     });
   }
-// Events By user ID
-  @authenticate({
-    strategy: 'jwt',
-    options: {required: [PermissionKeys.ADMIN]}
-  })
-  @get('/user/events/{userId}')
-@response(200, {
-  description: 'Array of EventHistory with user relations',
-  content: {
-    'application/json': {
-      schema: {
-        type: 'array',
-        items: getModelSchemaRef(EventHistory, {
-          includeRelations: true,
-        }),
-      },
-    },
-  },
-})
-async fetchResumesByUserId(
-  @param.path.number('userId') userId: number,
-): Promise<EventHistory[]> {
-  const events = await this.eventHistoryRepository.find({
-    where: {userId},
-    include: ['user'],
-  });
 
-  return events;
-}
 
   // fetch events by userId
   @get('/user/events/{userId}')
@@ -762,7 +548,7 @@ async fetchResumesByUserId(
     @param.path.number('userId') userId: number,
   ): Promise<EventHistory[]> {
     try {
-      const events = await this.eventHistoryRepository.find({ where: { userId: userId } });
+      const events = await this.eventHistoryRepository.find({where: {userId: userId}, include: [{relation: 'user'}]});
 
       return events;
     } catch (error) {
