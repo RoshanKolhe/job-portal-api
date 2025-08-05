@@ -414,6 +414,8 @@ export class SubscriptionController {
     return this.subscriptionRepository.updateAll(subscription, where);
   }
 
+
+
   @authenticate({
     strategy: 'jwt',
     options: {
@@ -428,7 +430,9 @@ export class SubscriptionController {
     description: 'Subscription model instance',
     content: {
       'application/json': {
-        schema: getModelSchemaRef(Subscription, {includeRelations: true}),
+        schema: getModelSchemaRef(Subscription, {
+          includeRelations: true,
+        }),
       },
     },
   })
@@ -436,8 +440,19 @@ export class SubscriptionController {
     @param.path.number('id') id: number,
     @param.filter(Subscription, {exclude: 'where'}) filter?: FilterExcludingWhere<Subscription>
   ): Promise<Subscription> {
-    return this.subscriptionRepository.findById(id, filter);
+    const updatedFilter: FilterExcludingWhere<Subscription> = {
+      ...filter,
+      include: [
+        ...(filter?.include ?? []),
+        {relation: 'user'},
+      ]
+    };
+    return this.subscriptionRepository.findById(id, updatedFilter);
   }
+
+
+
+
 
   @authenticate({
     strategy: 'jwt',
