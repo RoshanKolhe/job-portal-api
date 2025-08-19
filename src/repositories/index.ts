@@ -13,3 +13,5 @@ export * from './profile-analytics.repository';
 export * from './subscription.repository';
 export * from './wait-list.repository';
 
+export * from './category.repository';
+export * from './category-blogs-link.repository';
