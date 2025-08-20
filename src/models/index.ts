@@ -10,3 +10,5 @@ export * from './jobs.model';
 export * from './courses.model';
 export * from './blogs.model';
 export * from './comments.model'
+export * from './category.model';
+export * from './category-blogs-link.model';

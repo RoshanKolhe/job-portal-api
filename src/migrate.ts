@@ -20,7 +20,8 @@ export async function migrate(args: string[]) {
       'Jobs',
       'Courses',
       'Blogs',
-      'Comments'
+      'Comments',
+      'Category',
     ],
   });
 

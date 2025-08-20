@@ -1,4 +1,6 @@
-import {Entity, model, property} from '@loopback/repository';
+import {Entity, model, property, hasMany} from '@loopback/repository';
+import {Category} from './category.model';
+import {CategoryBlogsLink} from './category-blogs-link.model';
 
 @model()
 export class Blogs extends Entity {
@@ -78,6 +80,8 @@ export class Blogs extends Entity {
   })
   isDeleted: boolean;
 
+  @hasMany(() => Category, {through: {model: () => CategoryBlogsLink}})
+  categories: Category[];
 
   constructor(data?: Partial<Blogs>) {
     super(data);

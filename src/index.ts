@@ -1,6 +1,6 @@
 
 import {ApplicationConfig, JobPortalApiApplication} from './application';
-const expressSession = require('express-session'); // ✅ safe in LB4
+
 
 export * from './application';
 
@@ -50,7 +50,7 @@ if (require.main === module) {
   const config = {
     rest: {
       port: +(process.env.PORT ?? 3034),
-      host: process.env.HOST || '0.0.0.0',
+      host: process.env.HOST ?? '0.0.0.0',
       gracePeriodForClose: 5000,
       openApiSpec: {
         setServersFromRequest: true,

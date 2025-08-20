@@ -1,10 +1,7 @@
 import {
-  Count,
-  CountSchema,
   Filter,
   FilterExcludingWhere,
   repository,
-  Where,
 } from '@loopback/repository';
 import {
   del,
@@ -14,7 +11,6 @@ import {
   param,
   patch,
   post,
-  put,
   requestBody,
   response,
 } from '@loopback/rest';
@@ -41,12 +37,18 @@ export class BlogsController {
           schema: getModelSchemaRef(Blogs, {
             title: 'NewBlogs',
             exclude: ['id'],
-          }),
+          }).definitions?.Blogs?.properties,
+          categories: {
+            type: 'array',
+            items: {
+              type: 'number',
+          },
         },
       },
-    })
-    blogs: Omit<Blogs, 'id'>,
+    },})
+    data: Omit<Blogs, 'id'> & {categories?: number[]},
   ): Promise<Blogs> {
+    const {categories, ...blogs} = data;
     const slug = slugify(blogs.title, {lower: true, strict: true});
 
     const existing = await this.blogsRepository.findOne({where: {slug}});
@@ -54,10 +56,18 @@ export class BlogsController {
       throw new HttpErrors.BadRequest('A blog with this title already exists.');
     }
 
-    return this.blogsRepository.create({
+    const savedBlog = await this.blogsRepository.create({
       ...blogs,
       slug,
     });
+
+    if(categories && categories.length > 0) {
+      for (const categoryId of categories) {
+        await this.blogsRepository.categories(savedBlog.id).link(categoryId);
+      }
+    }
+
+    return savedBlog;
   }
 
 

@@ -16,3 +16,5 @@ export * from './jobs.controller';
 export * from './sso.controller';
 export * from './plan-courses.controller';
 export * from './dashboard.controller';
+export * from './category.controller';
+export * from './blogs-category.controller';
