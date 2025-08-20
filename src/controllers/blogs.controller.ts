@@ -87,7 +87,7 @@ export class BlogsController {
   async find(
     @param.filter(Blogs) filter?: Filter<Blogs>,
   ): Promise<{blogs: Blogs[], count: number}> {
-    const blogs = await this.blogsRepository.find({...filter, include: [{relation: 'categories'}]});
+    const blogs = await this.blogsRepository.find(filter);
     const count = await this.blogsRepository.count();
     return {
       blogs,
