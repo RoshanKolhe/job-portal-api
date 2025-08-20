@@ -42,10 +42,11 @@ export class BlogsController {
             type: 'array',
             items: {
               type: 'number',
+            },
           },
         },
       },
-    },})
+    })
     data: Omit<Blogs, 'id'> & {categories?: number[]},
   ): Promise<Blogs> {
     const {categories, ...blogs} = data;
@@ -61,7 +62,7 @@ export class BlogsController {
       slug,
     });
 
-    if(categories && categories.length > 0) {
+    if (categories && categories.length > 0) {
       for (const categoryId of categories) {
         await this.blogsRepository.categories(savedBlog.id).link(categoryId);
       }
@@ -86,9 +87,9 @@ export class BlogsController {
   async find(
     @param.filter(Blogs) filter?: Filter<Blogs>,
   ): Promise<{blogs: Blogs[], count: number}> {
-    const blogs = await this.blogsRepository.find(filter);
+    const blogs = await this.blogsRepository.find({...filter, include: [{relation: 'categories'}]});
     const count = await this.blogsRepository.count();
-    return{
+    return {
       blogs,
       count: count.count
     }
@@ -107,7 +108,7 @@ export class BlogsController {
     @param.path.number('id') id: number,
     @param.filter(Blogs, {exclude: 'where'}) filter?: FilterExcludingWhere<Blogs>
   ): Promise<Blogs> {
-    return this.blogsRepository.findById(id, filter);
+    return this.blogsRepository.findById(id, {...filter, include: [{relation: 'categories'}]});
   }
 
   @get('/blogs/slug/{slug}')
@@ -122,7 +123,7 @@ export class BlogsController {
   async findBySlug(
     @param.path.string('slug') slug: string
   ): Promise<Blogs> {
-    const blog = await this.blogsRepository.findOne({where: {slug}});
+    const blog = await this.blogsRepository.findOne({where: {slug}, include: [{relation: 'categories'}]});
 
     if (!blog) {
       throw new HttpErrors.NotFound('Blog not found with this slug');
@@ -141,13 +142,28 @@ export class BlogsController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Blogs, {partial: true}),
+          schema: getModelSchemaRef(Blogs, {partial: true}).definitions?.Blogs?.properties,
+          categories: {
+            type: 'array',
+            items: {
+              type: 'number',
+            },
+          },
         },
       },
     })
-    blogs: Blogs,
+    data: Blogs & {categories?: number[]},
   ): Promise<void> {
+    const {categories, ...blogs} = data;
     await this.blogsRepository.updateById(id, blogs);
+
+    if (categories && categories.length > 0) {
+      await this.blogsRepository.categories(id).unlinkAll();
+
+      for (const cat of categories) {
+        await this.blogsRepository.categories(id).link(cat);
+      }
+    }
   }
 
 
