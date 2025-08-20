@@ -16,12 +16,14 @@ import {
 } from '@loopback/rest';
 import slugify from 'slugify';
 import {Blogs} from '../models';
-import {BlogsRepository} from '../repositories';
+import {BlogsRepository, CategoryBlogsLinkRepository} from '../repositories';
 
 export class BlogsController {
   constructor(
     @repository(BlogsRepository)
     public blogsRepository: BlogsRepository,
+    @repository(CategoryBlogsLinkRepository)
+    public categoryBlogsLinkRepository : CategoryBlogsLinkRepository,
   ) { }
 
 
@@ -86,7 +88,26 @@ export class BlogsController {
   })
   async find(
     @param.filter(Blogs) filter?: Filter<Blogs>,
+    @param.query.number('categoryId') categoryId?: number,
   ): Promise<{blogs: Blogs[], count: number}> {
+    if (categoryId) {
+      const blogCategories = await this.categoryBlogsLinkRepository.find({
+        where: {categoryId},
+      });
+      const blogIds = blogCategories.map(bc => bc.blogsId);
+
+      const blogs = await this.blogsRepository.find({
+        ...filter,
+        where: {id: {inq: blogIds}},
+        include: filter?.include,
+      });
+
+      return {
+        blogs,
+        count: blogs.length
+      };
+    }
+
     const blogs = await this.blogsRepository.find(filter);
     const count = await this.blogsRepository.count();
     return {
