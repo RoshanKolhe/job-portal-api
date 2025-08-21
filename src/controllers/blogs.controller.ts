@@ -98,7 +98,7 @@ export class BlogsController {
 
       const blogs = await this.blogsRepository.find({
         ...filter,
-        where: {id: {inq: blogIds}},
+        where: {...filter?.where, id: {inq: blogIds}},
         include: filter?.include,
       });
 
@@ -178,7 +178,18 @@ export class BlogsController {
     const {categories, ...blogs} = data;
     const slug = slugify(blogs.title, {lower: true, strict: true});
 
-    const existing = await this.blogsRepository.findOne({where: {slug}});
+    const existing = await this.blogsRepository.findOne({
+      where: {
+        and: [
+          {slug},
+          {
+            id: {
+              neq: id
+            }
+          }
+        ]
+      }
+    });
     if (existing) {
       throw new HttpErrors.BadRequest('A blog with this title already exists.');
     }
