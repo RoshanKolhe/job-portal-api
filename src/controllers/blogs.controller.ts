@@ -23,7 +23,7 @@ export class BlogsController {
     @repository(BlogsRepository)
     public blogsRepository: BlogsRepository,
     @repository(CategoryBlogsLinkRepository)
-    public categoryBlogsLinkRepository : CategoryBlogsLinkRepository,
+    public categoryBlogsLinkRepository: CategoryBlogsLinkRepository,
   ) { }
 
 
@@ -176,7 +176,15 @@ export class BlogsController {
     data: Blogs & {categories?: number[]},
   ): Promise<void> {
     const {categories, ...blogs} = data;
-    await this.blogsRepository.updateById(id, blogs);
+    const slug = slugify(blogs.title, {lower: true, strict: true});
+
+    const existing = await this.blogsRepository.findOne({where: {slug}});
+    if (existing) {
+      throw new HttpErrors.BadRequest('A blog with this title already exists.');
+    }
+
+    const newUpdatedData = {...blogs, slug};
+    await this.blogsRepository.updateById(id, newUpdatedData);
 
     if (categories && categories.length > 0) {
       await this.blogsRepository.categories(id).unlinkAll();
