@@ -1,4 +1,4 @@
-import { Entity, model, property } from '@loopback/repository';
+import {Entity, model, property} from '@loopback/repository';
 
 @model()
 export class Jobs extends Entity {
@@ -21,6 +21,12 @@ export class Jobs extends Entity {
   })
   company: string;
 
+  // @property({
+  //   type: 'string',
+  //   required: true
+  // })
+  // companyLogo: string;
+
   @property({
     type: 'string',
   })
@@ -42,7 +48,7 @@ export class Jobs extends Entity {
     type: 'array',
     itemType: 'string'
   })
-  requirements: string[];
+  skillRequirements: string[];
 
   @property({
     type: 'array',
