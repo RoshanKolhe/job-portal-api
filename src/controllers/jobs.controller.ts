@@ -1310,7 +1310,7 @@ export class JobsController {
     public jobsRepository: JobsRepository,
   ) { }
 
-  // Add bulk jobs
+  // Add bulk jobs ==> for adding data 
   @post("/add-bulk-jobs")
   async addJobs(): Promise<{success: boolean; message: string;}> {
     const newData = this.jobsData.map((job) => ({
