@@ -1359,6 +1359,7 @@ export class JobsController {
           RedirectURL: job.redirectUrl,
         };
 
+        console.log('job object', jobObject);
         try {
           const apiResponse = await axios.post(
             "http://164.52.221.77:7483/api/jd/process",
