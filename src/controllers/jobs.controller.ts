@@ -1375,7 +1375,7 @@ export class JobsController {
           await this.jobsRepository.updateById(job.id, {isAsync: true});
           count = count + 1;
         } catch (error) {
-          console.error(`❌ Failed to post job ${job.id}:`, error.message);
+          // console.error(`❌ Failed to post job ${job.id}:`, error.message);
           continue;
         }
       }
