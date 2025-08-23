@@ -1346,7 +1346,7 @@ export class JobsController {
     if (jobs.length > 0) {
       for (const job of jobs) {
         const jobObject = {
-          job_id: job.id,
+          job_id: job.id?.toString(),
           title: job.jobTitle,
           company: job.company,
           Location: job.location,
