@@ -65,7 +65,24 @@ export class Jobs extends Entity {
     type: 'string',
     required: true
   })
+  experience: string;
+
+  @property({
+    type: 'string',
+    required: true
+  })
   redirectUrl: string;
+
+  @property({
+    type: 'boolean',
+    required: true
+  })
+  isAsync: boolean;
+
+  @property({
+    type: 'date',
+  })
+  postedAt?: Date;
 
   @property({
     type: 'date',

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import {
   Count,
   CountSchema,
@@ -17,6 +18,7 @@ import {
   requestBody,
   response,
 } from '@loopback/rest';
+import axios from 'axios';
 import {Jobs} from '../models';
 import {JobsRepository} from '../repositories';
 
@@ -1310,7 +1312,7 @@ export class JobsController {
     public jobsRepository: JobsRepository,
   ) { }
 
-  // Add bulk jobs ==> for adding data 
+  // Add bulk jobs ==> for adding data
   @post("/add-bulk-jobs")
   async addJobs(): Promise<{success: boolean; message: string;}> {
     const newData = this.jobsData.map((job) => ({
@@ -1319,9 +1321,12 @@ export class JobsController {
       location: job.location,
       jobType: job.jobType ?? "Full Time, Permanent",
       salaryRange: job.salary,
+      experience: job.experience,
       skillRequirements: job.skills,
       description: job.description,
       redirectUrl: job.redirectUrl,
+      postedAt: job.postedDate.$date,
+      isAsync: false,
       isDeleted: false
     }));
 
@@ -1331,6 +1336,55 @@ export class JobsController {
       message: "Jobs Added successfully",
       success: true
     }
+  }
+
+  // Store to yashwants db
+  @post("/post-job")
+  async postJobTo(): Promise<{success: boolean; message: string; count: number}> {
+    const jobs = await this.jobsRepository.find();
+    let count = 0;
+    if (jobs.length > 0) {
+      for (const job of jobs) {
+        const jobObject = {
+          job_id: job.id,
+          title: job.jobTitle,
+          company: job.company,
+          Location: job.location,
+          Description: job.description,
+          Skills: job.skillRequirements,
+          Salary: job.salaryRange,
+          "Experience Range": job.experience,
+          Job_Type: job.jobType,
+          Posted_Date: job.postedAt,
+          RedirectURL: job.redirectUrl,
+        };
+
+        try {
+          const apiResponse = await axios.post(
+            "http://164.52.221.77:7483/api/jd/process",
+            jobObject,
+            {
+              headers: {
+                "X-apiKey": "2472118222258182",
+              },
+            }
+          );
+          console.log(`✅ Job ${job.id} posted successfully`, apiResponse.data);
+
+          await this.jobsRepository.updateById(job.id, {isAsync: true});
+          count = count + 1;
+        } catch (error) {
+          console.error(`❌ Failed to post job ${job.id}:`, error.message);
+          continue;
+        }
+      }
+    }
+
+    return ({
+      success: true,
+      message: "Jobs posted to yashwants api",
+      count: count
+    })
   }
 
   @post('/jobs')
