@@ -18,11 +18,11 @@ import {
   response,
   HttpErrors,
 } from '@loopback/rest';
-import {Resume, User} from '../models';
-import {ResumeRepository, UserRepository} from '../repositories';
+import { Resume, User } from '../models';
+import { ResumeRepository, UserRepository } from '../repositories';
 import { authenticate, AuthenticationBindings } from '@loopback/authentication';
 import { inject } from '@loopback/core';
-import {UserProfile} from '@loopback/security';
+import { UserProfile } from '@loopback/security';
 import fs from 'fs';
 import FormData from 'form-data';
 import path from 'path';
@@ -36,14 +36,14 @@ import { PermissionKeys } from '../authorization/permission-keys';
 export class ResumeController {
   constructor(
     @repository(ResumeRepository)
-    public resumeRepository : ResumeRepository,
+    public resumeRepository: ResumeRepository,
     @repository(UserRepository)
-    public userRepository : UserRepository,
+    public userRepository: UserRepository,
     @inject(STORAGE_DIRECTORY) private storageDirectory: string,
     @inject('service.hasher') public hasher: BcryptHasher,
     @inject('service.eventhistory.service')
     public eventHistoryService: EventHistoryService,
-  ) {}
+  ) { }
 
   // post new resume for login users
   @authenticate({
@@ -52,7 +52,7 @@ export class ResumeController {
   @post('/resumes')
   @response(200, {
     description: 'Resume model instance',
-    content: {'application/json': {schema: getModelSchemaRef(Resume)}},
+    content: { 'application/json': { schema: getModelSchemaRef(Resume) } },
   })
   async create(
     @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
@@ -68,19 +68,19 @@ export class ResumeController {
     })
     resume: Omit<Resume, 'id'>,
   ): Promise<Resume> {
-    try{
+    try {
       const user = await this.userRepository.findById(currentUser.id);
 
-      if(!user){
+      if (!user) {
         throw new HttpErrors.BadRequest('User not found');
       }
 
-      const resumeData : Resume = {
+      const resumeData: Resume = {
         ...resume,
         userId: user.id
       };
 
-      if(user.id){
+      if (user.id) {
         await this.eventHistoryService.addNewEvent(
           'resume upload',
           'resume uploaded done',
@@ -89,9 +89,35 @@ export class ResumeController {
         );
       }
 
-      return this.resumeRepository.create(resumeData);
+      const savedResume: any = await this.resumeRepository.create(resumeData);
 
-    }catch(error){
+      const filePath = this.validateFileName(savedResume?.fileDetails?.newFileName);
+      const resumeFile = fs.createReadStream(filePath);
+
+      const form = new FormData();
+      form.append("resume_file", resumeFile);
+      form.append("resume_id", savedResume?.id?.toString() || "");
+      form.append("user_id", savedResume?.userId?.toString() || "");
+
+      // sending resume to yashwants api
+      if (savedResume) {
+        const apiResponse = await axios.post(
+          `${process.env.SERVER_URL}/api/resume/upload`,
+          form,
+          {
+            headers: {
+              "X-apiKey": "2472118222258182",
+              ...form.getHeaders(),
+            },
+          }
+        );
+
+        console.log('Response from AI server', apiResponse.data);
+      }
+
+      return savedResume;
+    } catch (error) {
+      console.log('error in resumes upload', error);
       throw error;
     }
   }
@@ -139,8 +165,8 @@ export class ResumeController {
             permissions: ['customer'],
           });
 
-          if(user.id){
-             await this.eventHistoryService.addNewEvent(
+          if (user.id) {
+            await this.eventHistoryService.addNewEvent(
               'user registration with resume upload',
               'user registration with resume upload of user done',
               'resume-upload-page',
@@ -181,20 +207,20 @@ export class ResumeController {
       },
     })
     resume: Omit<Resume, 'id'>,
-  ):Promise<Resume>{
-    try{
-      const {fileDetails} = resume;
+  ): Promise<Resume> {
+    try {
+      const { fileDetails } = resume;
       const data = await this.getUserInfo(fileDetails);
 
-      if(data){
-        const newResume = await this.resumeRepository.create({...resume, userId: data?.id});
+      if (data) {
+        const newResume = await this.resumeRepository.create({ ...resume, userId: data?.id });
 
         return newResume;
       }
 
       const resumeData = await this.resumeRepository.create(resume);
       return resumeData;
-    }catch(error){
+    } catch (error) {
       throw error;
     }
   }
@@ -202,7 +228,7 @@ export class ResumeController {
   @get('/resumes/count')
   @response(200, {
     description: 'Resume model count',
-    content: {'application/json': {schema: CountSchema}},
+    content: { 'application/json': { schema: CountSchema } },
   })
   async count(
     @param.where(Resume) where?: Where<Resume>,
@@ -217,7 +243,7 @@ export class ResumeController {
       'application/json': {
         schema: {
           type: 'array',
-          items: getModelSchemaRef(Resume, {includeRelations: true}),
+          items: getModelSchemaRef(Resume, { includeRelations: true }),
         },
       },
     },
@@ -231,13 +257,13 @@ export class ResumeController {
   @patch('/resumes')
   @response(200, {
     description: 'Resume PATCH success count',
-    content: {'application/json': {schema: CountSchema}},
+    content: { 'application/json': { schema: CountSchema } },
   })
   async updateAll(
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Resume, {partial: true}),
+          schema: getModelSchemaRef(Resume, { partial: true }),
         },
       },
     })
@@ -252,13 +278,13 @@ export class ResumeController {
     description: 'Resume model instance',
     content: {
       'application/json': {
-        schema: getModelSchemaRef(Resume, {includeRelations: true}),
+        schema: getModelSchemaRef(Resume, { includeRelations: true }),
       },
     },
   })
   async findById(
     @param.path.number('id') id: number,
-    @param.filter(Resume, {exclude: 'where'}) filter?: FilterExcludingWhere<Resume>
+    @param.filter(Resume, { exclude: 'where' }) filter?: FilterExcludingWhere<Resume>
   ): Promise<Resume> {
     return this.resumeRepository.findById(id, filter);
   }
@@ -272,7 +298,7 @@ export class ResumeController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Resume, {partial: true}),
+          schema: getModelSchemaRef(Resume, { partial: true }),
         },
       },
     })
@@ -303,17 +329,17 @@ export class ResumeController {
   // resumes by userId
   @authenticate({
     strategy: 'jwt',
-    options: {required: [PermissionKeys.ADMIN]}
+    options: { required: [PermissionKeys.ADMIN] }
   })
   @get('/resumes/resume-by-id/{userId}')
   async fetchResumesByUserId(
     @param.path.number('userId') userId: number,
-  ): Promise<Resume[]>{
-    try{
-      const resumes = await this.resumeRepository.find({where: {userId: userId}});
+  ): Promise<Resume[]> {
+    try {
+      const resumes = await this.resumeRepository.find({ where: { userId: userId } });
 
       return resumes;
-    }catch(error){
+    } catch (error) {
       throw error;
     }
   }

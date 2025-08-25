@@ -22,7 +22,8 @@ export async function migrate(args: string[]) {
       'Blogs',
       'Comments',
       'Category',
-      'CategoryBlogsLink'
+      'CategoryBlogsLink',
+      'SavedJobsUsersLink'
     ],
   });
 

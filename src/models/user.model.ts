@@ -2,6 +2,8 @@ import { Entity, hasMany, model, property, belongsTo } from '@loopback/repositor
 import { Resume } from './resume.model';
 import { Subscription } from './subscription.model';
 import { Plan } from './plan.model';
+import {Jobs} from './jobs.model';
+import {SavedJobsUsersLink} from './saved-jobs-users-link.model';
 
 @model()
 export class User extends Entity {
@@ -148,6 +150,9 @@ export class User extends Entity {
 
   @belongsTo(() => Plan)
   currentPlanId: number;
+
+  @hasMany(() => Jobs, {through: {model: () => SavedJobsUsersLink}})
+  jobs: Jobs[];
 
   constructor(data?: Partial<User>) {
     super(data);

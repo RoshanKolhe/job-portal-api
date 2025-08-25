@@ -11,16 +11,24 @@ import {
   del,
   get,
   getModelSchemaRef,
+  HttpErrors,
   param,
   patch,
   post,
   put,
+  Request,
   requestBody,
   response,
+  RestBindings,
 } from '@loopback/rest';
 import axios from 'axios';
-import {Jobs} from '../models';
-import {JobsRepository} from '../repositories';
+import { Jobs } from '../models';
+import { JobsRepository, ResumeRepository, SavedJobsUsersLinkRepository, UserRepository } from '../repositories';
+import { inject } from '@loopback/core';
+import { UserProfile } from '@loopback/security';
+import { JWTService } from '../services/jwt-service';
+import { authenticate, AuthenticationBindings } from '@loopback/authentication';
+import { PermissionKeys } from '../authorization/permission-keys';
 
 export class JobsController {
   jobsData = [
@@ -1310,11 +1318,37 @@ export class JobsController {
   constructor(
     @repository(JobsRepository)
     public jobsRepository: JobsRepository,
+    @repository(UserRepository)
+    public userRepository: UserRepository,
+    @repository(ResumeRepository)
+    public resumeRepository: ResumeRepository,
+    @repository(SavedJobsUsersLinkRepository)
+    public savedJobsUsersLinkRepository: SavedJobsUsersLinkRepository,
+    @inject('service.jwt.service')
+    public jwtService: JWTService,
   ) { }
+
+  // fetching token from header and returning userProfile...
+  private async validateCredentials(authHeader: string) {
+    try {
+      if (authHeader) {
+        const parts = authHeader.split(' ');
+        if (parts.length !== 2) {
+          throw new HttpErrors.BadRequest('Verify token! incorrect signature');
+        }
+        const token = parts[1];
+        const userProfile = await this.jwtService.verifyToken(token);
+
+        return userProfile
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
 
   // Add bulk jobs ==> for adding data
   @post("/add-bulk-jobs")
-  async addJobs(): Promise<{success: boolean; message: string;}> {
+  async addJobs(): Promise<{ success: boolean; message: string; }> {
     const newData = this.jobsData.map((job) => ({
       jobTitle: job.title,
       company: job.company,
@@ -1340,7 +1374,7 @@ export class JobsController {
 
   // Store to yashwants db
   @post("/post-job")
-  async postJobTo(): Promise<{success: boolean; message: string; count: number}> {
+  async postJobTo(): Promise<{ success: boolean; message: string; count: number }> {
     const jobs = await this.jobsRepository.find();
     let count = 0;
     if (jobs.length > 0) {
@@ -1372,7 +1406,7 @@ export class JobsController {
           );
           console.log(`✅ Job ${job.id} posted successfully`, apiResponse.data);
 
-          await this.jobsRepository.updateById(job.id, {isAsync: true});
+          await this.jobsRepository.updateById(job.id, { isAsync: true });
           count = count + 1;
         } catch (error) {
           // console.error(`❌ Failed to post job ${job.id}:`, error.message);
@@ -1391,7 +1425,7 @@ export class JobsController {
   @post('/jobs')
   @response(200, {
     description: 'Jobs model instance',
-    content: {'application/json': {schema: getModelSchemaRef(Jobs)}},
+    content: { 'application/json': { schema: getModelSchemaRef(Jobs) } },
   })
   async create(
     @requestBody({
@@ -1412,7 +1446,7 @@ export class JobsController {
   @get('/jobs/count')
   @response(200, {
     description: 'Jobs model count',
-    content: {'application/json': {schema: CountSchema}},
+    content: { 'application/json': { schema: CountSchema } },
   })
   async count(
     @param.where(Jobs) where?: Where<Jobs>,
@@ -1427,27 +1461,65 @@ export class JobsController {
       'application/json': {
         schema: {
           type: 'array',
-          items: getModelSchemaRef(Jobs, {includeRelations: true}),
+          items: getModelSchemaRef(Jobs, { includeRelations: true }),
         },
       },
     },
   })
   async find(
+    @inject(RestBindings.Http.REQUEST) request: Request,
     @param.filter(Jobs) filter?: Filter<Jobs>,
-  ): Promise<Jobs[]> {
-    return this.jobsRepository.find(filter);
+  ): Promise<(Jobs & { isSaved?: boolean })[]> {
+    try {
+      const jobs: any = await this.jobsRepository.find(filter);
+      // current User profile
+      let currentUser: any = null;
+      const authHeader = request.headers.authorization;
+
+      if (authHeader && authHeader !== '' && authHeader !== null && authHeader !== undefined && authHeader !== 'Bearer') {
+        currentUser = await this.validateCredentials(authHeader);
+      }
+
+      let user: any = null;
+
+      if (currentUser) {
+        user = await this.userRepository.findById(currentUser.id);
+      };
+
+      if (!user) {
+        return jobs;
+      }
+
+      // Add isSaved flag
+      const newJobs: (Jobs & { isSaved?: boolean })[] = [];
+      for (const job of jobs) {
+        const savedJob = await this.savedJobsUsersLinkRepository.findOne({
+          where: { and: [{ jobsId: job.id }, { userId: user.id }] },
+        });
+
+        newJobs.push({
+          ...job,
+          isSaved: !!savedJob,
+        });
+      }
+
+      return newJobs;
+
+    } catch (error) {
+      throw error;
+    }
   }
 
   @patch('/jobs')
   @response(200, {
     description: 'Jobs PATCH success count',
-    content: {'application/json': {schema: CountSchema}},
+    content: { 'application/json': { schema: CountSchema } },
   })
   async updateAll(
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Jobs, {partial: true}),
+          schema: getModelSchemaRef(Jobs, { partial: true }),
         },
       },
     })
@@ -1462,15 +1534,73 @@ export class JobsController {
     description: 'Jobs model instance',
     content: {
       'application/json': {
-        schema: getModelSchemaRef(Jobs, {includeRelations: true}),
+        schema: getModelSchemaRef(Jobs, { includeRelations: true }),
       },
     },
   })
   async findById(
+    @inject(RestBindings.Http.REQUEST) request: Request,
     @param.path.number('id') id: number,
-    @param.filter(Jobs, {exclude: 'where'}) filter?: FilterExcludingWhere<Jobs>
-  ): Promise<Jobs> {
-    return this.jobsRepository.findById(id, filter);
+    @param.filter(Jobs, { exclude: 'where' }) filter?: FilterExcludingWhere<Jobs>
+  ): Promise<{ data: Jobs, matchScore: number | null, isSaved: boolean }> {
+    const job = await this.jobsRepository.findById(id, filter);
+
+    // current User profile
+    let currentUser: any = null;
+    const authHeader = request.headers.authorization;
+
+    if (authHeader && authHeader !== '' && authHeader !== null && authHeader !== undefined && authHeader !== 'Bearer') {
+      currentUser = await this.validateCredentials(authHeader);
+    }
+
+    let user: any = null;
+    let resume: any = null;
+
+    if (currentUser) {
+      user = await this.userRepository.findById(currentUser.id);
+      resume = await this.resumeRepository.findOne({ where: { userId: user.id } });
+    }
+
+    if (job && user && resume) {
+      const apiData = {
+        resume_id: resume.id,
+        job_id: job?.id?.toString(),
+        job_boost: false
+      };
+
+      const apiResponse = await axios.post(`${process.env.SERVER_URL}/api/job_boost/job_match_insights`,
+        apiData,
+        {
+          headers: {
+            "X-apiKey": "2472118222258182",
+          }
+        }
+      );
+
+      const savedJob = await this.savedJobsUsersLinkRepository.findOne({
+        where: { and: [{ jobsId: job.id }, { userId: user.id }] },
+      });
+
+      if (apiResponse.data) {
+        return {
+          data: job,
+          matchScore: apiResponse?.data?.match_score,
+          isSaved: !!savedJob,
+        }
+      } else {
+        return {
+          data: job,
+          matchScore: null,
+          isSaved: !!savedJob,
+        }
+      }
+    }
+
+    return {
+      data: job,
+      matchScore: null,
+      isSaved: false
+    }
   }
 
   @patch('/jobs/{id}')
@@ -1482,7 +1612,7 @@ export class JobsController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Jobs, {partial: true}),
+          schema: getModelSchemaRef(Jobs, { partial: true }),
         },
       },
     })
@@ -1508,5 +1638,243 @@ export class JobsController {
   })
   async deleteById(@param.path.number('id') id: number): Promise<void> {
     await this.jobsRepository.deleteById(id);
+  }
+
+  // similar jobs
+  @post('/jobs/similar-jobs')
+  async fetchSimilarJobs(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              jobId: {
+                type: 'number',
+              },
+              limit: {
+                type: 'number'
+              },
+            }
+          }
+        }
+      }
+    })
+    data: {
+      jobId: number;
+      limit: number;
+    }
+  ): Promise<{ success: boolean; message: string; data: Jobs[] }> {
+    try {
+      const job = await this.jobsRepository.findById(data.jobId);
+
+      if (!job) {
+        throw new HttpErrors.NotFound(`Job with Id ${data.jobId} not found`);
+      }
+
+      const apiData = {
+        jd_id: job?.id?.toString(),
+        limit: data.limit ? data.limit : 10
+      };
+
+      const apiResponse = await axios.post(`${process.env.SERVER_URL}/api/jd/similar_jobs`,
+        apiData,
+        {
+          headers: {
+            "X-apiKey": "2472118222258182",
+          }
+        }
+      );
+
+      if (apiResponse && apiResponse.data) {
+        const similarJobsIds = apiResponse.data.similar_job_ids ? apiResponse.data.similar_job_ids : [];
+        const jobs = await this.jobsRepository.find({ where: { id: { inq: similarJobsIds } } });
+
+        return {
+          success: true,
+          message: "Similar jobs",
+          data: jobs
+        }
+      }
+
+      return {
+        success: false,
+        message: "Failed to get similar jobs",
+        data: []
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // job-boost-insights
+  @authenticate({
+    strategy: 'jwt',
+    options: { required: [PermissionKeys.ADMIN, PermissionKeys.CUSTOMER] }
+  })
+  @post('/jobs/job-boost')
+  async getJobBoostData(
+    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              jobId: {
+                type: 'number',
+              },
+              resumeId: {
+                type: 'number',
+              }
+            }
+          }
+        }
+      }
+    })
+    data: {
+      jobId: number;
+      resumeId: number;
+    }
+  ): Promise<{ success: boolean; message: string; data: object | null }> {
+    try {
+      const job = await this.jobsRepository.findById(data.jobId);
+
+      if (!job) {
+        throw new HttpErrors[404](`Job not found with Id ${data.jobId}`);
+      }
+
+      const resume = await this.resumeRepository.findById(data.resumeId);
+
+      if (!resume) {
+        throw new HttpErrors[404](`Resume not found with Id ${data.resumeId}`);
+      }
+
+      if (resume && resume.userId !== Number(currentUser.id)) {
+        throw new HttpErrors.Unauthorized(`Given Resume Id is not of login user`);
+      }
+
+      if (job && resume) {
+        const apiData = {
+          resume_id: resume?.id?.toString(),
+          job_id: job?.id?.toString(),
+          job_boost: true
+        }
+
+        const apiResponse = await axios.post(`${process.env.SERVER_URL}/api/job_boost/job_match_insights`,
+          apiData,
+          {
+            headers: {
+              "X-apiKey": "2472118222258182",
+            }
+          }
+        );
+
+        if (apiResponse.data) {
+          return {
+            success: true,
+            message: "Job boost data",
+            data: apiResponse.data
+          }
+        } else {
+          return {
+            success: false,
+            message: "Failed to get job boost data",
+            data: null
+          }
+        }
+      }
+
+      return {
+        success: false,
+        message: "Failed to get job boost data",
+        data: null
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // job-boost-company-statistical-data
+  @authenticate({
+    strategy: 'jwt',
+    options: { required: [PermissionKeys.ADMIN, PermissionKeys.CUSTOMER] }
+  })
+  @post('/jobs/job-boost-statistical-data/{id}')
+  async fetchJobBoostStatisticalData(
+    @param.path.number('id') jobId: number,
+  ): Promise<{ success: boolean; message: string; data: object | null }> {
+    try {
+      const job = await this.jobsRepository.findById(jobId);
+
+      if (!job) {
+        throw new HttpErrors[404](`Job with Id ${jobId} not found`);
+      }
+
+      const apiData = {
+        job_title: job.jobTitle,
+        company_name: job.company
+      }
+
+      const apiResponse = await axios.post(`${process.env.SERVER_URL}/api/job_boost/company_benchmark`,
+        apiData,
+        {
+          headers: {
+            "X-apiKey": "2472118222258182",
+          }
+        }
+      );
+
+      if (apiResponse.data) {
+        return {
+          success: true,
+          message: "Job boost statistical data",
+          data: apiResponse.data
+        }
+      }
+
+      return {
+        success: false,
+        message: "Failed to get job boost statistical data",
+        data: null
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // saved job
+  @authenticate({
+    strategy: 'jwt',
+    options: { required: [PermissionKeys.ADMIN, PermissionKeys.CUSTOMER] }
+  })
+  @post('/jobs/save-job/{id}')
+  async saveJob(
+    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
+    @param.path.number('id') jobId: number,
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const job = await this.jobsRepository.findById(jobId);
+      if (!job) {
+        throw new HttpErrors.NotFound(`Job with Id ${jobId} not found`);
+      }
+
+      const user = await this.userRepository.findById(currentUser.id);
+      if (!user) {
+        throw new HttpErrors.NotFound(`User with Id ${currentUser.id} not found`);
+      }
+
+      const existing = await this.userRepository.jobs(user.id).find({ where: { id: jobId } });
+
+      if (existing.length > 0) {
+        await this.userRepository.jobs(user.id).unlink(jobId);
+        return { success: true, message: 'Job unsaved successfully' };
+      } else {
+        await this.userRepository.jobs(user.id).link(jobId);
+        return { success: true, message: 'Job saved successfully' };
+      }
+    } catch (error) {
+      throw error;
+    }
   }
 }

@@ -12,3 +12,4 @@ export * from './blogs.model';
 export * from './comments.model'
 export * from './category.model';
 export * from './category-blogs-link.model';
+export * from './saved-jobs-users-link.model';

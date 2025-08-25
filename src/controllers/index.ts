@@ -18,3 +18,5 @@ export * from './plan-courses.controller';
 export * from './dashboard.controller';
 export * from './category.controller';
 export * from './blogs-category.controller';
+export * from './career-compass.controller';
+export * from './user-jobs.controller';
