@@ -1563,7 +1563,7 @@ export class JobsController {
 
     if (job && user && resume) {
       const apiData = {
-        resume_id: resume.id,
+        resume_id: resume?.id?.toString(),
         job_id: job?.id?.toString(),
         job_boost: false
       };
