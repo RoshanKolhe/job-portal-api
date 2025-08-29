@@ -58,6 +58,7 @@ export class CareerCompassController {
           }
         );
 
+        console.log('api response', apiResponse);
         if (apiResponse.data) {
           return {
             success: true,
