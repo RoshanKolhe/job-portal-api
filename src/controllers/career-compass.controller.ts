@@ -59,13 +59,13 @@ export class CareerCompassController {
         );
 
         console.log('api response', apiResponse);
-        if (apiResponse.data) {
+        if (apiResponse?.data?.data) {
           return {
             success: true,
             message: "Career compass data",
             data: {
-              currentRole: apiResponse?.data?.current_role,
-              levels: apiResponse?.data?.levels
+              currentRole: apiResponse?.data?.data?.current_role,
+              levels: apiResponse?.data?.data?.levels
             }
           }
         } else {
@@ -93,13 +93,13 @@ export class CareerCompassController {
 
       console.log('apiresopnse', apiResponse);
 
-      if (apiResponse.data) {
+      if (apiResponse?.data?.data) {
         return {
           success: true,
           message: "Career compass data",
           data: {
-            currentRole: apiResponse?.data?.current_role,
-            levels: apiResponse?.data?.levels
+            currentRole: apiResponse?.data?.data?.current_role,
+            levels: apiResponse?.data?.data?.levels
           }
         }
       } else {
@@ -114,5 +114,5 @@ export class CareerCompassController {
       throw error;
     }
   }
-  
+
 }
