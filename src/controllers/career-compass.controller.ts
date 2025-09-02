@@ -46,7 +46,7 @@ export class CareerCompassController {
 
       if (resumeId) {
         const apiData = {
-          resume_id: resumeId,
+          resume_id: resumeId?.toString(),
         };
 
         const apiResponse = await axios.post(`${process.env.SERVER_URL}/api/career_path_match`,
@@ -90,6 +90,8 @@ export class CareerCompassController {
           }
         }
       );
+
+      console.log('apiresopnse', apiResponse);
 
       if (apiResponse.data) {
         return {
