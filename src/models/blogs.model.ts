@@ -19,9 +19,27 @@ export class Blogs extends Entity {
 
   @property({
     type: 'string',
+
+  })
+  authorName: string;
+
+  @property({
+    type: 'string',
+  })
+  designation : string;
+
+  @property({
+    type: 'string',
+
+  })
+  authorImage: string;
+
+  @property({
+    type: 'string',
     required: true,
   })
   description: string;
+
   @property({
     type: 'string',
     required: true,
