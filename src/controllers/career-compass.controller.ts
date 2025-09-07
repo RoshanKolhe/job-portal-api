@@ -49,6 +49,7 @@ export class CareerCompassController {
           resume_id: resumeId?.toString(),
         };
 
+        console.log('api data', apiData);
         const apiResponse = await axios.post(`${process.env.SERVER_URL}/api/career_path_match`,
           apiData,
           {
