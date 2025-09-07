@@ -213,8 +213,29 @@ export class ResumeController {
       const data = await this.getUserInfo(fileDetails);
 
       if (data) {
-        const newResume = await this.resumeRepository.create({ ...resume, userId: data?.id });
+        const newResume: any = await this.resumeRepository.create({ ...resume, userId: data?.id });
+        const filePath = this.validateFileName(newResume?.fileDetails?.newFileName);
+        const resumeFile = fs.createReadStream(filePath);
+        const form = new FormData();
+        form.append("resume_file", resumeFile);
+        form.append("resume_id", newResume?.id?.toString() || "");
+        form.append("user_id", newResume?.userId?.toString() || "");
 
+        // sending resume to yashwants api
+        if (newResume) {
+          const apiResponse = await axios.post(
+            `${process.env.SERVER_URL}/api/resume/upload`,
+            form,
+            {
+              headers: {
+                "X-apiKey": "2472118222258182",
+                ...form.getHeaders(),
+              },
+            }
+          );
+
+          console.log('Response from AI server', apiResponse.data);
+        }
         return newResume;
       }
 
