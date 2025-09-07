@@ -110,7 +110,7 @@ export class ProfileAnalyticsController {
       formData.append('short_task_description', String(requestBody.viewDetails));
       formData.append('use_resume', String(requestBody.smartInsights));
 
-      const response = await axios.post(`${process.env.SERVER_URL}fobo`, formData, {
+      const response = await axios.post(`${process.env.FOBO_SERVER_URL}fobo`, formData, {
         headers: formData.getHeaders(),
       });
 
