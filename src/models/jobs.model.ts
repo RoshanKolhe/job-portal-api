@@ -1,4 +1,4 @@
-import {Entity, model, property} from '@loopback/repository';
+import { Entity, model, property } from '@loopback/repository';
 
 @model()
 export class Jobs extends Entity {
@@ -31,6 +31,16 @@ export class Jobs extends Entity {
     type: 'string',
   })
   location: string;
+
+  @property({
+    type: 'string',
+  })
+  applicants: string;
+
+  @property({
+    type: 'string',
+  })
+  openings: string;
 
   @property({
     type: 'string',
