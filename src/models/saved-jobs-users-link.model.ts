@@ -22,6 +22,18 @@ export class SavedJobsUsersLink extends Entity {
   userId: number;
 
   @property({
+    type: 'boolean',
+    required: true
+  })
+  isSaved: boolean;
+
+  @property({
+    type: 'boolean',
+    required: true
+  })
+  isApplied: boolean;
+
+  @property({
     type: 'date',
   })
   createdAt?: Date;
