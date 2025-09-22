@@ -1,3 +1,5 @@
+import {authenticate} from '@loopback/authentication';
+import {inject} from '@loopback/core';
 import {
   Count,
   CountSchema,
@@ -9,23 +11,21 @@ import {
   Where,
 } from '@loopback/repository';
 import {
-  post,
-  param,
+  del,
   get,
   getModelSchemaRef,
+  HttpErrors,
+  param,
   patch,
+  post,
   put,
-  del,
   requestBody,
   response,
-  HttpErrors,
 } from '@loopback/rest';
-import { Courses, Jobs, Plan } from '../models';
-import { CoursesRepository, PlanRepository } from '../repositories';
-import { authenticate } from '@loopback/authentication';
-import { PermissionKeys } from '../authorization/permission-keys';
-import { inject } from '@loopback/core';
-import { JobPortalDataSource } from '../datasources';
+import {PermissionKeys} from '../authorization/permission-keys';
+import {JobPortalDataSource} from '../datasources';
+import {Courses, Jobs, Plan} from '../models';
+import {CoursesRepository, PlanRepository} from '../repositories';
 
 export class PlanController {
   constructor(
@@ -48,7 +48,7 @@ export class PlanController {
   @post('/plans')
   @response(200, {
     description: 'Plan model instance',
-    content: { 'application/json': { schema: getModelSchemaRef(Plan) } },
+    content: {'application/json': {schema: getModelSchemaRef(Plan)}},
   })
   async create(
     @requestBody({
@@ -87,7 +87,7 @@ export class PlanController {
     const repo = new DefaultTransactionalRepository(Plan, this.dataSource);
     const tx = await repo.beginTransaction(IsolationLevel.READ_COMMITTED);
     try {
-      const { plan, productData } = body;
+      const {plan, productData} = body;
 
       if (plan.planGroup === 0) {
         // create course
@@ -95,10 +95,10 @@ export class PlanController {
         const savedCourse = await this.coursesRepository.create(productData);
 
         if (savedCourse) {
-          const planData = { ...plan, coursesId: savedCourse.id };
+          const planData = {...plan, coursesId: savedCourse.id};
           const savedPlan = await this.planRepository.create(planData);
           tx.commit();
-          return await this.planRepository.findById(savedPlan.id, { include: [{ relation: 'courses' }] });
+          return await this.planRepository.findById(savedPlan.id, {include: [{relation: 'courses'}]});
         }
       }
 
@@ -117,7 +117,7 @@ export class PlanController {
   @get('/plans/count')
   @response(200, {
     description: 'Plan model count',
-    content: { 'application/json': { schema: CountSchema } },
+    content: {'application/json': {schema: CountSchema}},
   })
   async count(
     @param.where(Plan) where?: Where<Plan>,
@@ -132,7 +132,7 @@ export class PlanController {
       'application/json': {
         schema: {
           type: 'array',
-          items: getModelSchemaRef(Plan, { includeRelations: true }),
+          items: getModelSchemaRef(Plan, {includeRelations: true}),
         },
       },
     },
@@ -140,7 +140,7 @@ export class PlanController {
   async find(
     @param.filter(Plan) filter?: Filter<Plan>,
   ): Promise<Plan[]> {
-    return this.planRepository.find({ ...filter, include: [{ relation: 'courses' }] });
+    return this.planRepository.find({...filter, include: [{relation: 'courses'}]});
   }
 
   @authenticate({
@@ -154,13 +154,13 @@ export class PlanController {
   @patch('/plans')
   @response(200, {
     description: 'Plan PATCH success count',
-    content: { 'application/json': { schema: CountSchema } },
+    content: {'application/json': {schema: CountSchema}},
   })
   async updateAll(
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Plan, { partial: true }),
+          schema: getModelSchemaRef(Plan, {partial: true}),
         },
       },
     })
@@ -175,15 +175,15 @@ export class PlanController {
     description: 'Plan model instance',
     content: {
       'application/json': {
-        schema: getModelSchemaRef(Plan, { includeRelations: true }),
+        schema: getModelSchemaRef(Plan, {includeRelations: true}),
       },
     },
   })
   async findById(
     @param.path.number('id') id: number,
-    @param.filter(Plan, { exclude: 'where' }) filter?: FilterExcludingWhere<Plan>
+    @param.filter(Plan, {exclude: 'where'}) filter?: FilterExcludingWhere<Plan>
   ): Promise<Plan> {
-    return this.planRepository.findById(id, {...filter, include: [{relation : 'courses'}]});
+    return this.planRepository.findById(id, {...filter, include: [{relation: 'courses'}]});
   }
 
   @patch('/plans/{id}')
@@ -198,11 +198,11 @@ export class PlanController {
           schema: {
             type: 'object',
             properties: {
-              plan: getModelSchemaRef(Plan, { partial: true }),
+              plan: getModelSchemaRef(Plan, {partial: true}),
               productData: {
                 oneOf: [
-                  getModelSchemaRef(Courses, { partial: true }),
-                  getModelSchemaRef(Jobs, { partial: true }),
+                  getModelSchemaRef(Courses, {partial: true}),
+                  getModelSchemaRef(Jobs, {partial: true}),
                 ],
               },
             },
@@ -216,46 +216,40 @@ export class PlanController {
       productData: Partial<Courses> | Partial<Jobs>;
     },
   ): Promise<void> {
-    const { plan, productData } = body;
-    const existingPlan = await this.planRepository.findById(id);
+    const {plan, productData} = body;
 
+    // fetch existing plan with relations
+    const existingPlan = await this.planRepository.findById(id, {include: [{relation: 'courses'}]});
     if (!existingPlan) throw new HttpErrors.NotFound('Plan not found');
 
     const txRepo = new DefaultTransactionalRepository(Plan, this.dataSource);
     const tx = await txRepo.beginTransaction(IsolationLevel.READ_COMMITTED);
 
     try {
+      // Handle PlanGroup change
       if (plan.planGroup !== undefined && plan.planGroup !== existingPlan.planGroup) {
-        // PlanGroup changed, handle switch
+        // Delete old related data if PlanGroup changed
         if (existingPlan.planGroup === 0 && existingPlan.coursesId) {
           await this.coursesRepository.deleteById(existingPlan.coursesId);
-        }
-        // if (existingPlan.planGroup === 1 && existingPlan.jobsId) {
-        //   await this.jobsRepository.deleteById(existingPlan.jobsId);
-        // }
-
-        if (plan.planGroup === 0) {
-          const newCourse = await this.coursesRepository.create(productData as Courses);
-          plan.coursesId = newCourse.id;
-          // plan.jobsId = undefined;
-        } 
-        // else if (plan.planGroup === 1) {
-        //   const newJob = await this.jobsRepository.create(productData as Jobs);
-        //   plan.jobsId = newJob.id;
-        //   plan.coursesId = undefined;
-        // } 
-        else {
-          throw new HttpErrors.BadRequest('Invalid planGroup');
+          plan.coursesId = undefined;
         }
       }
 
+      // Update related course if planGroup is 0
+      if ((plan.planGroup === 0 || existingPlan.planGroup === 0) && existingPlan.coursesId) {
+        await this.coursesRepository.updateById(existingPlan.coursesId, productData as Courses);
+      }
+
+      // Update the plan itself
       await this.planRepository.updateById(id, plan);
+
       await tx.commit();
     } catch (error) {
       await tx.rollback();
       throw error;
     }
   }
+
 
   @authenticate({
     strategy: 'jwt',
@@ -297,14 +291,14 @@ export class PlanController {
     description: 'Plan model instance',
     content: {
       'application/json': {
-        schema: getModelSchemaRef(Plan, { includeRelations: true }),
+        schema: getModelSchemaRef(Plan, {includeRelations: true}),
       },
     },
   })
   async findByPlanType(
     @param.path.number('type') type: number,
-    @param.filter(Plan, { exclude: 'where' }) filter?: FilterExcludingWhere<Plan>
+    @param.filter(Plan, {exclude: 'where'}) filter?: FilterExcludingWhere<Plan>
   ): Promise<Plan[]> {
-    return this.planRepository.find({ where: { planType: type }, include: [{relation: 'courses'}] }, filter);
+    return this.planRepository.find({where: {planType: type}, include: [{relation: 'courses'}]}, filter);
   }
 }
