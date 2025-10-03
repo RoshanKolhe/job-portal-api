@@ -1,6 +1,6 @@
-import {Entity, model, property, hasMany} from '@loopback/repository';
-import {Category} from './category.model';
+import {Entity, hasMany, model, property} from '@loopback/repository';
 import {CategoryBlogsLink} from './category-blogs-link.model';
+import {Category} from './category.model';
 
 @model()
 export class Blogs extends Entity {
@@ -26,7 +26,7 @@ export class Blogs extends Entity {
   @property({
     type: 'string',
   })
-  designation : string;
+  designation: string;
 
   @property({
     type: 'string',
@@ -48,9 +48,17 @@ export class Blogs extends Entity {
 
   @property({
     type: 'string',
-    required: true,
+
   })
   coverUrl: string;
+
+  @property({
+    type: 'string',
+
+  })
+  coverAlt: string;
+
+
 
   @property({
     type: 'string',
