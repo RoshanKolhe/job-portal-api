@@ -67,7 +67,8 @@ export class Jobs extends Entity {
   benifits: string[];
 
   @property({
-    type: 'string'
+    type: 'string',
+    limit: 5000,
   })
   description: string;
 
