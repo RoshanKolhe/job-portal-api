@@ -1,6 +1,6 @@
-import {belongsTo, Entity, model, property} from '@loopback/repository';
-import {Resume} from './resume.model';
-import {User} from './user.model';
+import { belongsTo, Entity, model, property } from '@loopback/repository';
+import { Resume } from './resume.model';
+import { User } from './user.model';
 
 @model()
 export class ProfileAnalytics extends Entity {
@@ -18,67 +18,103 @@ export class ProfileAnalytics extends Entity {
 
   @property({
     type: 'number'
-    })
+  })
   FOBO_Score?: number;
 
   @property({
     type: 'number'
-    })
+  })
   Augmented_Score?: number;
 
   @property({
     type: 'string'
-    })
+  })
   Augmentation_Comment?: string;
 
   @property({
     type: 'number'
-    })
+  })
   Automated_Score?: number;
 
   @property({
     type: 'string'
-    })
+  })
   Automated_Comment?: string;
 
   @property({
     type: 'number'
-    })
+  })
   Human_Score?: number;
 
   @property({
+    type: 'number'
+  })
+  AI_Readiness_Score?: number;
+
+  @property({
     type: 'string'
-    })
+  })
   Human_Comment?: string;
 
   @property({
     type: 'object'
-    })
+  })
   Comment?: object;
 
   @property({
     type: 'array',
     itemType: 'object'
-    })
+  })
   Strategy?: object[];
 
   @property({
     type: 'array',
     itemType: 'string'
-    })
+  })
   Task_Distribution_Automation?: string[];
 
   @property({
     type: 'array',
     itemType: 'string'
-    })
+  })
   Task_Distribution_Human?: string[];
 
   @property({
     type: 'array',
     itemType: 'string'
-    })
+  })
   Task_Distribution_Augmentation?: string[];
+
+  @property({
+    type: 'object',
+  })
+  analysis?: object;
+
+  @property({
+    type: 'string',
+  })
+  comprehensive_analysis?: string;
+
+  @property({
+    type: 'object',
+  })
+  json_schema_date?: object;
+
+  @property({
+    type: 'string',
+  })
+  json_file_url?: string;
+
+  @property({
+    type: 'string',
+  })
+  markdown_file_url?: string;
+
+  @property({
+    type: 'array',
+    itemType: 'any'
+  })
+  skill_erosion_analysis?: any[];
 
   @property({
     type: 'date',

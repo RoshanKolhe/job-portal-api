@@ -43,6 +43,8 @@ export class ProfileAnalyticsController {
               linkedInUrl: { type: 'string' },
               viewDetails: { type: 'boolean' },
               smartInsights: { type: 'boolean' },
+              isFoboPro: { type: 'boolean' },
+              isComprehensiveMode: { type: 'boolean' },
             },
             required: [],
           },
@@ -54,6 +56,8 @@ export class ProfileAnalyticsController {
       linkedInUrl?: string;
       viewDetails: boolean;
       smartInsights: boolean;
+      isFoboPro?: boolean;
+      isComprehensiveMode?: boolean;
     },
   ): Promise<any> {
     try {
@@ -63,14 +67,36 @@ export class ProfileAnalyticsController {
         resume = await this.resumeRepository.findById(requestBody.resumeId);
       }
 
+      let fields: { [key: string]: boolean } = {
+        analysis: false,
+        skill_erosion_analysis: false,
+        json_schema_date: false,
+        json_file_url: false,
+        markdown_file_url: false,
+        comprehensive_analysis: false,
+      };
+
+      if (requestBody.isFoboPro) {
+        fields = {
+          json_schema_date: false,
+          json_file_url: false,
+          markdown_file_url: false,
+          comprehensive_analysis: false,
+        }
+      }
+
+      if (requestBody.isComprehensiveMode) {
+        fields = {};
+      }
+
       const analytics = await this.profileAnalyticsRepository.findOne({
         where: {
           ...(requestBody.resumeId ? { resumeId: requestBody.resumeId } : {}),
           ...(requestBody.linkedInUrl ? { linkedInUrl: requestBody.linkedInUrl } : {}),
-        },
+        }
       });
 
-      if (analytics) {
+      if (analytics && ((requestBody.isFoboPro && analytics.analysis) || (requestBody.isComprehensiveMode && analytics.comprehensive_analysis) || (!requestBody.isFoboPro && !requestBody.isComprehensiveMode))) {
         if (resume?.userId) {
           await this.eventHistoryService.addNewEvent(
             'FOBO score analysis',
@@ -82,7 +108,7 @@ export class ProfileAnalyticsController {
 
         const profileAnalyticsData = await this.profileAnalyticsRepository.findById(
           analytics.id,
-          { include: [{ relation: 'user' }] }
+          { include: [{ relation: 'user' }], fields: fields },
         );
 
         return {
@@ -107,14 +133,23 @@ export class ProfileAnalyticsController {
       }
 
       formData.append('X-apiKey', 2472118222258182);
-      formData.append('short_task_description', String(requestBody.viewDetails));
+      if (!requestBody.isComprehensiveMode) {
+        formData.append('short_task_description', String(requestBody.viewDetails));
+      } else {
+        formData.append('comprehensive_mode', String(requestBody.isComprehensiveMode));
+      }
       formData.append('use_resume', String(requestBody.smartInsights));
+
+      if (requestBody.isFoboPro) {
+        formData.append('pro_mode', String(true))
+      }
 
       const response = await axios.post(`${process.env.SERVER_URL}/fobo`, formData, {
         headers: formData.getHeaders(),
       });
 
       if (response?.data?.status === 'success' && response?.data?.data) {
+        console.log('data', response?.data?.data);
         const analyticsData = await this.profileAnalyticsRepository.create({
           ...(resume?.id && { resumeId: resume.id }),
           ...(requestBody.linkedInUrl && { linkedInUrl: requestBody.linkedInUrl }),
@@ -125,12 +160,23 @@ export class ProfileAnalyticsController {
           Automated_Score: response.data.data?.Automated_Score,
           Automated_Comment: response.data.data?.Automated_Comment,
           Human_Score: response.data.data?.Human_Score,
+          AI_Readiness_Score: response.data.data?.AI_Readiness_Score,
           Human_Comment: response.data.data?.Human_Comment,
           Comment: response.data.data?.Comment,
           Strategy: response.data.data?.Strategy,
           Task_Distribution_Automation: response.data.data?.Task_Distribution_Automation,
           Task_Distribution_Human: response.data.data?.Task_Distribution_Human,
           Task_Distribution_Augmentation: response.data.data?.Task_Distribution_Augmentation,
+          ...(requestBody.isFoboPro &&
+            { analysis: response?.data?.data?.analysis },
+            { skill_erosion_analysis: response?.data?.data?.skill_erosion_analysis }
+          ),
+          ...(requestBody.isComprehensiveMode &&
+            { json_schema_date: response?.data?.data?.json_schema_date },
+            { json_file_url: response?.data?.data?.json_file_url },
+            { markdown_file_url: response?.data?.data?.markdown_file_url },
+            { comprehensive_analysis: response?.data?.data?.comprehensive_analysis }
+          )
         });
 
         if (resume?.userId) {

@@ -19,7 +19,6 @@ export class Blogs extends Entity {
 
   @property({
     type: 'string',
-
   })
   authorName: string;
 
@@ -30,13 +29,13 @@ export class Blogs extends Entity {
 
   @property({
     type: 'string',
-
   })
   authorImage: string;
 
   @property({
     type: 'string',
     required: true,
+    limit: 10000,
   })
   description: string;
 
@@ -48,17 +47,13 @@ export class Blogs extends Entity {
 
   @property({
     type: 'string',
-
   })
   coverUrl: string;
 
   @property({
     type: 'string',
-
   })
   coverAlt: string;
-
-
 
   @property({
     type: 'string',
@@ -83,7 +78,6 @@ export class Blogs extends Entity {
     default: false,
   })
   isEnableComments: boolean;
-
 
   @property({
     type: 'date',

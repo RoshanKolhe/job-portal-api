@@ -22,6 +22,12 @@ export class Courses extends Entity {
   courseName: string;
 
   @property({
+    type: 'string',
+    required: true
+  })
+  heading: string;
+
+  @property({
     type: 'object',
     required: true
   })
@@ -34,7 +40,14 @@ export class Courses extends Entity {
   features: string[];
 
   @property({
-    type: 'string'
+    type: 'array',
+    itemType: 'string'
+  })
+  keyOutcomes: string[];
+
+  @property({
+    type: 'string',
+    limit: 10000,
   })
   description: string;
 

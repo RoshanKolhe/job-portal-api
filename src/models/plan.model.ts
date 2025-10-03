@@ -1,5 +1,5 @@
-import { Entity, model, property, belongsTo} from '@loopback/repository';
-import {Courses} from './courses.model';
+import { Entity, model, property, belongsTo } from '@loopback/repository';
+import { Courses } from './courses.model';
 
 @model()
 export class Plan extends Entity {
