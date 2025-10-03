@@ -35,14 +35,14 @@ export class Blogs extends Entity {
   @property({
     type: 'string',
     required: true,
-    limit: 10000,
+    limit: 1000,
   })
   description: string;
 
   @property({
     type: 'string',
     required: true,
-    limit: 10000,
+    limit: 5000,
   })
   content: string;
 
