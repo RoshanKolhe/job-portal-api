@@ -81,6 +81,26 @@ export class Blogs extends Entity {
   isEnableComments: boolean;
 
   @property({
+    type: 'string',
+  })
+  metaTitle: string;
+
+  @property({
+    type: 'string',
+  })
+  metaDescription: string;
+
+  @property({
+    type: 'string',
+  })
+  canonicalURL: string;
+
+  @property({
+    type: 'boolean'
+  })
+  isIndexed: boolean;
+
+  @property({
     type: 'date',
   })
   createdAt?: Date;
