@@ -142,7 +142,7 @@ export class ResumeController {
       formData.append('X-apiKey', '2472118222258182');
       formData.append('short_task_description', 'true');
 
-      const response = await axios.post(process.env.FOBO_SERVER_URL + '/fobo', formData, {
+      const response = await axios.post(process.env.SERVER_URL + '/fobo', formData, {
         headers: formData.getHeaders(),
       });
 

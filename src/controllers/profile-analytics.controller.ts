@@ -144,7 +144,7 @@ export class ProfileAnalyticsController {
         formData.append('pro_mode', String(true))
       }
 
-      const response = await axios.post(`${process.env.FOBO_SERVER_URL}/fobo`, formData, {
+      const response = await axios.post(`${process.env.SERVER_URL}/fobo`, formData, {
         headers: formData.getHeaders(),
       });
 
