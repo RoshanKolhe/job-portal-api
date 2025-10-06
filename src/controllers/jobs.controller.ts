@@ -4469,6 +4469,7 @@ export class JobsController {
         job_boost: false
       };
 
+      console.log(`${process.env.SERVER_URL}/api/job_boost/job_match_insights`);
       const apiResponse = await axios.post(`${process.env.SERVER_URL}/api/job_boost/job_match_insights`,
         apiData,
         {
