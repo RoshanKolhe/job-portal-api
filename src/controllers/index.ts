@@ -20,3 +20,5 @@ export * from './category.controller';
 export * from './blogs-category.controller';
 export * from './career-compass.controller';
 export * from './user-jobs.controller';
+export * from './key-out-comes.controller';
+export * from './program-module.controller';
