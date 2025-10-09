@@ -140,9 +140,8 @@ export class ResumeController {
       formData.append('file', fs.createReadStream(filePath));
       formData.append('user_id', `1`);
       formData.append('X-apiKey', '2472118222258182');
-      formData.append('short_task_description', 'true');
 
-      const response = await axios.post(process.env.SERVER_URL + '/fobo', formData, {
+      const response = await axios.post(process.env.SERVER_URL + '/fobo/user-details', formData, {
         headers: formData.getHeaders(),
       });
 
@@ -242,6 +241,7 @@ export class ResumeController {
       const resumeData = await this.resumeRepository.create(resume);
       return resumeData;
     } catch (error) {
+      console.log('error', error);
       throw error;
     }
   }
