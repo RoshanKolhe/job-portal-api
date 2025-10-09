@@ -16,3 +16,5 @@ export * from './wait-list.repository';
 export * from './category.repository';
 export * from './category-blogs-link.repository';
 export * from './saved-jobs-users-link.repository';
+export * from './key-out-comes.repository';
+export * from './program-module.repository';

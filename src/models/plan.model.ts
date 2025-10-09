@@ -1,5 +1,5 @@
-import { Entity, model, property, belongsTo } from '@loopback/repository';
-import { Courses } from './courses.model';
+import {belongsTo, Entity, model, property} from '@loopback/repository';
+import {Courses} from './courses.model';
 
 @model()
 export class Plan extends Entity {
@@ -30,6 +30,16 @@ export class Plan extends Entity {
     required: true
   })
   price: number;
+
+  @property({
+    type: 'string',
+  })
+  format: string;
+
+  @property({
+    type: 'string',
+  })
+  effort: string;
 
   @property({
     type: 'string',

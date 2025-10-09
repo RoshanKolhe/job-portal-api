@@ -13,3 +13,6 @@ export * from './comments.model'
 export * from './category.model';
 export * from './category-blogs-link.model';
 export * from './saved-jobs-users-link.model';
+export * from './key-out-comes.model';
+export * from './program-module.model';
+export * from './batches.model';
