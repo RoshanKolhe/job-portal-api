@@ -1,4 +1,6 @@
-import { Entity, model, property } from '@loopback/repository';
+import {Entity, hasMany, model, property} from '@loopback/repository';
+import {KeyOutComes} from './key-out-comes.model';
+import {ProgramModule} from './program-module.model';
 
 @model()
 export class Courses extends Entity {
@@ -27,6 +29,20 @@ export class Courses extends Entity {
   })
   heading: string;
 
+
+
+  @property({
+    type: 'array',
+    itemType: 'string',
+  })
+  format: string[];
+
+
+  @property({
+    type: 'string',
+  })
+  effort: string
+
   @property({
     type: 'object',
     required: true
@@ -39,11 +55,11 @@ export class Courses extends Entity {
   })
   features: string[];
 
-  @property({
-    type: 'array',
-    itemType: 'string'
-  })
-  keyOutcomes: string[];
+  // @property({
+  //   type: 'array',
+  //   itemType: 'string'
+  // })
+  // keyOutcomes: string[];
 
   @property({
     type: 'string',
@@ -56,6 +72,11 @@ export class Courses extends Entity {
   })
   courseDuration: string;
 
+  @hasMany(() => KeyOutComes)
+  keyOutComes: KeyOutComes[];
+
+  @hasMany(() => ProgramModule)
+  programModules: ProgramModule[];
   @property({
     type: 'date',
   })

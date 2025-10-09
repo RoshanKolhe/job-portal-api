@@ -23,7 +23,10 @@ export async function migrate(args: string[]) {
       'Comments',
       'Category',
       'CategoryBlogsLink',
-      'SavedJobsUsersLink'
+      'SavedJobsUsersLink',
+      'KeyOutComes',
+      'ProgramModule',
+      'Batches'
     ],
   });
 

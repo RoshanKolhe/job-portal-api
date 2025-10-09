@@ -45,6 +45,10 @@ export class KeyOutComes extends Entity {
   })
   isDeleted: boolean;
 
+  @property({
+    type: 'number',
+  })
+  coursesId?: number;
 
   constructor(data?: Partial<KeyOutComes>) {
     super(data);

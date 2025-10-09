@@ -1,8 +1,11 @@
+import {inject} from '@loopback/core';
 import {
   Count,
   CountSchema,
+  DefaultTransactionalRepository,
   Filter,
   FilterExcludingWhere,
+  IsolationLevel,
   repository,
   Where,
 } from '@loopback/repository';
@@ -17,11 +20,14 @@ import {
   requestBody,
   response,
 } from '@loopback/rest';
+import {JobPortalDataSource} from '../datasources';
 import {ProgramModule} from '../models';
 import {ProgramModuleRepository} from '../repositories';
 
 export class ProgramModuleController {
   constructor(
+    @inject('datasources.job_portal')
+    public dataSource: JobPortalDataSource,
     @repository(ProgramModuleRepository)
     public programModuleRepository: ProgramModuleRepository,
   ) { }
@@ -147,4 +153,77 @@ export class ProgramModuleController {
   async deleteById(@param.path.number('id') id: number): Promise<void> {
     await this.programModuleRepository.deleteById(id);
   }
+
+
+  @post('/program-modules/create-all')
+  async createAllKeyoutcomes(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            type: 'array',
+            items: getModelSchemaRef(ProgramModule, {
+              title: 'NewProgramModule',
+              exclude: ['id'],
+            }),
+          },
+        },
+      },
+    })
+    programModule: Omit<ProgramModule, 'id'>[],
+  ): Promise<{success: boolean; message: string;}> {
+    try {
+      await this.programModuleRepository.createAll(programModule);
+
+      return {
+        success: true,
+        message: 'Program modules created'
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+
+
+
+  @patch('/program-modules/update-all')
+  @response(200, {
+    description: 'KeyOutComes PATCH success count',
+    content: {'application/json': {schema: CountSchema}},
+  })
+  async updateByArray(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            type: 'array',
+            items: getModelSchemaRef(ProgramModule, {partial: true})
+          },
+        },
+      },
+    })
+    programModules: ProgramModule[],
+  ): Promise<{success: boolean, message: string}> {
+    const repo = new DefaultTransactionalRepository(ProgramModule, this.dataSource);
+    const tx = await repo.beginTransaction(IsolationLevel.READ_COMMITTED);
+    try {
+      for (const programModule of programModules) {
+        if (programModule.id) {
+          await this.programModuleRepository.updateById(programModule.id, {...programModule}, {transaction: tx});
+        } else {
+          await this.programModuleRepository.create({...programModule, isDeleted: false}, {transaction: tx});
+        }
+      }
+      await tx.commit();
+      return {
+        success: true,
+        message: 'ProgramModule updated successfully'
+      }
+    } catch (error) {
+      await tx.rollback();
+      throw error;
+    }
+  }
+
 }

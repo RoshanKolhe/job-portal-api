@@ -15,7 +15,8 @@ export class ProgramModule extends Entity {
   moduleName: string;
 
   @property({
-    type: 'string'
+    type: 'array',
+    itemType: 'string'
   })
   modules: string[];
 
@@ -40,6 +41,10 @@ export class ProgramModule extends Entity {
   })
   isDeleted: boolean;
 
+  @property({
+    type: 'number',
+  })
+  coursesId?: number;
 
   constructor(data?: Partial<ProgramModule>) {
     super(data);

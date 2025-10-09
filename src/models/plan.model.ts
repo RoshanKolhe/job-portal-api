@@ -33,16 +33,6 @@ export class Plan extends Entity {
 
   @property({
     type: 'string',
-  })
-  format: string;
-
-  @property({
-    type: 'string',
-  })
-  effort: string;
-
-  @property({
-    type: 'string',
     required: true
   })
   paymentType: string;  // oneTime, recurring

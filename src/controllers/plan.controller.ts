@@ -25,7 +25,7 @@ import {
 import {PermissionKeys} from '../authorization/permission-keys';
 import {JobPortalDataSource} from '../datasources';
 import {Courses, Jobs, Plan} from '../models';
-import {CoursesRepository, PlanRepository} from '../repositories';
+import {BatchesRepository, CoursesRepository, PlanRepository} from '../repositories';
 
 export class PlanController {
   constructor(
@@ -35,6 +35,8 @@ export class PlanController {
     public planRepository: PlanRepository,
     @repository(CoursesRepository)
     public coursesRepository: CoursesRepository,
+    @repository(BatchesRepository)
+    public batchesRepository: BatchesRepository,
   ) { }
 
   // @authenticate({
@@ -140,7 +142,70 @@ export class PlanController {
   async find(
     @param.filter(Plan) filter?: Filter<Plan>,
   ): Promise<Plan[]> {
-    return this.planRepository.find({...filter, include: [{relation: 'courses'}]});
+    const plans = await this.planRepository.find({
+      ...filter,
+      include: [{
+        relation: 'courses',
+        scope: {
+          include: [
+            {relation: 'keyOutComes'},
+            {relation: 'programModules'}
+          ]
+        }
+      }],
+      order: ['createdAt desc']
+    });
+
+    return plans;
+  }
+
+  @get('/active-plans')
+  @response(200, {
+    description: 'Array of Plan model instances',
+    content: {
+      'application/json': {
+        schema: {
+          type: 'array',
+          items: getModelSchemaRef(Plan, {includeRelations: true}),
+        },
+      },
+    },
+  })
+  async findActivePlans(
+    @param.filter(Plan) filter?: Filter<Plan>,
+  ): Promise<Plan[]> {
+    const plans = await this.planRepository.find({
+      ...filter,
+      include: [{
+        relation: 'courses',
+        scope: {
+          include: [
+            {relation: 'keyOutComes'},
+            {relation: 'programModules'}
+          ]
+        }
+      }],
+      order: ['createdAt desc']
+    });
+
+    const activePlans = [];
+    for (const plan of plans) {
+      const date = new Date();
+      const activeBatch = await this.batchesRepository.findOne({
+        where: {
+          and: [
+            {startDate: {lte: date}},
+            {endDate: {gte: date}},
+            {planId: plan.id}
+          ]
+        }
+      });
+      if (activeBatch) {
+        activePlans.push(plan);
+      }
+    };
+
+    return activePlans;
   }
 
   @authenticate({
@@ -182,8 +247,20 @@ export class PlanController {
   async findById(
     @param.path.number('id') id: number,
     @param.filter(Plan, {exclude: 'where'}) filter?: FilterExcludingWhere<Plan>
-  ): Promise<Plan> {
-    return this.planRepository.findById(id, {...filter, include: [{relation: 'courses'}]});
+  ): Promise<any> {
+    const planData = await this.planRepository.findById(id, {
+      ...filter, include: [{
+        relation: 'courses', scope: {
+          include: [
+            {relation: 'keyOutComes'},
+            {relation: 'programModules'}
+          ]
+        }
+      }]
+    });
+
+    const batch = await this.batchesRepository.findOne({where: {planId: planData.id}, order: ['createdAt DESC']});
+    return {...planData, ...batch}
   }
 
   @patch('/plans/{id}')

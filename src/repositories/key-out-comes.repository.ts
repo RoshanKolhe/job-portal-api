@@ -1,8 +1,8 @@
 import {Constructor, inject} from '@loopback/core';
-import {DefaultCrudRepository} from '@loopback/repository';
+import {BelongsToAccessor, DefaultCrudRepository} from '@loopback/repository';
 import {JobPortalDataSource} from '../datasources';
 import {TimeStampRepositoryMixin} from '../mixins/timestamp-repository-mixin';
-import {KeyOutComes, KeyOutComesRelations} from '../models';
+import {Courses, KeyOutComes, KeyOutComesRelations} from '../models';
 
 export class KeyOutComesRepository extends TimeStampRepositoryMixin<
   KeyOutComes,
@@ -15,6 +15,9 @@ export class KeyOutComesRepository extends TimeStampRepositoryMixin<
     >
   >
 >(DefaultCrudRepository) {
+
+  public readonly courses: BelongsToAccessor<Courses, typeof KeyOutComes.prototype.id>;
+
   constructor(
     @inject('datasources.job_portal') dataSource: JobPortalDataSource,
   ) {
