@@ -260,7 +260,10 @@ export class PlanController {
     });
 
     const batch = await this.batchesRepository.findOne({where: {planId: planData.id}, order: ['createdAt DESC']});
-    return {...planData, ...batch}
+    return {
+      ...planData,
+      batch: batch
+    }
   }
 
   @patch('/plans/{id}')
