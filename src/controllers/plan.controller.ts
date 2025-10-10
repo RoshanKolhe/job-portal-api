@@ -376,7 +376,16 @@ export class PlanController {
     @param.path.number('type') type: number,
     @param.filter(Plan, {exclude: 'where'}) filter?: FilterExcludingWhere<Plan>
   ): Promise<Plan[]> {
-    const plans = await this.planRepository.find({where: {planType: type}, include: [{relation: 'courses'}]}, filter);
+    const plans = await this.planRepository.find({
+      where: {planType: type}, include: [{
+        relation: 'courses', scope: {
+          include: [
+            {relation: 'keyOutComes'},
+            {relation: 'programModules'}
+          ]
+        }
+      }]
+    }, filter);
     const activePlans = [];
     for (const plan of plans) {
       const date = new Date();
