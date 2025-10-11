@@ -205,12 +205,10 @@ export class KeyOutComesController {
     const repo = new DefaultTransactionalRepository(KeyOutComes, this.dataSource);
     const tx = await repo.beginTransaction(IsolationLevel.READ_COMMITTED);
     try {
+      await this.keyOutComesRepository.deleteAll({coursesId: keyOutComes[0].coursesId}, {transaction: tx});
       for (const keyOutCome of keyOutComes) {
-        if (keyOutCome.id) {
-          await this.keyOutComesRepository.updateById(keyOutCome.id, {...keyOutCome}, {transaction: tx});
-        } else {
-          await this.keyOutComesRepository.create({...keyOutCome, isDeleted: false}, {transaction: tx});
-        }
+        console.log("keyOutCome", keyOutCome);
+        await this.keyOutComesRepository.create({...keyOutCome, isDeleted: false}, {transaction: tx});
       }
 
       await tx.commit();

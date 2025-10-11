@@ -208,12 +208,10 @@ export class ProgramModuleController {
     const repo = new DefaultTransactionalRepository(ProgramModule, this.dataSource);
     const tx = await repo.beginTransaction(IsolationLevel.READ_COMMITTED);
     try {
+      await this.programModuleRepository.deleteAll({coursesId: programModules[0].coursesId}, {transaction: tx});
       for (const programModule of programModules) {
-        if (programModule.id) {
-          await this.programModuleRepository.updateById(programModule.id, {...programModule}, {transaction: tx});
-        } else {
-          await this.programModuleRepository.create({...programModule, isDeleted: false}, {transaction: tx});
-        }
+        await this.programModuleRepository.create({...programModule, isDeleted: false}, {transaction: tx});
+
       }
       await tx.commit();
       return {
