@@ -149,7 +149,8 @@ export class PlanController {
         scope: {
           include: [
             {relation: 'keyOutComes'},
-            {relation: 'programModules'}
+            {relation: 'programModules'},
+            {relation: 'tools'}
           ]
         }
       }],
@@ -253,7 +254,8 @@ export class PlanController {
         relation: 'courses', scope: {
           include: [
             {relation: 'keyOutComes'},
-            {relation: 'programModules'}
+            {relation: 'programModules'},
+            {relation: 'tools'}
           ]
         }
       }]
@@ -384,7 +386,8 @@ export class PlanController {
         relation: 'courses', scope: {
           include: [
             {relation: 'keyOutComes'},
-            {relation: 'programModules'}
+            {relation: 'programModules'},
+            {relation: 'tools'}
           ]
         }
       }]

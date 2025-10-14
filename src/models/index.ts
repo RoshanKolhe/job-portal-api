@@ -17,3 +17,6 @@ export * from './key-out-comes.model';
 export * from './program-module.model';
 
 export * from './batches.model';
+export * from './faq-category.model';
+export * from './faq.model';
+export * from './tools.model';

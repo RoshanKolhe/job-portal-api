@@ -26,7 +26,10 @@ export async function migrate(args: string[]) {
       'SavedJobsUsersLink',
       'KeyOutComes',
       'ProgramModule',
-      'Batches'
+      'Batches',
+      'Tools',
+      'FaqCategory',
+      'Faq',
     ],
   });
 

@@ -1,6 +1,7 @@
 import {Entity, hasMany, model, property} from '@loopback/repository';
 import {KeyOutComes} from './key-out-comes.model';
 import {ProgramModule} from './program-module.model';
+import {Tools} from './tools.model';
 
 @model()
 export class Courses extends Entity {
@@ -77,6 +78,9 @@ export class Courses extends Entity {
 
   @hasMany(() => ProgramModule)
   programModules: ProgramModule[];
+
+  @hasMany(() => Tools)
+  tools: Tools[];
   @property({
     type: 'date',
   })

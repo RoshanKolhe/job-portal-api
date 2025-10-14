@@ -19,3 +19,6 @@ export * from './saved-jobs-users-link.repository';
 export * from './key-out-comes.repository';
 export * from './program-module.repository';
 export * from './batches.repository';
+export * from './faq-category.repository';
+export * from './faq.repository';
+export * from './tools.repository';

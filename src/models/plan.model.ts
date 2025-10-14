@@ -73,6 +73,8 @@ export class Plan extends Entity {
     default: false,
   })
   isDeleted: boolean;
+
+
   constructor(data?: Partial<Plan>) {
     super(data);
   }
