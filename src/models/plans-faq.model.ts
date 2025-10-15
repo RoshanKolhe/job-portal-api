@@ -1,7 +1,8 @@
-import {Entity, model, property} from '@loopback/repository';
+import {Entity, model, property, belongsTo} from '@loopback/repository';
+import {Courses} from './courses.model';
 
 @model()
-export class Tools extends Entity {
+export class PlansFaq extends Entity {
   @property({
     type: 'number',
     id: true,
@@ -10,20 +11,16 @@ export class Tools extends Entity {
   id?: number;
 
   @property({
-    type: 'array',
-    itemType: 'object',
-    required: true
+    type: 'string',
+    required: true,
   })
-  tools: {
-    toolName: string;
-    description: string;
-    image: object;
-  }[];
+  answer: string;
 
   @property({
     type: 'string',
+    required: true,
   })
-  category?: string;
+  question: string;
 
   @property({
     type: 'date',
@@ -51,13 +48,13 @@ export class Tools extends Entity {
   })
   coursesId?: number;
 
-  constructor(data?: Partial<Tools>) {
+  constructor(data?: Partial<PlansFaq>) {
     super(data);
   }
 }
 
-export interface ToolsRelations {
+export interface PlansFaqRelations {
   // describe navigational properties here
 }
 
-export type ToolsWithRelations = Tools & ToolsRelations;
+export type PlansFaqWithRelations = PlansFaq & PlansFaqRelations;

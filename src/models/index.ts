@@ -20,3 +20,5 @@ export * from './batches.model';
 export * from './faq-category.model';
 export * from './faq.model';
 export * from './tools.model';
+
+export * from './plans-faq.model';

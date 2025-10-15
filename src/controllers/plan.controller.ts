@@ -150,7 +150,9 @@ export class PlanController {
           include: [
             {relation: 'keyOutComes'},
             {relation: 'programModules'},
-            {relation: 'tools'}
+            {relation: 'tools'},
+            {relation: 'plansFaqs'}
+
           ]
         }
       }],
@@ -255,7 +257,8 @@ export class PlanController {
           include: [
             {relation: 'keyOutComes'},
             {relation: 'programModules'},
-            {relation: 'tools'}
+            {relation: 'tools'},
+            {relation: 'plansFaqs'}
           ]
         }
       }]
@@ -387,7 +390,8 @@ export class PlanController {
           include: [
             {relation: 'keyOutComes'},
             {relation: 'programModules'},
-            {relation: 'tools'}
+            {relation: 'tools'},
+            {relation: 'plansFaqs'}
           ]
         }
       }]

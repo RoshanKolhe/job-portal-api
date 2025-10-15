@@ -30,6 +30,7 @@ export async function migrate(args: string[]) {
       'Tools',
       'FaqCategory',
       'Faq',
+      'PlansFaq',
     ],
   });
 

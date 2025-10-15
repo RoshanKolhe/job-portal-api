@@ -22,3 +22,5 @@ export * from './batches.repository';
 export * from './faq-category.repository';
 export * from './faq.repository';
 export * from './tools.repository';
+
+export * from './plans-faq.repository';
