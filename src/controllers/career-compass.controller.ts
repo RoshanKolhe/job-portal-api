@@ -1,13 +1,5 @@
-import {get, HttpErrors, post, requestBody} from "@loopback/rest";
+import { get, HttpErrors, post, requestBody } from "@loopback/rest";
 import axios from "axios";
-
-
-
-const roles = [
-  {id: 1, role: 'Frontend Developer'},
-  {id: 2, role: 'Backend Developer'},
-  {id: 3, role: 'UI/UX Designer'},
-];
 
 export class CareerCompassController {
   constructor() { }
@@ -40,9 +32,9 @@ export class CareerCompassController {
       designation?: string;
       experience?: number
     }
-  ): Promise<{success: boolean; message: string; data: object | null}> {
+  ): Promise<{ success: boolean; message: string; data: object | null }> {
     try {
-      const {resumeId, designation, experience} = data;
+      const { resumeId, designation, experience } = data;
 
       if (!resumeId && !designation && !experience) {
         throw new HttpErrors.BadRequest('Invalid request body');
@@ -124,9 +116,33 @@ export class CareerCompassController {
     }
   }
 
-  @get('/roles')
-  async getRoles(): Promise<{id: number; role: string}[]> {
-    return roles;
-  }
+  @get('/carrer-compass/roles')
+  async getRoles(): Promise<{ success: boolean; message: string; roles: string[] }> {
+    try {
+      const apiResponse = await axios.get(`${process.env.SERVER_URL}/api/knowledge-graph/roles`,
+        {
+          headers: {
+            "X-apiKey": "2472118222258182",
+          }
+        }
+      );
 
+      if (apiResponse?.data.length > 0) {
+        return {
+          success: true,
+          message: "Roles data",
+          roles: apiResponse?.data
+        }
+      }
+
+      return {
+        success: false,
+        message: "Roles data not found",
+        roles: []
+      }
+    } catch (error) {
+      console.log('Error while sending the roles: ', error);
+      throw error;
+    }
+  }
 }
