@@ -148,6 +148,8 @@ export class ProfileAnalyticsController {
         headers: formData.getHeaders(),
       });
 
+      console.log('response', response);
+
       if (response?.data?.status === 'success' && response?.data?.data) {
         console.log('data', response?.data?.data);
         const analyticsData = await this.profileAnalyticsRepository.create({
