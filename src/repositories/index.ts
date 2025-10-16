@@ -24,3 +24,4 @@ export * from './faq.repository';
 export * from './tools.repository';
 
 export * from './plans-faq.repository';
+export * from './services.repository';

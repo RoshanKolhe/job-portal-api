@@ -24,8 +24,8 @@ import {
 } from '@loopback/rest';
 import {PermissionKeys} from '../authorization/permission-keys';
 import {JobPortalDataSource} from '../datasources';
-import {Courses, Jobs, Plan} from '../models';
-import {BatchesRepository, CoursesRepository, PlanRepository} from '../repositories';
+import {Courses, Plan, Services} from '../models';
+import {BatchesRepository, CoursesRepository, PlanRepository, ServicesRepository} from '../repositories';
 
 export class PlanController {
   constructor(
@@ -37,6 +37,8 @@ export class PlanController {
     public coursesRepository: CoursesRepository,
     @repository(BatchesRepository)
     public batchesRepository: BatchesRepository,
+    @repository(ServicesRepository)
+    public serviceRepository: ServicesRepository,
   ) { }
 
   // @authenticate({
@@ -69,7 +71,7 @@ export class PlanController {
                     title: 'NewCourse',
                     exclude: ['id'],
                   }),
-                  getModelSchemaRef(Jobs, {
+                  getModelSchemaRef(Services, {
                     title: 'NewService',
                     exclude: ['id'],
                   }),
@@ -83,7 +85,7 @@ export class PlanController {
     })
     body: {
       plan: Omit<Plan, 'id'>;
-      productData: Omit<Courses, 'id'> | Omit<Jobs, 'id'>;
+      productData: Omit<Courses, 'id'> | Omit<Services, 'id'>;
     },
   ): Promise<Plan> {
     const repo = new DefaultTransactionalRepository(Plan, this.dataSource);
@@ -93,7 +95,6 @@ export class PlanController {
 
       if (plan.planGroup === 0) {
         // create course
-
         const savedCourse = await this.coursesRepository.create(productData);
 
         if (savedCourse) {
@@ -101,6 +102,19 @@ export class PlanController {
           const savedPlan = await this.planRepository.create(planData);
           tx.commit();
           return await this.planRepository.findById(savedPlan.id, {include: [{relation: 'courses'}]});
+        }
+      }
+
+
+      if (plan.planGroup === 1) {
+        // create services
+        const savedService = await this.serviceRepository.create(productData);
+
+        if (savedService) {
+          const planData = {...plan, servicesId: savedService.id};
+          const savedPlan = await this.planRepository.create(planData);
+          tx.commit();
+          return await this.planRepository.findById(savedPlan.id, {include: [{relation: 'services'}]});
         }
       }
 
@@ -154,8 +168,12 @@ export class PlanController {
             {relation: 'plansFaqs'}
 
           ]
-        }
-      }],
+        },
+      },
+      {
+        relation: 'services',
+      },
+      ],
       order: ['createdAt desc']
     });
 
@@ -261,7 +279,11 @@ export class PlanController {
             {relation: 'plansFaqs'}
           ]
         }
-      }]
+      },
+      {
+        relation: 'services'
+      }
+      ]
     });
 
     const batch = await this.batchesRepository.findOne({where: {planId: planData.id}, order: ['createdAt DESC']});
@@ -287,7 +309,7 @@ export class PlanController {
               productData: {
                 oneOf: [
                   getModelSchemaRef(Courses, {partial: true}),
-                  getModelSchemaRef(Jobs, {partial: true}),
+                  getModelSchemaRef(Services, {partial: true}),
                 ],
               },
             },
@@ -298,7 +320,7 @@ export class PlanController {
     })
     body: {
       plan: Partial<Plan>;
-      productData: Partial<Courses> | Partial<Jobs>;
+      productData: Partial<Courses> | Partial<Services>;
     },
   ): Promise<void> {
     const {plan, productData} = body;
