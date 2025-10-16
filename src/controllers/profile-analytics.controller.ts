@@ -174,7 +174,7 @@ export class ProfileAnalyticsController {
             { skill_erosion_analysis: response?.data?.data?.skill_erosion_analysis }
           ),
           ...(requestBody.isComprehensiveMode &&
-            { json_schema_date: response?.data?.data?.json_schema_date },
+            { json_schema_data: response?.data?.data?.json_schema_data },
             { json_file_url: response?.data?.data?.json_file_url },
             { markdown_file_url: response?.data?.data?.markdown_file_url },
             { comprehensive_analysis: response?.data?.data?.comprehensive_analysis }
