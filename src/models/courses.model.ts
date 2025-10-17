@@ -31,6 +31,12 @@ export class Courses extends Entity {
   })
   heading: string;
 
+   @property({
+    type: 'string',
+    required: true
+  })
+  courseType: string;
+
 
 
   @property({
