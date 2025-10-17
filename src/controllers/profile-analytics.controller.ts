@@ -169,16 +169,16 @@ export class ProfileAnalyticsController {
           Task_Distribution_Automation: response.data.data?.Task_Distribution_Automation,
           Task_Distribution_Human: response.data.data?.Task_Distribution_Human,
           Task_Distribution_Augmentation: response.data.data?.Task_Distribution_Augmentation,
-          ...(requestBody.isFoboPro &&
-            { analysis: response?.data?.data?.analysis },
-            { skill_erosion_analysis: response?.data?.data?.skill_erosion_analysis }
-          ),
-          ...(requestBody.isComprehensiveMode &&
-            { json_schema_date: response?.data?.data?.json_schema_date },
-            { json_file_url: response?.data?.data?.json_file_url },
-            { markdown_file_url: response?.data?.data?.markdown_file_url },
-            { comprehensive_analysis: response?.data?.data?.comprehensive_analysis }
-          )
+          ...(requestBody.isFoboPro && {
+            analysis: response?.data?.data?.analysis,
+            skill_erosion_analysis: response?.data?.data?.skill_erosion_analysis
+          }),
+          ...(requestBody.isComprehensiveMode && {
+            json_schema_data: response?.data?.data?.json_schema_data,
+            json_file_url: response?.data?.data?.json_file_url,
+            markdown_file_url: response?.data?.data?.markdown_file_url,
+            comprehensive_analysis: response?.data?.data?.comprehensive_analysis
+          })
         });
 
         if (resume?.userId) {

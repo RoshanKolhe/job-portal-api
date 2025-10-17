@@ -98,7 +98,7 @@ export class ProfileAnalytics extends Entity {
   @property({
     type: 'object',
   })
-  json_schema_date?: object;
+  json_schema_data?: object;
 
   @property({
     type: 'string',
