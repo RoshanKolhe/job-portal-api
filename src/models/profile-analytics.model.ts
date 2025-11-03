@@ -117,6 +117,11 @@ export class ProfileAnalytics extends Entity {
   skill_erosion_analysis?: any[];
 
   @property({
+    type: 'boolean'
+  })
+  isFoboPro: boolean;
+
+  @property({
     type: 'date',
   })
   createdAt?: Date;
