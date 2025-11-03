@@ -347,6 +347,11 @@ export class PlanController {
         await this.coursesRepository.updateById(existingPlan.coursesId, productData as Courses);
       }
 
+      // Update related course if planGroup is 0
+      if ((plan.planGroup === 1 || existingPlan.planGroup === 1) && existingPlan.servicesId) {
+        await this.serviceRepository.updateById(existingPlan.servicesId, productData as Services);
+      }
+
       // Update the plan itself
       await this.planRepository.updateById(id, plan);
 
