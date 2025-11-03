@@ -89,14 +89,22 @@ export class ProfileAnalyticsController {
         fields = {};
       }
 
+      const isFoboPro = requestBody.isFoboPro ?? false;
       const analytics = await this.profileAnalyticsRepository.findOne({
         where: {
-          ...(requestBody.resumeId ? { resumeId: requestBody.resumeId } : {}),
-          ...(requestBody.linkedInUrl ? { linkedInUrl: requestBody.linkedInUrl } : {}),
+          and: [
+            {
+              or: [
+                {...(requestBody.resumeId ? { resumeId: requestBody.resumeId } : {})},
+                {...(requestBody.linkedInUrl ? { linkedInUrl: requestBody.linkedInUrl } : {})},
+              ]
+            },
+            {isFoboPro: isFoboPro}
+          ]
         }
       });
 
-      if (analytics && ((requestBody.isFoboPro && analytics.analysis) || (requestBody.isComprehensiveMode && analytics.comprehensive_analysis) || (!requestBody.isFoboPro && !requestBody.isComprehensiveMode))) {
+      if (analytics) {
         if (resume?.userId) {
           await this.eventHistoryService.addNewEvent(
             'FOBO score analysis',
@@ -178,7 +186,8 @@ export class ProfileAnalyticsController {
             json_file_url: response?.data?.data?.json_file_url,
             markdown_file_url: response?.data?.data?.markdown_file_url,
             comprehensive_analysis: response?.data?.data?.comprehensive_analysis
-          })
+          }),
+          isFoboPro: isFoboPro
         });
 
         if (resume?.userId) {
