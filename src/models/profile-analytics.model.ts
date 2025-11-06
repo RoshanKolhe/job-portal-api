@@ -1,6 +1,6 @@
-import {belongsTo, Entity, model, property} from '@loopback/repository';
-import {Resume} from './resume.model';
-import {User} from './user.model';
+import { belongsTo, Entity, model, property } from '@loopback/repository';
+import { Resume } from './resume.model';
+import { User } from './user.model';
 
 @model()
 export class ProfileAnalytics extends Entity {
@@ -50,6 +50,21 @@ export class ProfileAnalytics extends Entity {
     type: 'number'
   })
   AI_Readiness_Score?: number;
+
+  @property({
+    type: 'number'
+  })
+  automation_potential?: number;
+
+  @property({
+    type: 'number'
+  })
+  strategic_objective_count?: number;
+
+  @property({
+    type: 'number'
+  })
+  transformation_timeline?: number;
 
   @property({
     type: 'string'
