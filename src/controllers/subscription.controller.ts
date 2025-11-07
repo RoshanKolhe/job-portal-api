@@ -1,5 +1,5 @@
-import {authenticate, AuthenticationBindings} from '@loopback/authentication';
-import {inject} from '@loopback/core';
+import { authenticate, AuthenticationBindings } from '@loopback/authentication';
+import { inject } from '@loopback/core';
 import {
   Count,
   CountSchema,
@@ -22,14 +22,14 @@ import {
   Response,
   RestBindings,
 } from '@loopback/rest';
-import {UserProfile} from '@loopback/security';
+import { UserProfile } from '@loopback/security';
 import * as crypto from 'crypto';
 import Stripe from 'stripe';
-import {PermissionKeys} from '../authorization/permission-keys';
-import {Subscription} from '../models';
-import {PlanRepository, SubscriptionRepository, UserRepository} from '../repositories';
-import {RazorPayService} from '../services/razorpay.service';
-import {StripeService} from '../services/stripe.service';
+import { PermissionKeys } from '../authorization/permission-keys';
+import { Subscription } from '../models';
+import { PlanRepository, SubscriptionRepository, UserRepository } from '../repositories';
+import { RazorPayService } from '../services/razorpay.service';
+import { StripeService } from '../services/stripe.service';
 const Razorpay = require('razorpay');
 
 export class SubscriptionController {
@@ -63,7 +63,7 @@ export class SubscriptionController {
   @post('/subscriptions')
   @response(200, {
     description: 'Subscription model instance',
-    content: {'application/json': {schema: getModelSchemaRef(Subscription)}},
+    content: { 'application/json': { schema: getModelSchemaRef(Subscription) } },
   })
   async create(
     @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
@@ -78,7 +78,7 @@ export class SubscriptionController {
       },
     })
     subscription: Omit<Subscription, 'id'>,
-  ): Promise<{success: boolean; paymentMethod: number; paymentObject: object}> {
+  ): Promise<{ success: boolean; paymentMethod: number; paymentObject: object }> {
     try {
       const user = await this.userRepository.findById(currentUser.id);
       if (!user) {
@@ -89,7 +89,7 @@ export class SubscriptionController {
         throw new HttpErrors.BadGateway('Plan details not found in request body');
       }
 
-      const plan = await this.planRepository.findById(subscription.planId, {include: [{relation: 'courses'}]});
+      const plan = await this.planRepository.findById(subscription.planId, { include: [{ relation: 'courses' }, { relation: 'services' }] });
       if (!plan) {
         throw new HttpErrors.NotFound(`Plan with planId ${subscription.planId} not found`);
       }
@@ -138,10 +138,10 @@ export class SubscriptionController {
           schema: {
             type: 'object',
             properties: {
-              subscription_id: {type: 'number'},
-              razorpay_order_id: {type: 'string'},
-              razorpay_payment_id: {type: 'string'},
-              razorpay_signature: {type: 'string'},
+              subscription_id: { type: 'number' },
+              razorpay_order_id: { type: 'string' },
+              razorpay_payment_id: { type: 'string' },
+              razorpay_signature: { type: 'string' },
             },
             required: [
               'subscription_id',
@@ -160,8 +160,8 @@ export class SubscriptionController {
       razorpay_signature: string;
     },
     @inject(RestBindings.Http.RESPONSE) res: Response
-  ): Promise<{success: boolean; endpoint: string | null}> {
-    const {subscription_id, razorpay_order_id, razorpay_payment_id, razorpay_signature} = body;
+  ): Promise<{ success: boolean; endpoint: string | null }> {
+    const { subscription_id, razorpay_order_id, razorpay_payment_id, razorpay_signature } = body;
     const secret = process.env.RAZORPAY_KEY_SECRET;
 
     const subscription = await this.subscriptionRepository.findById(subscription_id);
@@ -265,21 +265,21 @@ export class SubscriptionController {
         const plan = await this.planRepository.findById(subscription.planId);
         console.log('plan data', plan);
         if (!plan) {
-          await this.subscriptionRepository.updateById(subscription.id, {paymentDetails: session, status: 'success'});
-          await this.userRepository.updateById(subscription.userId, {activeSubscriptionId: subscription.id, currentPlanId: subscription.planId});
+          await this.subscriptionRepository.updateById(subscription.id, { paymentDetails: session, status: 'success' });
+          await this.userRepository.updateById(subscription.userId, { activeSubscriptionId: subscription.id, currentPlanId: subscription.planId });
           res.redirect(`${process.env.REACT_APP_SITE_URL}/payment/success?subscriptionId=${id}`);
         } else {
           const expiryDate = new Date();
           expiryDate.setDate(expiryDate.getDate() + plan.days);
           console.log('entered here')
-          await this.subscriptionRepository.updateById(subscription.id, {paymentDetails: session, status: 'success', expiryDate: expiryDate});
+          await this.subscriptionRepository.updateById(subscription.id, { paymentDetails: session, status: 'success', expiryDate: expiryDate });
           console.log('user data updated and redirected to success');
-          await this.userRepository.updateById(subscription.userId, {activeSubscriptionId: subscription.id, currentPlanId: subscription.planId});
+          await this.userRepository.updateById(subscription.userId, { activeSubscriptionId: subscription.id, currentPlanId: subscription.planId });
           console.log('subscription data updated and redirected to success');
           res.redirect(`http://localhost:3030/payment/success?subscriptionId=${id}`);
         }
       } else {
-        await this.subscriptionRepository.updateById(subscription.id, {paymentDetails: session, status: 'failed'});
+        await this.subscriptionRepository.updateById(subscription.id, { paymentDetails: session, status: 'failed' });
         res.redirect(`http://localhost:3030/payment/cancel?subscriptionId=${id}`);
       }
 
@@ -299,7 +299,7 @@ export class SubscriptionController {
     if (!subscription) {
       throw new HttpErrors[500];
     }
-    await this.subscriptionRepository.updateById(subscription.id, {status: 'failed'});
+    await this.subscriptionRepository.updateById(subscription.id, { status: 'failed' });
 
     this.res.redirect(`http://localhost:3030/payment/cancel?subscriptionId=${id}`);
   }
@@ -307,7 +307,7 @@ export class SubscriptionController {
   @get('/subscriptions/count')
   @response(200, {
     description: 'Subscription model count',
-    content: {'application/json': {schema: CountSchema}},
+    content: { 'application/json': { schema: CountSchema } },
   })
   async count(
     @param.where(Subscription) where?: Where<Subscription>,
@@ -330,7 +330,7 @@ export class SubscriptionController {
       'application/json': {
         schema: {
           type: 'array',
-          items: getModelSchemaRef(Subscription, {includeRelations: true}),
+          items: getModelSchemaRef(Subscription, { includeRelations: true }),
         },
       },
     },
@@ -338,7 +338,7 @@ export class SubscriptionController {
   async find(
     @param.filter(Subscription) filter?: Filter<Subscription>,
   ): Promise<Subscription[]> {
-    return this.subscriptionRepository.find({...filter, include: [{relation: 'user'}]});
+    return this.subscriptionRepository.find({ ...filter, include: [{ relation: 'user' }] });
   }
 
   @authenticate({
@@ -357,7 +357,7 @@ export class SubscriptionController {
       'application/json': {
         schema: {
           type: 'array',
-          items: getModelSchemaRef(Subscription, {includeRelations: true}),
+          items: getModelSchemaRef(Subscription, { includeRelations: true }),
         },
       },
     },
@@ -398,13 +398,13 @@ export class SubscriptionController {
   @patch('/subscriptions')
   @response(200, {
     description: 'Subscription PATCH success count',
-    content: {'application/json': {schema: CountSchema}},
+    content: { 'application/json': { schema: CountSchema } },
   })
   async updateAll(
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Subscription, {partial: true}),
+          schema: getModelSchemaRef(Subscription, { partial: true }),
         },
       },
     })
@@ -438,13 +438,13 @@ export class SubscriptionController {
   })
   async findById(
     @param.path.number('id') id: number,
-    @param.filter(Subscription, {exclude: 'where'}) filter?: FilterExcludingWhere<Subscription>
+    @param.filter(Subscription, { exclude: 'where' }) filter?: FilterExcludingWhere<Subscription>
   ): Promise<Subscription> {
     const updatedFilter: FilterExcludingWhere<Subscription> = {
       ...filter,
       include: [
         ...(filter?.include ?? []),
-        {relation: 'user'},
+        { relation: 'user' },
       ]
     };
     return this.subscriptionRepository.findById(id, updatedFilter);
@@ -471,7 +471,7 @@ export class SubscriptionController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Subscription, {partial: true}),
+          schema: getModelSchemaRef(Subscription, { partial: true }),
         },
       },
     })
@@ -515,16 +515,50 @@ export class SubscriptionController {
     await this.subscriptionRepository.deleteById(id);
   }
 
-  // fetching subscriptions by user
-  // @authenticate({
-  //   strategy: 'jwt',
-  //   options: {
-  //     required : [
-  //       PermissionKeys.ADMIN,
-  //       PermissionKeys.CUSTOMER
-  //     ]
-  //   }
-  // })
-  // @get('subscriptions/subscriptions-by-user')
+  // Fetching service subscription by user
+  @authenticate({
+    strategy: 'jwt',
+    options: {
+      required: [PermissionKeys.ADMIN, PermissionKeys.CUSTOMER]
+    }
+  })
+  @get('/subscriptions/service-subscriptions-by-user/{page}')
+  async fetchServiceSubscriptionByUser(
+    @param.path.string('page') page: string,
+    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
+  ): Promise<{ success: boolean; message: string; subscriptionId: number | null | undefined }> {
+    try {
+      const userSubscriptions = await this.subscriptionRepository.find({
+        where: {
+          and: [
+            { userId: currentUser.id },
+            { status: 'success' },
+          ],
+        },
+      });
 
+      const findServiceSubscription = userSubscriptions.find(
+        (subscription: any) =>
+          subscription.planData?.planGroup === 1 &&
+          subscription.planData?.services?.page?.includes(page)
+      );
+
+      if (!findServiceSubscription || (findServiceSubscription && !findServiceSubscription.id) ) {
+        return {
+          success: false,
+          message: `No purchased service found for "${page}"`,
+          subscriptionId: null,
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Subscription found',
+        subscriptionId: findServiceSubscription.id,
+      };
+    } catch (error) {
+      console.error('Error while fetching subscription:', error);
+      throw error;
+    }
+  }
 }
