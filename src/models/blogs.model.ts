@@ -1,6 +1,6 @@
-import { Entity, hasMany, model, property } from '@loopback/repository';
-import { CategoryBlogsLink } from './category-blogs-link.model';
-import { Category } from './category.model';
+import {Entity, hasMany, model, property} from '@loopback/repository';
+import {CategoryBlogsLink} from './category-blogs-link.model';
+import {Category} from './category.model';
 
 @model()
 export class Blogs extends Entity {
@@ -26,6 +26,17 @@ export class Blogs extends Entity {
     type: 'string',
   })
   designation: string;
+
+  @property({
+    type: 'string',
+  })
+  blogType: string;
+
+  @property({
+    type: 'string',
+  })
+  companyUrl?: string;
+
 
   @property({
     type: 'string',
@@ -121,7 +132,7 @@ export class Blogs extends Entity {
   })
   isDeleted: boolean;
 
-  @hasMany(() => Category, { through: { model: () => CategoryBlogsLink } })
+  @hasMany(() => Category, {through: {model: () => CategoryBlogsLink}})
   categories: Category[];
 
   constructor(data?: Partial<Blogs>) {

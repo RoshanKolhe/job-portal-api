@@ -105,30 +105,41 @@ export class PlanController {
         }
       }
 
-
       if (plan.planGroup === 1) {
-        // create services
-        const savedService = await this.serviceRepository.create(productData);
+        const serviceData = productData as Services;
+
+        const existingService = await this.serviceRepository.findOne({
+          where: {
+            page:serviceData.page,
+          },
+        });
+
+        if (existingService) {
+          throw new HttpErrors.BadRequest(
+            `The page is already assigned to the service "${existingService.serviceName}". Please choose a different page`
+          );
+        }
+
+        const savedService = await this.serviceRepository.create(serviceData);
 
         if (savedService) {
           const planData = {...plan, servicesId: savedService.id};
           const savedPlan = await this.planRepository.create(planData);
-          tx.commit();
-          return await this.planRepository.findById(savedPlan.id, {include: [{relation: 'services'}]});
+          await tx.commit();
+          return this.planRepository.findById(savedPlan.id, {
+            include: [{relation: 'services'}],
+          });
         }
       }
 
-      // if(plan.planGroup === 1){
-      //   // create service
-      // }
-
-      tx.commit();
+      await tx.commit();
       throw new HttpErrors.BadRequest('Incorrect product group');
     } catch (error) {
-      tx.rollback();
+      await tx.rollback();
       throw error;
     }
   }
+
 
   @get('/plans/count')
   @response(200, {

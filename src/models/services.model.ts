@@ -15,10 +15,9 @@ export class Services extends Entity {
   description?: string;
 
   @property({
-    type: 'array',
-    itemType: 'string',
+    type: 'string',
   })
-  page?: string[];
+  page?: string;
 
   @property({
     type: 'array',
