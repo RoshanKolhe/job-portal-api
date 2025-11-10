@@ -179,7 +179,10 @@ export class ProfileAnalyticsController {
           Task_Distribution_Augmentation: response.data.data?.Task_Distribution_Augmentation,
           ...(requestBody.isFoboPro && {
             analysis: response?.data?.data?.analysis,
-            skill_erosion_analysis: response?.data?.data?.skill_erosion_analysis
+            skill_erosion_analysis: response?.data?.data?.skill_erosion_analysis,
+            automation_potential: response?.data?.data?.automation_potential,
+            strategic_objective_count: response?.data?.data?.strategic_objective_count,
+            transformation_timeline: response?.data?.data?.transformation_timeline
           }),
           ...(requestBody.isComprehensiveMode && {
             json_schema_data: response?.data?.data?.json_schema_data,
@@ -246,7 +249,6 @@ export class ProfileAnalyticsController {
       }
     }
   }
-
 
   private validateFileName(fileName: string) {
     const resolved = path.resolve(this.storageDirectory, fileName);
