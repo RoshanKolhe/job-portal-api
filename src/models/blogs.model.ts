@@ -37,7 +37,6 @@ export class Blogs extends Entity {
   })
   companyUrl?: string;
 
-
   @property({
     type: 'string',
   })
