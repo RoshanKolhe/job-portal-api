@@ -4717,7 +4717,7 @@ export class JobsController {
         job_title: job.jobTitle,
         company_name: job.company
       }
-
+      console.log('apiData', apiData);
       const apiResponse = await axios.post(`${process.env.SERVER_URL}/api/job_boost/company_benchmark`,
         apiData,
         {
@@ -4726,6 +4726,8 @@ export class JobsController {
           }
         }
       );
+
+      console.log('apiResponse', apiResponse);
 
       if (apiResponse.data) {
         return {
@@ -4741,6 +4743,7 @@ export class JobsController {
         data: null
       }
     } catch (error) {
+      console.log('error while fetching statistical data: ', error);
       throw error;
     }
   }
