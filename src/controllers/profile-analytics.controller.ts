@@ -45,6 +45,7 @@ export class ProfileAnalyticsController {
               smartInsights: { type: 'boolean' },
               isFoboPro: { type: 'boolean' },
               isComprehensiveMode: { type: 'boolean' },
+              isSubscribed: { type: 'boolean' },
             },
             required: [],
           },
@@ -58,6 +59,7 @@ export class ProfileAnalyticsController {
       smartInsights: boolean;
       isFoboPro?: boolean;
       isComprehensiveMode?: boolean;
+      isSubscribed?: boolean;
     },
   ): Promise<any> {
     try {
@@ -89,17 +91,29 @@ export class ProfileAnalyticsController {
         fields = {};
       }
 
+      if (requestBody.isFoboPro && !requestBody.isSubscribed) {
+        fields = {
+          FOBO_Score: true,
+          AI_Readiness_Score: true,
+          automation_potential: true,
+          strategic_objective_count: true,
+          transformation_timeline: true,
+          relevant_job_class: true,
+          json_schema_data: true
+        };
+      }
+
       const isFoboPro = requestBody.isFoboPro ?? false;
       const analytics = await this.profileAnalyticsRepository.findOne({
         where: {
           and: [
             {
               or: [
-                {...(requestBody.resumeId ? { resumeId: requestBody.resumeId } : {})},
-                {...(requestBody.linkedInUrl ? { linkedInUrl: requestBody.linkedInUrl } : {})},
+                { ...(requestBody.resumeId ? { resumeId: requestBody.resumeId } : {}) },
+                { ...(requestBody.linkedInUrl ? { linkedInUrl: requestBody.linkedInUrl } : {}) },
               ]
             },
-            {isFoboPro: isFoboPro}
+            { isFoboPro: isFoboPro }
           ]
         }
       });
@@ -204,7 +218,10 @@ export class ProfileAnalyticsController {
 
         const finalAnalyticsData = await this.profileAnalyticsRepository.findById(
           analyticsData.id,
-          { include: [{ relation: 'user' }] }
+          {
+            include: [{ relation: 'user' }],
+            fields
+          }
         );
 
         return {
