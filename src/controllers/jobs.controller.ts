@@ -4616,7 +4616,6 @@ export class JobsController {
   // })
   @post('/jobs/job-boost')
   async getJobBoostData(
-    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
     @requestBody({
       content: {
         'application/json': {
