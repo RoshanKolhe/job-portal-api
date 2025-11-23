@@ -4610,10 +4610,10 @@ export class JobsController {
   }
 
   // job-boost-insights
-  @authenticate({
-    strategy: 'jwt',
-    options: { required: [PermissionKeys.ADMIN, PermissionKeys.CUSTOMER] }
-  })
+  // @authenticate({
+  //   strategy: 'jwt',
+  //   options: { required: [PermissionKeys.ADMIN, PermissionKeys.CUSTOMER] }
+  // })
   @post('/jobs/job-boost')
   async getJobBoostData(
     @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
@@ -4652,9 +4652,9 @@ export class JobsController {
         throw new HttpErrors[404](`Resume not found with Id ${data.resumeId}`);
       }
 
-      if (resume && resume.userId !== Number(currentUser.id)) {
-        throw new HttpErrors.Unauthorized(`Given Resume Id is not of login user`);
-      }
+      // if (resume && resume.userId !== Number(currentUser.id)) {
+      //   throw new HttpErrors.Unauthorized(`Given Resume Id is not of login user`);
+      // }
 
       if (job && resume) {
         const apiData = {
@@ -4698,10 +4698,10 @@ export class JobsController {
   }
 
   // job-boost-company-statistical-data
-  @authenticate({
-    strategy: 'jwt',
-    options: { required: [PermissionKeys.ADMIN, PermissionKeys.CUSTOMER] }
-  })
+  // @authenticate({
+  //   strategy: 'jwt',
+  //   options: { required: [PermissionKeys.ADMIN, PermissionKeys.CUSTOMER] }
+  // })
   @post('/jobs/job-boost-statistical-data/{id}')
   async fetchJobBoostStatisticalData(
     @param.path.number('id') jobId: number,
