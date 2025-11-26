@@ -2,37 +2,38 @@ import {
   AuthenticationComponent,
   registerAuthenticationStrategy,
 } from '@loopback/authentication';
-import {BootMixin} from '@loopback/boot';
-import {ApplicationConfig} from '@loopback/core';
-import {CronComponent} from '@loopback/cron';
-import {RepositoryMixin} from '@loopback/repository';
-import {RestApplication} from '@loopback/rest';
+import { BootMixin } from '@loopback/boot';
+import { ApplicationConfig } from '@loopback/core';
+import { CronComponent } from '@loopback/cron';
+import { RepositoryMixin } from '@loopback/repository';
+import { RestApplication } from '@loopback/rest';
 import {
   RestExplorerBindings,
   RestExplorerComponent,
 } from '@loopback/rest-explorer';
-import {ServiceMixin} from '@loopback/service-proxy';
+import { ServiceMixin } from '@loopback/service-proxy';
 import multer from 'multer';
 import path from 'path';
 
-import {JWTStrategy} from './authentication-strategy/jwt-strategy';
+import { JWTStrategy } from './authentication-strategy/jwt-strategy';
 import {
   EmailManagerBindings,
   FILE_UPLOAD_SERVICE,
   STORAGE_DIRECTORY,
 } from './keys';
-import {MySequence} from './sequence';
-import {EmailService} from './services/email.service';
-import {BcryptHasher} from './services/hash.password.bcrypt';
-import {JWTService} from './services/jwt-service';
-import {MyUserService} from './services/user-service';
-import {LinkedinAuthService} from './services/linkedIn-auth.services';
-import {GoogleAuthService} from './services/google-auth.service';
+import { MySequence } from './sequence';
+import { EmailService } from './services/email.service';
+import { BcryptHasher } from './services/hash.password.bcrypt';
+import { JWTService } from './services/jwt-service';
+import { MyUserService } from './services/user-service';
+import { LinkedinAuthService } from './services/linkedIn-auth.services';
+import { GoogleAuthService } from './services/google-auth.service';
 import { EventHistoryService } from './services/event-history.service';
 import { StripeService } from './services/stripe.service';
 import { CheckDailyEntriesAtNoon } from './services/cronjob.service';
 import { RazorPayService } from './services/razorpay.service';
-export {ApplicationConfig};
+import { CurrencyExchange } from './services/currency.service';
+export { ApplicationConfig };
 
 export class JobPortalApiApplication extends BootMixin(
   ServiceMixin(RepositoryMixin(RestApplication)),
@@ -78,6 +79,7 @@ export class JobPortalApiApplication extends BootMixin(
     this.bind('service.stripe.service').toClass(StripeService);
     this.bind('service.razorpay.service').toClass(RazorPayService);
     this.bind('service.cronjob.service').toClass(CheckDailyEntriesAtNoon);
+    this.bind('service.currency.service').toClass(CurrencyExchange);
     this.bind(EmailManagerBindings.SEND_MAIL).toClass(EmailService);
   }
 

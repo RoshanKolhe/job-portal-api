@@ -32,6 +32,7 @@ export async function migrate(args: string[]) {
       'Faq',
       'PlansFaq',
       'Services',
+      'CurrencyExchangeRate'
     ],
   });
 

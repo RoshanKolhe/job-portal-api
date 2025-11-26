@@ -30,6 +30,7 @@ import { Subscription } from '../models';
 import { PlanRepository, SubscriptionRepository, UserRepository } from '../repositories';
 import { RazorPayService } from '../services/razorpay.service';
 import { StripeService } from '../services/stripe.service';
+import { CurrencyExchange } from '../services/currency.service';
 const Razorpay = require('razorpay');
 
 export class SubscriptionController {
@@ -47,6 +48,8 @@ export class SubscriptionController {
     public stripeService: StripeService,
     @inject('service.razorpay.service')
     public razorpayService: RazorPayService,
+    @inject('service.currency.service')
+    public currencyExchangeService: CurrencyExchange
   ) {
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
   }
@@ -93,13 +96,20 @@ export class SubscriptionController {
       if (!plan) {
         throw new HttpErrors.NotFound(`Plan with planId ${subscription.planId} not found`);
       }
+      let calculatedPrice = plan.price;
+      if(subscription.currencyType === 1){
+        calculatedPrice = await this.currencyExchangeService.exchangeToUSD(plan.price);
+      }
 
       const newSubscriptionData = {
         planId: subscription.planId,
         userId: user.id,
         status: 'pending',
         paymentMethod: subscription.paymentMethod,
-        planData: plan,
+        planData: {
+          ...plan,
+          price: calculatedPrice
+        },
         currencyType: subscription.currencyType
       };
 
