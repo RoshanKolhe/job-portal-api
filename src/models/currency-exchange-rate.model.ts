@@ -28,18 +28,6 @@ export class CurrencyExchangeRate extends Entity {
   rate: number;
 
   @property({
-    type: 'number',
-    required: true,
-  })
-  baseAmount: number;
-
-  @property({
-    type: 'number',
-    required: true,
-  })
-  targetAmount: number;
-
-  @property({
     type: 'date',
     default: () => new Date(),
   })
