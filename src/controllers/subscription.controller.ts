@@ -100,6 +100,7 @@ export class SubscriptionController {
         status: 'pending',
         paymentMethod: subscription.paymentMethod,
         planData: plan,
+        currencyType: subscription.currencyType
       };
 
       const newSubscription = await this.subscriptionRepository.create(newSubscriptionData);
