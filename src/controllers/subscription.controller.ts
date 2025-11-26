@@ -543,7 +543,7 @@ export class SubscriptionController {
           subscription.planData?.services?.page?.includes(page)
       );
 
-      if (!findServiceSubscription || (findServiceSubscription && !findServiceSubscription.id) ) {
+      if (!findServiceSubscription || (findServiceSubscription && !findServiceSubscription.id)) {
         return {
           success: false,
           message: `No purchased service found for "${page}"`,

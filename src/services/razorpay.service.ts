@@ -21,7 +21,7 @@ export class RazorPayService {
 
       const options = {
         amount: amountInPaise, 
-        currency: 'INR',
+        currency: subscriptionDetails.currencyType === 1 ? 'USD' : 'INR',
         receipt: `receipt_${subscriptionDetails.id}`,
         payment_capture: 1, 
       };

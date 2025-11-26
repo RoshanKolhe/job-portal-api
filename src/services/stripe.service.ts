@@ -21,7 +21,7 @@ export class StripeService {
 
       const mainPrice = await this.stripe.prices.create({
         unit_amount: subscriptionDetails.planData?.price * 100, // Amount in cents
-        currency: 'inr',
+        currency: subscriptionDetails.currencyType === 1 ? 'usd' : 'inr',
         product: mainProduct.id,
       });
 

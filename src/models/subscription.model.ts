@@ -36,6 +36,12 @@ export class Subscription extends Entity {
     type: 'date'
   })
   expiryDate?: Date;
+
+  @property({
+    type: 'number',
+    default: 0
+  })
+  currencyType: number; // 0 => rupees, 1 => dollars
   
   @belongsTo(() => Plan)
   planId: number;
