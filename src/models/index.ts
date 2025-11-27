@@ -24,3 +24,4 @@ export * from './tools.model';
 export * from './plans-faq.model';
 export * from './services.model';
 export * from './currency-exchange-rate.model';
+export * from './course-registration-interest.model';

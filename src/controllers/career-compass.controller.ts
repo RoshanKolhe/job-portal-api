@@ -1,5 +1,6 @@
 import { get, HttpErrors, post, requestBody } from "@loopback/rest";
 import axios from "axios";
+import FormData from "form-data";
 
 export class CareerCompassController {
   constructor() { }
@@ -143,6 +144,73 @@ export class CareerCompassController {
     } catch (error) {
       console.log('Error while sending the roles: ', error);
       throw error;
+    }
+  }
+
+
+  // company-fobo
+  @post('/company-fobo')
+  async getCompanyFobo(
+    @requestBody({
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            required: ['company_name'],
+            properties: {
+              companyName: { type: 'string' },
+              maxProfilesPerLevel: { type: 'number' },
+              skipMissing: { type: 'boolean' },
+            },
+          },
+        },
+      },
+    })
+    body: {
+      companyName: string;
+      maxProfilesPerLevel?: number;
+      skipMissing?: boolean;
+    }
+  ) {
+    try {
+      const form = new FormData();
+      form.append('company_name', body.companyName);
+      form.append('max_profiles_per_level', body.maxProfilesPerLevel?.toString() || '4');
+      form.append('skip_missing', body.skipMissing?.toString() || 'true');
+
+      console.log("➡️ External API FormData:", body);
+
+      // Send request to external FOBO API
+      const apiResponse = await axios.post(
+        'http://164.52.221.77:7483/fobo/company',
+        form,
+        {
+          headers: {
+            ...form.getHeaders(),
+            "X-apiKey": "2472118222258182",
+          }
+        }
+      );
+
+      // Standardized response
+      if (apiResponse?.data?.data) {
+        return {
+          success: true,
+          message: 'Company fobo data',
+          data: apiResponse?.data?.data,
+        };
+      }
+
+      return {
+        success: false,
+        message: 'company fobo data not found',
+        data: null,
+      };
+
+    } catch (error) {
+      console.error('❌ Error while generating company FOBO:', error);
+      throw new HttpErrors.InternalServerError('FOBO API failed');
     }
   }
 }
