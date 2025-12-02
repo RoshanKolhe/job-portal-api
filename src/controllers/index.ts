@@ -38,3 +38,5 @@ export * from './plans-faq.controller';
 export * from './courses-plans-faq.controller';
 export * from './plan-services.controller';
 export * from './services.controller';
+export * from './currency-exchange-rate.controller';
+export * from './course-registration-interest.controller';

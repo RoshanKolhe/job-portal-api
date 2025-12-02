@@ -4610,13 +4610,12 @@ export class JobsController {
   }
 
   // job-boost-insights
-  @authenticate({
-    strategy: 'jwt',
-    options: { required: [PermissionKeys.ADMIN, PermissionKeys.CUSTOMER] }
-  })
+  // @authenticate({
+  //   strategy: 'jwt',
+  //   options: { required: [PermissionKeys.ADMIN, PermissionKeys.CUSTOMER] }
+  // })
   @post('/jobs/job-boost')
   async getJobBoostData(
-    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
     @requestBody({
       content: {
         'application/json': {
@@ -4652,9 +4651,9 @@ export class JobsController {
         throw new HttpErrors[404](`Resume not found with Id ${data.resumeId}`);
       }
 
-      if (resume && resume.userId !== Number(currentUser.id)) {
-        throw new HttpErrors.Unauthorized(`Given Resume Id is not of login user`);
-      }
+      // if (resume && resume.userId !== Number(currentUser.id)) {
+      //   throw new HttpErrors.Unauthorized(`Given Resume Id is not of login user`);
+      // }
 
       if (job && resume) {
         const apiData = {
@@ -4698,10 +4697,10 @@ export class JobsController {
   }
 
   // job-boost-company-statistical-data
-  @authenticate({
-    strategy: 'jwt',
-    options: { required: [PermissionKeys.ADMIN, PermissionKeys.CUSTOMER] }
-  })
+  // @authenticate({
+  //   strategy: 'jwt',
+  //   options: { required: [PermissionKeys.ADMIN, PermissionKeys.CUSTOMER] }
+  // })
   @post('/jobs/job-boost-statistical-data/{id}')
   async fetchJobBoostStatisticalData(
     @param.path.number('id') jobId: number,
@@ -4717,7 +4716,7 @@ export class JobsController {
         job_title: job.jobTitle,
         company_name: job.company
       }
-
+      console.log('apiData', apiData);
       const apiResponse = await axios.post(`${process.env.SERVER_URL}/api/job_boost/company_benchmark`,
         apiData,
         {
@@ -4726,6 +4725,8 @@ export class JobsController {
           }
         }
       );
+
+      console.log('apiResponse', apiResponse);
 
       if (apiResponse.data) {
         return {
@@ -4741,6 +4742,7 @@ export class JobsController {
         data: null
       }
     } catch (error) {
+      console.log('error while fetching statistical data: ', error);
       throw error;
     }
   }
