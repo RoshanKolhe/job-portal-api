@@ -1,4 +1,4 @@
-import { Entity, model, property, belongsTo} from '@loopback/repository';
+import {Entity, model, property, belongsTo} from '@loopback/repository';
 import {Plan} from './plan.model';
 
 @model()
@@ -26,13 +26,19 @@ export class CourseRegistrationInterest extends Entity {
     type: 'string',
     required: true
   })
-  companyName: string;
+  phone: string;
 
   @property({
     type: 'string',
-    required: true
+
   })
-  designation: string;
+  companyName?: string;
+
+  @property({
+    type: 'string',
+
+  })
+  designation?: string;
 
   @property({
     type: 'boolean',
