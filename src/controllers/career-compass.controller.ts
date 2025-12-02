@@ -1,4 +1,4 @@
-import {get, HttpErrors, post, requestBody} from "@loopback/rest";
+import { get, HttpErrors, post, requestBody } from "@loopback/rest";
 import axios from "axios";
 import FormData from "form-data";
 import apiClient from '../interceptors/axios-client.interceptor';
@@ -34,9 +34,9 @@ export class CareerCompassController {
       designation?: string;
       experience?: number
     }
-  ): Promise<{success: boolean; message: string; data: object | null}> {
+  ): Promise<{ success: boolean; message: string; data: object | null; apiDurations: { endpoint: string; duration: string } }> {
     try {
-      const {resumeId, designation, experience} = data;
+      const { resumeId, designation, experience } = data;
 
       if (!resumeId && !designation && !experience) {
         throw new HttpErrors.BadRequest('Invalid request body');
@@ -61,7 +61,7 @@ export class CareerCompassController {
           }
         );
 
-        const {duration} = apiResponse;
+        const { duration } = apiResponse;
         console.log('Response time for => /api/career_path_match :', duration)
 
         console.log('api response', apiResponse);
@@ -72,13 +72,21 @@ export class CareerCompassController {
             data: {
               currentRole: apiResponse?.data?.data?.current_role,
               levels: apiResponse?.data?.data?.levels
+            },
+            apiDurations: {
+              endpoint: '/api/career_path_match',
+              duration
             }
           }
         } else {
           return {
             success: false,
             message: "Career compass data not found",
-            data: null
+            data: null,
+            apiDurations: {
+              endpoint: '/api/career_path_match',
+              duration
+            }
           }
         }
       }
@@ -96,7 +104,7 @@ export class CareerCompassController {
           }
         }
       );
-      const {duration} = apiResponse;
+      const { duration } = apiResponse;
       console.log('Response time for => /api/career_path_match :', duration)
 
       console.log('apiresopnse', apiResponse);
@@ -108,6 +116,10 @@ export class CareerCompassController {
           data: {
             currentRole: apiResponse?.data?.data?.current_role,
             levels: apiResponse?.data?.data?.levels
+          },
+          apiDurations: {
+            endpoint: '/api/career_path_match',
+            duration
           }
         }
       } else {
@@ -115,7 +127,10 @@ export class CareerCompassController {
           success: false,
           message: "Career compass data not found",
           data: null,
-
+          apiDurations: {
+            endpoint: '/api/career_path_match',
+            duration
+          }
         }
       }
 
@@ -125,7 +140,7 @@ export class CareerCompassController {
   }
 
   @get('/carrer-compass/roles')
-  async getRoles(): Promise<{success: boolean; message: string; roles: string[]}> {
+  async getRoles(): Promise<{ success: boolean; message: string; roles: string[]; apiDurations: { endpoint: string; duration: string } }> {
     try {
       const apiResponse: any = await apiClient.get(`${process.env.SERVER_URL}/api/knowledge-graph/roles`,
         {
@@ -135,22 +150,29 @@ export class CareerCompassController {
         }
       );
 
-       const {duration} = apiResponse;
-        console.log('Response time for => /api/knowledge-graph/roles :', duration)
-
+      const { duration } = apiResponse;
+      console.log('Response time for => /api/knowledge-graph/roles :', duration)
 
       if (apiResponse?.data.length > 0) {
         return {
           success: true,
           message: "Roles data",
-          roles: apiResponse?.data
+          roles: apiResponse?.data,
+          apiDurations: {
+            endpoint: '/api/knowledge-graph/roles',
+            duration: duration
+          }
         }
       }
 
       return {
         success: false,
         message: "Roles data not found",
-        roles: []
+        roles: [],
+        apiDurations: {
+          endpoint: '/api/knowledge-graph/roles',
+          duration: duration
+        }
       }
     } catch (error) {
       console.log('Error while sending the roles: ', error);
@@ -170,9 +192,9 @@ export class CareerCompassController {
             type: 'object',
             required: ['company_name'],
             properties: {
-              companyName: {type: 'string'},
-              maxProfilesPerLevel: {type: 'number'},
-              skipMissing: {type: 'boolean'},
+              companyName: { type: 'string' },
+              maxProfilesPerLevel: { type: 'number' },
+              skipMissing: { type: 'boolean' },
             },
           },
         },
@@ -193,7 +215,7 @@ export class CareerCompassController {
       console.log("➡️ External API FormData:", body);
 
       // Send request to external FOBO API
-      const apiResponse = await axios.post(
+      const apiResponse: any = await apiClient.post(
         'http://164.52.221.77:7483/fobo/company',
         form,
         {
@@ -204,12 +226,18 @@ export class CareerCompassController {
         }
       );
 
+      const { duration } = apiResponse;
+
       // Standardized response
       if (apiResponse?.data?.data) {
         return {
           success: true,
           message: 'Company fobo data',
           data: apiResponse?.data?.data,
+          apiDurations: {
+            endpoint: '/fobo/company',
+            duration
+          }
         };
       }
 
@@ -217,6 +245,10 @@ export class CareerCompassController {
         success: false,
         message: 'company fobo data not found',
         data: null,
+        apiDurations: {
+          endpoint: '/fobo/company',
+          duration
+        }
       };
 
     } catch (error) {

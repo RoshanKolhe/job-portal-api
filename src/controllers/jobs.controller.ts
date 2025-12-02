@@ -4444,7 +4444,7 @@ export class JobsController {
     @inject(RestBindings.Http.REQUEST) request: Request,
     @param.path.number('id') id: number,
     @param.filter(Jobs, { exclude: 'where' }) filter?: FilterExcludingWhere<Jobs>
-  ): Promise<{ data: Jobs, matchScore: number | null, isSaved: boolean }> {
+  ): Promise<{ data: Jobs, matchScore: number | null, isSaved: boolean, apiDurations: { endpoint: string; duration: string } | null }> {
     const job = await this.jobsRepository.findById(id, filter);
 
     // current User profile
@@ -4479,7 +4479,7 @@ export class JobsController {
           }
         }
       );
-      const {duration} = apiResponse;
+      const { duration } = apiResponse;
       console.log('Response time for => /api/job_boost/job_match_insights :', duration)
 
       const savedJob = await this.savedJobsUsersLinkRepository.findOne({
@@ -4491,12 +4491,20 @@ export class JobsController {
           data: job,
           matchScore: apiResponse?.data?.match_score,
           isSaved: !!savedJob,
+          apiDurations: {
+            endpoint: '/api/job_boost/job_match_insights',
+            duration
+          }
         }
       } else {
         return {
           data: job,
           matchScore: null,
           isSaved: !!savedJob,
+          apiDurations: {
+            endpoint: '/api/job_boost/job_match_insights',
+            duration
+          }
         }
       }
     }
@@ -4504,7 +4512,8 @@ export class JobsController {
     return {
       data: job,
       matchScore: null,
-      isSaved: false
+      isSaved: false,
+      apiDurations: null
     }
   }
 
@@ -4569,7 +4578,7 @@ export class JobsController {
       jobId: number;
       limit: number;
     }
-  ): Promise<{ success: boolean; message: string; data: Jobs[] }> {
+  ): Promise<{ success: boolean; message: string; data: Jobs[]; apiDurations: { endpoint: string; duration: string } | null }> {
     try {
       const job = await this.jobsRepository.findById(data.jobId);
 
@@ -4591,7 +4600,7 @@ export class JobsController {
         }
       );
 
-      const {duration} = apiResponse;
+      const { duration } = apiResponse;
       console.log('Response time for => /api/jd/similar_jobs :', duration)
 
       if (apiResponse && apiResponse.data) {
@@ -4601,14 +4610,22 @@ export class JobsController {
         return {
           success: true,
           message: "Similar jobs",
-          data: jobs
+          data: jobs,
+          apiDurations: {
+            endpoint: '/api/jd/similar_jobs',
+            duration
+          }
         }
       }
 
       return {
         success: false,
         message: "Failed to get similar jobs",
-        data: []
+        data: [],
+        apiDurations: {
+          endpoint: '/api/jd/similar_jobs',
+          duration
+        }
       }
     } catch (error) {
       throw error;
@@ -4643,7 +4660,7 @@ export class JobsController {
       jobId: number;
       resumeId: number;
     }
-  ): Promise<{ success: boolean; message: string; data: object | null }> {
+  ): Promise<{ success: boolean; message: string; data: object | null, apiDurations: { endpoint: string; duration: string } | null }> {
     try {
       const job = await this.jobsRepository.findById(data.jobId);
 
@@ -4676,20 +4693,28 @@ export class JobsController {
             }
           }
         );
-        const {duration} = apiResponse;
+        const { duration } = apiResponse;
         console.log('Response time for => /api/job_boost/job_match_insights :', duration)
 
         if (apiResponse.data) {
           return {
             success: true,
             message: "Job boost data",
-            data: apiResponse.data
+            data: apiResponse.data,
+            apiDurations: {
+              endpoint: 'api/job_boost/job_match_insights',
+              duration
+            }
           }
         } else {
           return {
             success: false,
             message: "Failed to get job boost data",
-            data: null
+            data: null,
+            apiDurations: {
+              endpoint: 'api/job_boost/job_match_insights',
+              duration
+            }
           }
         }
       }
@@ -4697,7 +4722,8 @@ export class JobsController {
       return {
         success: false,
         message: "Failed to get job boost data",
-        data: null
+        data: null,
+        apiDurations: null
       }
     } catch (error) {
       throw error;
@@ -4712,7 +4738,7 @@ export class JobsController {
   @post('/jobs/job-boost-statistical-data/{id}')
   async fetchJobBoostStatisticalData(
     @param.path.number('id') jobId: number,
-  ): Promise<{ success: boolean; message: string; data: object | null }> {
+  ): Promise<{ success: boolean; message: string; data: object | null; apiDurations: { endpoint: string; duration: string } | null }> {
     try {
       const job = await this.jobsRepository.findById(jobId);
 
@@ -4733,8 +4759,8 @@ export class JobsController {
           }
         }
       );
-       const {duration} = apiResponse;
-        console.log('Response time for => /api/job_boost/company_benchmark :', duration)
+      const { duration } = apiResponse;
+      console.log('Response time for => /api/job_boost/company_benchmark :', duration)
 
       console.log('apiResponse', apiResponse);
 
@@ -4742,14 +4768,22 @@ export class JobsController {
         return {
           success: true,
           message: "Job boost statistical data",
-          data: apiResponse.data
+          data: apiResponse.data,
+          apiDurations: {
+            endpoint: '/api/job_boost/company_benchmark',
+            duration
+          }
         }
       }
 
       return {
         success: false,
         message: "Failed to get job boost statistical data",
-        data: null
+        data: null,
+        apiDurations: {
+          endpoint: '/api/job_boost/company_benchmark',
+          duration
+        }
       }
     } catch (error) {
       console.log('error while fetching statistical data: ', error);
