@@ -182,6 +182,29 @@ export class UserController {
     }
   }
 
+  @authenticate('jwt')
+  @patch('/verifyUser')
+  async verifyUser(
+    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
+  ): Promise<object> {
+    const user = await this.userRepository.findOne({
+      where: {
+        id: currentUser.id,
+      },
+    })
+    if (user) {
+      await this.userRepository.updateById(user.id, {
+        isVerified: true,
+      });
+      return {
+        success: true,
+        message: 'User verified',
+      };
+    } else {
+      throw new HttpErrors.BadRequest("Email doesn't exist");
+    }
+  }
+
   @post('/login', {
     responses: {
       '200': {
@@ -589,4 +612,7 @@ export class UserController {
     }
   }
 }
+
+
+
 
