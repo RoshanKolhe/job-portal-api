@@ -2,7 +2,7 @@ export default function generateEmailAndPasswordTemplate(mailOptions: any) {
   const template = `<!DOCTYPE html>
     <html>
     <head>
-        <title>Welcome to Hylite</title>
+        <title>Welcome to Altiv</title>
     </head>
      <style>
         body {
@@ -54,12 +54,12 @@ export default function generateEmailAndPasswordTemplate(mailOptions: any) {
 
 <div class="container">
     <div class="header">
-        <h2>Welcome to Hylite!</h2>
+        <h2>Welcome to Altiv!</h2>
     </div>
 
     <div class="content">
         <p>Dear <strong>${mailOptions?.userData?.firstName} ${mailOptions?.userData?.lastName ? mailOptions?.userData?.lastName : ''}</strong>,</p>
-        
+
         <p>We are excited to have you on board. Below are your login details:</p>
 
         <p><strong>Login URL:</strong> <a href="${mailOptions?.loginLink}" target="_blank">${mailOptions?.loginLink}</a></p>
@@ -83,18 +83,18 @@ export default function generateEmailAndPasswordTemplate(mailOptions: any) {
         <p>If you have any issues, feel free to contact our support team.</p>
 
         <p>Best Regards,<br>
-        <strong>Hylite</strong></p>
+        <strong>Altiv</strong></p>
     </div>
 
     <div class="footer">
-        &copy; 2025 Hylite. All rights reserved.
+        &copy; 2025 Altiv. All rights reserved.
     </div>
 </div>
 
 </body>
     </html>`;
   const EmailAndPasswordTemplate = {
-    subject: 'Welcome to Hylite - Your Account Details Inside!',
+    subject: 'Welcome to Altiv - Your Account Details Inside!',
     html: template,
   };
   return EmailAndPasswordTemplate;

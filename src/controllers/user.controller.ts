@@ -27,15 +27,16 @@ import {JobPortalDataSource} from '../datasources';
 import {EmailManagerBindings} from '../keys';
 import {EventHistory, User} from '../models';
 import {Credentials, EventHistoryRepository, PlanRepository, UserRepository} from '../repositories';
-import {EmailManager} from '../services/email.service';
+import {EmailManager, EmailService} from '../services/email.service';
+import {EventHistoryService} from '../services/event-history.service';
 import {BcryptHasher} from '../services/hash.password.bcrypt';
 import {JWTService} from '../services/jwt-service';
 import {MyUserService} from '../services/user-service';
 import {validateCredentials} from '../services/validator';
+import generateVerificationEmailTemplate from '../templates/email-verification-template';
 import generateResetPasswordTemplate from '../templates/reset-password.template';
 import SITE_SETTINGS from '../utils/config';
 import {CredentialsRequestBody} from './specs/user-controller-spec';
-import {EventHistoryService} from '../services/event-history.service';
 
 export class UserController {
   constructor(
@@ -55,6 +56,8 @@ export class UserController {
     public userService: MyUserService,
     @inject('service.jwt.service')
     public jwtService: JWTService,
+    @inject('services.email.send')
+    public emailService: EmailService,
     @inject('service.eventhistory.service')
     public eventHistoryService: EventHistoryService,
   ) { }
@@ -91,7 +94,36 @@ export class UserController {
         },
       });
       if (user) {
-        throw new HttpErrors.BadRequest('User Already Exists');
+        if (user.isVerified) {
+          throw new HttpErrors.BadRequest('User Already Exists');
+        } else {
+          const userProfile = this.userService.convertToUserProfile(user);
+          const token = await this.jwtService.generateToken(userProfile);
+          const verificationLink = `${process.env.REACT_APP_SITE_URL}/verification?token=${token}`;
+
+          const mailOptions = {
+            userData: user,
+            verificationLink,
+            to: user.email,
+          };
+
+          const template = generateVerificationEmailTemplate(mailOptions);
+
+          await this.emailService.sendMail({
+            to: user.email,
+            subject: template.subject,
+            html: template.html,
+          });
+
+          return {
+            success: true,
+            isVerified: false,
+            userData: {
+              email: userData.email
+            },
+            message: 'Account already exist. Please claim this account by verifying your email',
+          }
+        }
       }
 
       // userData.permissions = [PermissionKeys.ADMIN];
@@ -117,6 +149,7 @@ export class UserController {
         return Promise.resolve({
           success: true,
           accessToken: token,
+          isVerified: true,
           userData: userData,
           message: `User registered successfully`,
         });

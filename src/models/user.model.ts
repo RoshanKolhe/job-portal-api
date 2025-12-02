@@ -1,7 +1,7 @@
-import { Entity, hasMany, model, property, belongsTo } from '@loopback/repository';
-import { Resume } from './resume.model';
-import { Subscription } from './subscription.model';
-import { Plan } from './plan.model';
+import {Entity, hasMany, model, property, belongsTo} from '@loopback/repository';
+import {Resume} from './resume.model';
+import {Subscription} from './subscription.model';
+import {Plan} from './plan.model';
 import {Jobs} from './jobs.model';
 import {SavedJobsUsersLink} from './saved-jobs-users-link.model';
 
@@ -82,6 +82,11 @@ export class User extends Entity {
     name: 'permissions',
   })
   permissions: String[];
+
+  @property({
+    type: 'boolean',
+  })
+  isVerified: boolean;
 
   @property({
     type: 'boolean',
