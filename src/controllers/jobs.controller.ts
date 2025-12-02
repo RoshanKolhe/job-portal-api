@@ -29,6 +29,7 @@ import { UserProfile } from '@loopback/security';
 import { JWTService } from '../services/jwt-service';
 import { authenticate, AuthenticationBindings } from '@loopback/authentication';
 import { PermissionKeys } from '../authorization/permission-keys';
+import apiClient from '../interceptors/axios-client.interceptor';
 
 export class JobsController {
   jobsData = [{
@@ -4470,7 +4471,7 @@ export class JobsController {
       };
 
       console.log(`${process.env.SERVER_URL}/api/job_boost/job_match_insights`);
-      const apiResponse = await axios.post(`${process.env.SERVER_URL}/api/job_boost/job_match_insights`,
+      const apiResponse: any = await apiClient.post(`${process.env.SERVER_URL}/api/job_boost/job_match_insights`,
         apiData,
         {
           headers: {
@@ -4478,6 +4479,8 @@ export class JobsController {
           }
         }
       );
+      const {duration} = apiResponse;
+      console.log('Response time for => /api/job_boost/job_match_insights :', duration)
 
       const savedJob = await this.savedJobsUsersLinkRepository.findOne({
         where: { and: [{ jobsId: job.id }, { userId: user.id }] },
@@ -4579,7 +4582,7 @@ export class JobsController {
         limit: data.limit ? data.limit : 10
       };
 
-      const apiResponse = await axios.post(`${process.env.SERVER_URL}/api/jd/similar_jobs`,
+      const apiResponse: any = await apiClient.post(`${process.env.SERVER_URL}/api/jd/similar_jobs`,
         apiData,
         {
           headers: {
@@ -4587,6 +4590,9 @@ export class JobsController {
           }
         }
       );
+
+      const {duration} = apiResponse;
+      console.log('Response time for => /api/jd/similar_jobs :', duration)
 
       if (apiResponse && apiResponse.data) {
         const similarJobsIds = apiResponse.data.similar_job_ids ? apiResponse.data.similar_job_ids : [];
@@ -4662,7 +4668,7 @@ export class JobsController {
           job_boost: true
         }
 
-        const apiResponse = await axios.post(`${process.env.SERVER_URL}/api/job_boost/job_match_insights`,
+        const apiResponse: any = await apiClient.post(`${process.env.SERVER_URL}/api/job_boost/job_match_insights`,
           apiData,
           {
             headers: {
@@ -4670,6 +4676,8 @@ export class JobsController {
             }
           }
         );
+        const {duration} = apiResponse;
+        console.log('Response time for => /api/job_boost/job_match_insights :', duration)
 
         if (apiResponse.data) {
           return {
@@ -4717,7 +4725,7 @@ export class JobsController {
         company_name: job.company
       }
       console.log('apiData', apiData);
-      const apiResponse = await axios.post(`${process.env.SERVER_URL}/api/job_boost/company_benchmark`,
+      const apiResponse: any = await apiClient.post(`${process.env.SERVER_URL}/api/job_boost/company_benchmark`,
         apiData,
         {
           headers: {
@@ -4725,6 +4733,8 @@ export class JobsController {
           }
         }
       );
+       const {duration} = apiResponse;
+        console.log('Response time for => /api/job_boost/company_benchmark :', duration)
 
       console.log('apiResponse', apiResponse);
 

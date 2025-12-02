@@ -1,6 +1,7 @@
-import { get, HttpErrors, post, requestBody } from "@loopback/rest";
+import {get, HttpErrors, post, requestBody} from "@loopback/rest";
 import axios from "axios";
 import FormData from "form-data";
+import apiClient from '../interceptors/axios-client.interceptor';
 
 export class CareerCompassController {
   constructor() { }
@@ -33,9 +34,9 @@ export class CareerCompassController {
       designation?: string;
       experience?: number
     }
-  ): Promise<{ success: boolean; message: string; data: object | null }> {
+  ): Promise<{success: boolean; message: string; data: object | null}> {
     try {
-      const { resumeId, designation, experience } = data;
+      const {resumeId, designation, experience} = data;
 
       if (!resumeId && !designation && !experience) {
         throw new HttpErrors.BadRequest('Invalid request body');
@@ -51,7 +52,7 @@ export class CareerCompassController {
         };
 
         console.log('api data', apiData);
-        const apiResponse = await axios.post(`${process.env.SERVER_URL}/api/career_path_match`,
+        const apiResponse: any = await apiClient.post(`${process.env.SERVER_URL}/api/career_path_match`,
           apiData,
           {
             headers: {
@@ -59,6 +60,9 @@ export class CareerCompassController {
             }
           }
         );
+
+        const {duration} = apiResponse;
+        console.log('Response time for => /api/career_path_match :', duration)
 
         console.log('api response', apiResponse);
         if (apiResponse?.data?.data) {
@@ -84,7 +88,7 @@ export class CareerCompassController {
         experience_in_years: experience
       };
 
-      const apiResponse = await axios.post(`${process.env.SERVER_URL}/api/career_path_match`,
+      const apiResponse: any = await apiClient.post(`${process.env.SERVER_URL}/api/career_path_match`,
         apiData,
         {
           headers: {
@@ -92,6 +96,8 @@ export class CareerCompassController {
           }
         }
       );
+      const {duration} = apiResponse;
+      console.log('Response time for => /api/career_path_match :', duration)
 
       console.log('apiresopnse', apiResponse);
 
@@ -108,7 +114,8 @@ export class CareerCompassController {
         return {
           success: false,
           message: "Career compass data not found",
-          data: null
+          data: null,
+
         }
       }
 
@@ -118,15 +125,19 @@ export class CareerCompassController {
   }
 
   @get('/carrer-compass/roles')
-  async getRoles(): Promise<{ success: boolean; message: string; roles: string[] }> {
+  async getRoles(): Promise<{success: boolean; message: string; roles: string[]}> {
     try {
-      const apiResponse = await axios.get(`${process.env.SERVER_URL}/api/knowledge-graph/roles`,
+      const apiResponse: any = await apiClient.get(`${process.env.SERVER_URL}/api/knowledge-graph/roles`,
         {
           headers: {
             "X-apiKey": "2472118222258182",
           }
         }
       );
+
+       const {duration} = apiResponse;
+        console.log('Response time for => /api/knowledge-graph/roles :', duration)
+
 
       if (apiResponse?.data.length > 0) {
         return {
@@ -159,9 +170,9 @@ export class CareerCompassController {
             type: 'object',
             required: ['company_name'],
             properties: {
-              companyName: { type: 'string' },
-              maxProfilesPerLevel: { type: 'number' },
-              skipMissing: { type: 'boolean' },
+              companyName: {type: 'string'},
+              maxProfilesPerLevel: {type: 'number'},
+              skipMissing: {type: 'boolean'},
             },
           },
         },

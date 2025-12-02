@@ -1,3 +1,5 @@
+import {authenticate, AuthenticationBindings} from '@loopback/authentication';
+import {inject} from '@loopback/core';
 import {
   Count,
   CountSchema,
@@ -7,31 +9,29 @@ import {
   Where,
 } from '@loopback/repository';
 import {
-  post,
-  param,
+  del,
   get,
   getModelSchemaRef,
+  HttpErrors,
+  param,
   patch,
+  post,
   put,
-  del,
   requestBody,
   response,
-  HttpErrors,
 } from '@loopback/rest';
-import { Resume, User } from '../models';
-import { ResumeRepository, UserRepository } from '../repositories';
-import { authenticate, AuthenticationBindings } from '@loopback/authentication';
-import { inject } from '@loopback/core';
-import { UserProfile } from '@loopback/security';
-import fs from 'fs';
+import {UserProfile} from '@loopback/security';
 import FormData from 'form-data';
-import path from 'path';
-import { STORAGE_DIRECTORY } from '../keys';
-import axios from 'axios';
+import fs from 'fs';
 import * as isEmail from 'isemail';
-import { BcryptHasher } from '../services/hash.password.bcrypt';
-import { EventHistoryService } from '../services/event-history.service';
-import { PermissionKeys } from '../authorization/permission-keys';
+import path from 'path';
+import {PermissionKeys} from '../authorization/permission-keys';
+import apiClient from '../interceptors/axios-client.interceptor';
+import {STORAGE_DIRECTORY} from '../keys';
+import {Resume} from '../models';
+import {ResumeRepository, UserRepository} from '../repositories';
+import {EventHistoryService} from '../services/event-history.service';
+import {BcryptHasher} from '../services/hash.password.bcrypt';
 
 export class ResumeController {
   constructor(
@@ -52,7 +52,7 @@ export class ResumeController {
   @post('/resumes')
   @response(200, {
     description: 'Resume model instance',
-    content: { 'application/json': { schema: getModelSchemaRef(Resume) } },
+    content: {'application/json': {schema: getModelSchemaRef(Resume)}},
   })
   async create(
     @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
@@ -101,7 +101,7 @@ export class ResumeController {
 
       // sending resume to yashwants api
       if (savedResume) {
-        const apiResponse = await axios.post(
+        const apiResponse: any = await apiClient.post(
           `${process.env.SERVER_URL}/api/resume/upload`,
           form,
           {
@@ -111,6 +111,9 @@ export class ResumeController {
             },
           }
         );
+
+        const {duration} = apiResponse;
+        console.log('Response time for => /api/resume/upload:', duration);
 
         console.log('Response from AI server', apiResponse.data);
       }
@@ -141,14 +144,19 @@ export class ResumeController {
       formData.append('user_id', `1`);
       formData.append('X-apiKey', '2472118222258182');
 
-      const response = await axios.post(process.env.SERVER_URL + '/fobo/user-details', formData, {
-        headers: formData.getHeaders(),
-      });
+      const response: any = await apiClient.post(
+        process.env.SERVER_URL + '/fobo/user-details',
+        formData,
+        {headers: formData.getHeaders()},
+      );
 
-      const { Name, Email, Phone } = response.data?.data || {};
+      const {duration} = response;
+      console.log('Response time for => /fobo/user-details:', duration);
+
+      const {Name, Email, Phone} = response.data?.data || {};
 
       if (Name && Email && Phone && isEmail.validate(Email)) {
-        const existing = await this.userRepository.findOne({ where: { email: Email } });
+        const existing = await this.userRepository.findOne({where: {email: Email}});
 
         if (!existing) {
           const password = await this.hasher.generateRandomPassword();
@@ -181,16 +189,41 @@ export class ResumeController {
           }
           return user;
         }
+
         return existing;
       }
 
       return null;
 
-    } catch (error) {
-      console.error('Error in getUserInfo:', error.message, error.stack);
-      throw new HttpErrors.InternalServerError('Failed to fetch user info');
+    } catch (error: any) {
+      console.error('❌ Error in getUserInfo:', error);
+
+      if (error.response) {
+        const status = error.response?.status || 500;
+        const apiMessage = error.response?.data?.message || 'Unknown error';
+        const apiErrorCode = error.response?.data?.error_code || null;
+        const duration = error.duration || null;
+
+        const ErrorMap: Record<number, any> = {
+          400: HttpErrors.BadRequest,
+          401: HttpErrors.Unauthorized,
+          403: HttpErrors.Forbidden,
+          404: HttpErrors.NotFound,
+          409: HttpErrors.Conflict,
+          422: HttpErrors.UnprocessableEntity,
+          500: HttpErrors.InternalServerError,
+        };
+
+        const ErrorClass = ErrorMap[status] || HttpErrors.InternalServerError;
+
+        throw new ErrorClass(apiMessage);
+      }
+
+      throw new HttpErrors.InternalServerError('Unexpected server error');
     }
   }
+
+
 
   // post resume for guest users...
   @post('/resumes/guest-upload')
@@ -208,11 +241,11 @@ export class ResumeController {
     resume: Omit<Resume, 'id'>,
   ): Promise<Resume> {
     try {
-      const { fileDetails } = resume;
+      const {fileDetails} = resume;
       const data = await this.getUserInfo(fileDetails);
 
       if (data) {
-        const newResume: any = await this.resumeRepository.create({ ...resume, userId: data?.id });
+        const newResume: any = await this.resumeRepository.create({...resume, userId: data?.id});
         const filePath = this.validateFileName(newResume?.fileDetails?.newFileName);
         const resumeFile = fs.createReadStream(filePath);
         const form = new FormData();
@@ -222,7 +255,7 @@ export class ResumeController {
 
         // sending resume to yashwants api
         if (newResume) {
-          const apiResponse = await axios.post(
+          const apiResponse: any = await apiClient.post(
             `${process.env.SERVER_URL}/api/resume/upload`,
             form,
             {
@@ -232,6 +265,8 @@ export class ResumeController {
               },
             }
           );
+          const {duration} = apiResponse;
+          console.log('Response time for => /api/resume/upload:', duration);
 
           console.log('Response from AI server', apiResponse.data);
         }
@@ -249,7 +284,7 @@ export class ResumeController {
   @get('/resumes/count')
   @response(200, {
     description: 'Resume model count',
-    content: { 'application/json': { schema: CountSchema } },
+    content: {'application/json': {schema: CountSchema}},
   })
   async count(
     @param.where(Resume) where?: Where<Resume>,
@@ -264,7 +299,7 @@ export class ResumeController {
       'application/json': {
         schema: {
           type: 'array',
-          items: getModelSchemaRef(Resume, { includeRelations: true }),
+          items: getModelSchemaRef(Resume, {includeRelations: true}),
         },
       },
     },
@@ -278,13 +313,13 @@ export class ResumeController {
   @patch('/resumes')
   @response(200, {
     description: 'Resume PATCH success count',
-    content: { 'application/json': { schema: CountSchema } },
+    content: {'application/json': {schema: CountSchema}},
   })
   async updateAll(
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Resume, { partial: true }),
+          schema: getModelSchemaRef(Resume, {partial: true}),
         },
       },
     })
@@ -299,13 +334,13 @@ export class ResumeController {
     description: 'Resume model instance',
     content: {
       'application/json': {
-        schema: getModelSchemaRef(Resume, { includeRelations: true }),
+        schema: getModelSchemaRef(Resume, {includeRelations: true}),
       },
     },
   })
   async findById(
     @param.path.number('id') id: number,
-    @param.filter(Resume, { exclude: 'where' }) filter?: FilterExcludingWhere<Resume>
+    @param.filter(Resume, {exclude: 'where'}) filter?: FilterExcludingWhere<Resume>
   ): Promise<Resume> {
     return this.resumeRepository.findById(id, filter);
   }
@@ -319,7 +354,7 @@ export class ResumeController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Resume, { partial: true }),
+          schema: getModelSchemaRef(Resume, {partial: true}),
         },
       },
     })
@@ -350,14 +385,14 @@ export class ResumeController {
   // resumes by userId
   @authenticate({
     strategy: 'jwt',
-    options: { required: [PermissionKeys.ADMIN] }
+    options: {required: [PermissionKeys.ADMIN]}
   })
   @get('/resumes/resume-by-id/{userId}')
   async fetchResumesByUserId(
     @param.path.number('userId') userId: number,
   ): Promise<Resume[]> {
     try {
-      const resumes = await this.resumeRepository.find({ where: { userId: userId } });
+      const resumes = await this.resumeRepository.find({where: {userId: userId}});
 
       return resumes;
     } catch (error) {
