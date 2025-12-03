@@ -443,6 +443,13 @@ export class UserController {
         to: userData.email,
         subject: template.subject,
         html: template.html,
+        attachments: [
+          {
+            filename: 'logo.png',
+            path: 'src/logo/altiv_logo.png',
+            cid: 'logo@altiv'
+          },
+        ],
       };
 
       try {
@@ -525,6 +532,7 @@ export class UserController {
   @authenticate('jwt')
   @post('/setNewPassword')
   async setNewPassword(
+    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
     @requestBody({
       description: 'Input for resetting user password without the old password',
       required: true,
@@ -533,17 +541,12 @@ export class UserController {
           schema: {
             type: 'object',
             properties: {
-              email: {
-                type: 'string',
-                format: 'email',
-                description: 'The email address of the user',
-              },
               newPassword: {
                 type: 'string',
                 description: 'The new password to be set',
               },
             },
-            required: ['email', 'newPassword'], // Only email and newPassword are required
+            required: [ 'newPassword'],
           },
         },
       },
@@ -551,11 +554,7 @@ export class UserController {
     passwordOptions: any,
   ): Promise<object> {
     console.log(passwordOptions);
-    const user = await this.userRepository.findOne({
-      where: {
-        email: passwordOptions.email,
-      },
-    });
+    const user = await this.userRepository.findById(currentUser.id);
 
     if (user) {
       const encryptedPassword = await this.hasher.hashPassword(

@@ -1,6 +1,6 @@
 export default function generateResetPasswordTemplate(mailOptions: any) {
-  console.log(mailOptions);
-  const template = `<!DOCTYPE html>
+    console.log(mailOptions);
+    const template = `<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -60,9 +60,12 @@ export default function generateResetPasswordTemplate(mailOptions: any) {
 </head>
 <body>
     <div class="email-container">
-        <div class="header">
-            <h1>Password Reset Request</h1>
-        </div>
+     <img src="cid:logo@altiv" width="80" alt="Altiv Logo" style="margin-bottom: 10px;" />
+      <div class="header">
+
+           <h1>Password Reset Request</h1>
+          </div>
+
         <div class="content">
             <p>Hi ${mailOptions.userData.name},</p>
             <p>We received a request to reset your password. If you did not request this, please ignore this email. Otherwise, click the button below to reset your password:</p>
@@ -72,17 +75,22 @@ export default function generateResetPasswordTemplate(mailOptions: any) {
             <p>If the button doesn't work, you can also reset your password by copying and pasting the link below into your browser:</p>
             <p><a href="${mailOptions.resetLink}">[RESET_LINK]</a></p>
         </div>
-        <div class="footer">
-            <p>If you have any questions, feel free to contact us.</p>
-            <p>&copy; 2025 Your Company Name. All rights reserved.</p>
-        </div>
+            <div class="footer">
+              <p>If you have any questions, feel free to contact us at
+               <a href="mailto:hello@altiv.ai" style="color:#007bff; text-decoration:none;">
+                hello@altiv.ai
+                 </a>
+                 </p>
+           <p>&copy; 2025 Altiv. All rights reserved.</p>
+</div>
+
     </div>
 </body>
 </html>
 `;
-  const EmailAndPasswordTemplate = {
-    subject: 'Password Reset',
-    html: template,
-  };
-  return EmailAndPasswordTemplate;
+    const EmailAndPasswordTemplate = {
+        subject: 'Password Reset',
+        html: template,
+    };
+    return EmailAndPasswordTemplate;
 }
