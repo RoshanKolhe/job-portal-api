@@ -1,19 +1,19 @@
-import {authenticate} from '@loopback/authentication';
-import {inject} from '@loopback/core';
-import {repository} from '@loopback/repository';
-import {HttpErrors, post, requestBody} from '@loopback/rest';
+import { authenticate } from '@loopback/authentication';
+import { inject } from '@loopback/core';
+import { repository } from '@loopback/repository';
+import { HttpErrors, post, requestBody } from '@loopback/rest';
 import FormData from 'form-data';
 import fs from 'fs';
 import path from 'path';
-import {JobPortalDataSource} from '../datasources';
+import { JobPortalDataSource } from '../datasources';
 import apiClient from '../interceptors/axios-client.interceptor';
-import {STORAGE_DIRECTORY} from '../keys';
+import { STORAGE_DIRECTORY } from '../keys';
 import {
   ProfileAnalyticsRepository,
   ResumeRepository,
   UserRepository,
 } from '../repositories';
-import {EventHistoryService} from '../services/event-history.service';
+import { EventHistoryService } from '../services/event-history.service';
 
 export class ProfileAnalyticsController {
   constructor(
@@ -38,13 +38,13 @@ export class ProfileAnalyticsController {
         'application/json': {
           schema: {
             properties: {
-              resumeId: {type: 'number'},
-              linkedInUrl: {type: 'string'},
-              viewDetails: {type: 'boolean'},
-              smartInsights: {type: 'boolean'},
-              isFoboPro: {type: 'boolean'},
-              isComprehensiveMode: {type: 'boolean'},
-              isSubscribed: {type: 'boolean'},
+              resumeId: { type: 'number' },
+              linkedInUrl: { type: 'string' },
+              viewDetails: { type: 'boolean' },
+              smartInsights: { type: 'boolean' },
+              isFoboPro: { type: 'boolean' },
+              isComprehensiveMode: { type: 'boolean' },
+              isSubscribed: { type: 'boolean' },
             },
             required: [],
           },
@@ -68,7 +68,7 @@ export class ProfileAnalyticsController {
         resume = await this.resumeRepository.findById(requestBody.resumeId);
       }
 
-      let fields: {[key: string]: boolean} = {
+      let fields: { [key: string]: boolean } = {
         analysis: false,
         skill_erosion_analysis: false,
         json_schema_date: false,
@@ -108,11 +108,11 @@ export class ProfileAnalyticsController {
           and: [
             {
               or: [
-                {...(requestBody.resumeId ? {resumeId: requestBody.resumeId} : {})},
-                {...(requestBody.linkedInUrl ? {linkedInUrl: requestBody.linkedInUrl} : {})},
+                { ...(requestBody.resumeId ? { resumeId: requestBody.resumeId } : {}) },
+                { ...(requestBody.linkedInUrl ? { linkedInUrl: requestBody.linkedInUrl } : {}) },
               ]
             },
-            {isFoboPro: isFoboPro}
+            { isFoboPro: isFoboPro }
           ]
         }
       });
@@ -129,7 +129,7 @@ export class ProfileAnalyticsController {
 
         const profileAnalyticsData = await this.profileAnalyticsRepository.findById(
           analytics.id,
-          {include: [{relation: 'user'}], fields: fields},
+          { include: [{ relation: 'user' }], fields: fields },
         );
 
         return {
@@ -169,7 +169,7 @@ export class ProfileAnalyticsController {
         headers: formData.getHeaders(),
       });
 
-      const {duration} = response;
+      const { duration } = response;
       console.log('Response timr for => /fobo :', duration)
 
       console.log('response', response);
@@ -177,8 +177,8 @@ export class ProfileAnalyticsController {
       if (response?.data?.status === 'success' && response?.data?.data) {
         console.log('data', response?.data?.data);
         const analyticsData = await this.profileAnalyticsRepository.create({
-          ...(resume?.id && {resumeId: resume.id}),
-          ...(requestBody.linkedInUrl && {linkedInUrl: requestBody.linkedInUrl}),
+          ...(resume?.id && { resumeId: resume.id }),
+          ...(requestBody.linkedInUrl && { linkedInUrl: requestBody.linkedInUrl }),
           relevant_job_class: response.data.data?.relevant_job_class,
           FOBO_Score: response.data.data?.FOBO_Score,
           Augmented_Score: response.data.data?.Augmented_Score,
@@ -221,7 +221,7 @@ export class ProfileAnalyticsController {
         const finalAnalyticsData = await this.profileAnalyticsRepository.findById(
           analyticsData.id,
           {
-            include: [{relation: 'user'}],
+            include: [{ relation: 'user' }],
             fields
           }
         );
@@ -230,6 +230,10 @@ export class ProfileAnalyticsController {
           success: true,
           message: 'New Profile Analytics data',
           data: finalAnalyticsData,
+          apiDurations: {
+            endpoint: '/fobo',
+            duration
+          }
         };
       }
 
@@ -242,10 +246,10 @@ export class ProfileAnalyticsController {
 
       const analyticsFallback: any = await this.profileAnalyticsRepository.findOne({
         where: {
-          ...(requestBody.resumeId ? {resumeId: requestBody.resumeId} : {}),
-          ...(requestBody.linkedInUrl ? {linkedInUrl: requestBody.linkedInUrl} : {}),
+          ...(requestBody.resumeId ? { resumeId: requestBody.resumeId } : {}),
+          ...(requestBody.linkedInUrl ? { linkedInUrl: requestBody.linkedInUrl } : {}),
         },
-        include: [{relation: 'user'}, {relation: 'resume'}],
+        include: [{ relation: 'user' }, { relation: 'resume' }],
       });
 
       if (analyticsFallback) {
@@ -262,6 +266,7 @@ export class ProfileAnalyticsController {
           success: true,
           message: 'Old analytics data',
           data: analyticsFallback,
+          apiDurations: null
         };
       } else {
         throw new HttpErrors.BadGateway('Something went wrong');
@@ -277,7 +282,7 @@ export class ProfileAnalyticsController {
   }
 
   // API for last FOBO analytics
-  @authenticate({strategy: 'jwt'})
+  @authenticate({ strategy: 'jwt' })
   @post('/last-fobo-score/')
   async fetchLastFoboScore(
     @requestBody({
@@ -288,7 +293,7 @@ export class ProfileAnalyticsController {
             properties: {
               resumeIds: {
                 type: 'array',
-                items: {type: 'number'},
+                items: { type: 'number' },
               },
               linkedInUrl: {
                 type: 'string'
@@ -303,9 +308,9 @@ export class ProfileAnalyticsController {
       resumeIds?: number[];
       linkedInUrl?: string;
     }
-  ): Promise<{success: boolean; message: string; analytics: object | null}> {
+  ): Promise<{ success: boolean; message: string; analytics: object | null }> {
     try {
-      const {resumeIds, linkedInUrl} = requestBody;
+      const { resumeIds, linkedInUrl } = requestBody;
 
       if ((!resumeIds || resumeIds?.length === 0) && !linkedInUrl) {
         return {
@@ -318,11 +323,11 @@ export class ProfileAnalyticsController {
       const orConditions = [];
 
       if (resumeIds && resumeIds.length > 0) {
-        orConditions.push({resumeId: {inq: resumeIds}});
+        orConditions.push({ resumeId: { inq: resumeIds } });
       }
 
       if (linkedInUrl) {
-        orConditions.push({linkedInUrl: linkedInUrl});
+        orConditions.push({ linkedInUrl: linkedInUrl });
       }
 
       const analytics = await this.profileAnalyticsRepository.find({
