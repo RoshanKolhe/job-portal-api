@@ -18,14 +18,13 @@ export class RazorPayService {
   async createOrder(subscriptionDetails: any) {
     try {
       console.log('subscriptionDetails', subscriptionDetails);
-      const amountInPaise = subscriptionDetails.planData?.price * 100; // Razorpay accepts amount in paise
+      const amountInPaise = Math.round(subscriptionDetails.planData?.price * 100); // Razorpay accepts amount in paise
       console.log('amountInPaise', amountInPaise);
-
       const options = {
-        amount: amountInPaise, 
+        amount: amountInPaise,
         currency: subscriptionDetails.currencyType === 1 ? 'USD' : 'INR',
         receipt: `receipt_${subscriptionDetails.id}`,
-        payment_capture: 1, 
+        payment_capture: 1,
       };
 
       const order = await this.razorpay.orders.create(options);
