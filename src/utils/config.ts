@@ -2,17 +2,17 @@ const SITE_SETTINGS = {
   email: {
     type: 'smtp',
     host: 'smtp.gmail.com',
-    secure: true,
-    port: 465,
+    secure: false,
+    port: 587,
     tls: {
       rejectUnauthorized: false,
     },
     auth: {
-      user: 'testing.combatsolution@gmail.com',
-      pass: 'jpvmspsshgexuewy',
+      user: 'hello@altiv.ai',
+      pass: 'bhhc gqin sevz codl',
     },
   },
-  fromMail: 'testing.combatsolution@gmail.com',
+  fromMail: 'hello@altiv.ai',
 };
 export default SITE_SETTINGS;
 
