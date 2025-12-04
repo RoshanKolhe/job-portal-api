@@ -82,6 +82,7 @@ export class SubscriptionController {
     })
     subscription: Omit<Subscription, 'id'>,
   ): Promise<{ success: boolean; paymentMethod: number; paymentObject: object }> {
+    console.log('subscription', subscription);
     try {
       const user = await this.userRepository.findById(currentUser.id);
       if (!user) {
