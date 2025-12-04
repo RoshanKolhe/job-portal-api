@@ -9,7 +9,7 @@ const SITE_SETTINGS = {
     },
     auth: {
       user: 'hello@altiv.ai',
-      pass: 'bhhc gqin sevz codl',
+      pass: 'bhhcgqinsevzcodl',
     },
   },
   fromMail: 'hello@altiv.ai',

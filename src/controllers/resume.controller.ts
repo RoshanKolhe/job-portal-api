@@ -433,4 +433,39 @@ export class ResumeController {
       throw error;
     }
   }
+
+  // change guest users resume to userId
+  @authenticate('jwt')
+  @patch('/resumes/convert-guest-to-user')
+  async updateBulkResumeForGuest(
+    @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            required: ['resumeIds'],
+            properties: {
+              resumeIds: {
+                type: 'array',
+                items: {
+                  type: 'number'
+                }
+              }
+            }
+          }
+        }
+      }
+    })
+    resumes: {
+      resumeIds: number[];
+    }
+  ) {
+    await this.resumeRepository.updateAll({ userId: currentUser.id }, { id: { inq: resumes.resumeIds } });
+
+    return {
+      success: true,
+      message: 'Resume Update success',
+    }
+  }
 }
