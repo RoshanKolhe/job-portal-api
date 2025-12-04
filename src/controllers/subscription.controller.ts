@@ -109,7 +109,7 @@ export class SubscriptionController {
         paymentMethod: subscription.paymentMethod,
         planData: {
           ...plan,
-          price: calculatedPrice
+          price: Number(calculatedPrice)
         },
         currencyType: subscription.currencyType
       };

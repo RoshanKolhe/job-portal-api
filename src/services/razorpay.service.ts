@@ -17,7 +17,9 @@ export class RazorPayService {
 
   async createOrder(subscriptionDetails: any) {
     try {
+      console.log('subscriptionDetails', subscriptionDetails);
       const amountInPaise = subscriptionDetails.planData?.price * 100; // Razorpay accepts amount in paise
+      console.log('amountInPaise', amountInPaise);
 
       const options = {
         amount: amountInPaise, 
