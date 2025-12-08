@@ -424,7 +424,7 @@ export class PlanController {
   async findByPlanType(
     @param.path.number('type') type: number,
     @param.filter(Plan, { exclude: 'where' }) filter?: FilterExcludingWhere<Plan>
-  ): Promise<Plan[]> {
+  ): Promise<any[]> {
     const plans = await this.planRepository.find({
       where: { planType: type }, include: [{
         relation: 'courses', scope: {
@@ -443,14 +443,14 @@ export class PlanController {
       const activeBatch = await this.batchesRepository.findOne({
         where: {
           and: [
-            { startDate: { lte: date } },
+            // { startDate: { lte: date } },
             { endDate: { gte: date } },
             { planId: plan.id }
           ]
         }
       });
       if (activeBatch) {
-        activePlans.push(plan);
+        activePlans.push({...plan, batch: activeBatch});
       }
     };
 
