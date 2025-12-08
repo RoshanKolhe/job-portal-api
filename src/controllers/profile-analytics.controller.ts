@@ -271,6 +271,34 @@ export class ProfileAnalyticsController {
     }
   }
 
+  async returnPartialFoboProData(resumeId: number) {
+    const fields = {
+      FOBO_Score: true,
+      AI_Readiness_Score: true,
+      automation_potential: true,
+      strategic_objective_count: true,
+      transformation_timeline: true,
+      relevant_job_class: true,
+      json_schema_data: true
+    };
+
+    const analytics = await this.profileAnalyticsRepository.findOne({
+      where: {
+        and: [
+          { resumeId: resumeId },
+          { isFoboPro: true }
+        ]
+      },
+      fields
+    });
+
+    return{
+      success: true,
+      message: "fobo pro data",
+      analytics
+    }
+  }
+
   @authenticate({ strategy: 'jwt' })
   @get('/last-fobo-pro-score/{resumeId}')
   async getProcessesFoboScore(
@@ -302,11 +330,21 @@ export class ProfileAnalyticsController {
       case 0:
         return {
           success: false,
-          message: 'Generating... Please wait for 2-5 mins',
+          message: 'Generating... Please check in some time',
+          analytics: null,
+        };
+
+      case 1:
+        return {
+          success: false,
+          message: 'Generating... Please check in some time',
           analytics: null,
         };
 
       case 2:
+        return this.returnPartialFoboProData(resumeId);
+
+      case 3:
         return {
           success: false,
           message:
