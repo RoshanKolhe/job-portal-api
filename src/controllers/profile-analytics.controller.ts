@@ -117,6 +117,8 @@ export class ProfileAnalyticsController {
         }
       });
 
+      console.log('analytics', analytics);
+
       if (analytics) {
         if (resume?.userId) {
           await this.eventHistoryService.addNewEvent(
