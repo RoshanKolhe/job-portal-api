@@ -306,8 +306,6 @@ export class ProfileAnalyticsController {
   ) {
     const runningAnalytics = await this.foboService.getRunningAnalytics(resumeId, true);
 
-    console.log('running analytics', runningAnalytics);
-
     if (!runningAnalytics) {
       return {
         success: false,
@@ -317,18 +315,6 @@ export class ProfileAnalyticsController {
     }
 
     switch (runningAnalytics.status) {
-      case 1:
-        const analytics = await this.profileAnalyticsRepository.findOne({
-          where: { resumeId },
-          order: ['createdAt DESC'],
-        });
-
-        return {
-          success: true,
-          message: 'Fobo Pro score fetched successfully',
-          analytics,
-        };
-
       case 0:
         return {
           success: false,
