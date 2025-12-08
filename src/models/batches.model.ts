@@ -26,6 +26,11 @@ export class Batches extends Entity {
   isActive?: boolean;
 
   @property({
+    type: 'boolean',
+  })
+  isRegistrationStarted?: boolean;
+
+  @property({
     type: 'date',
   })
   createdAt?: Date;
