@@ -102,7 +102,21 @@ export class ProfileAnalyticsController {
         };
       }
 
+      console.log('requestbody', requestBody);
       const isFoboPro = requestBody.isFoboPro ?? false;
+      console.log('where condition object', JSON.stringify({
+        where: {
+          and: [
+            {
+              or: [
+                { ...(requestBody.resumeId ? { resumeId: requestBody.resumeId } : {}) },
+                { ...(requestBody.linkedInUrl ? { linkedInUrl: requestBody.linkedInUrl } : {}) },
+              ]
+            },
+            { isFoboPro: isFoboPro }
+          ]
+        }
+      }))
       const analytics = await this.profileAnalyticsRepository.findOne({
         where: {
           and: [
