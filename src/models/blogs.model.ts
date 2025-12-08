@@ -52,7 +52,7 @@ export class Blogs extends Entity {
   @property({
     type: 'string',
     required: true,
-    limit: 5000,
+    mysql: {datatype: 'longtext'},
   })
   content: string;
 
