@@ -152,7 +152,8 @@ export class FOBOService {
                 if (analyticsData) {
                     return {
                         success: true,
-                        message: 'New Profile Analytics data'
+                        message: 'New Profile Analytics data',
+                        return: analyticsData
                     };
                 }
             }
@@ -176,7 +177,9 @@ export class FOBOService {
 
         const runningAnalytics = await this.getRunningAnalytics(resumeId);
 
-        // If already processing -> return quickly
+        const isPro = requestBody.isFoboPro === true;
+
+        // 🔹 Case: Processing already going on
         if (runningAnalytics.status === 1) {
             return {
                 success: true,
@@ -185,55 +188,80 @@ export class FOBOService {
             };
         }
 
-        // If never processed or ready to retry
+        // 🔹 Retry + process only if not errored completely
         if (runningAnalytics.status === 0 && runningAnalytics.id) {
             await this.updateRunningAnalytics(runningAnalytics.id, { status: 1 });
 
-            // 🔥 Run background process (no await)
-            setImmediate(async () => {
-                try {
-                    let count = runningAnalytics.trialCount || 0;
+            if (isPro) {
+                // 🔥 FOBO PRO — Background processing only, no waiting 🚀
+                setImmediate(async () => {
+                    await this.runFoboProcessing(resume, requestBody, runningAnalytics);
+                });
 
-                    for (; count < 3; count++) {
-                        const foboData = await this.getFoboAnalytics(requestBody, resume);
+                return {
+                    success: true,
+                    message: "FOBO Pro started... You can check later",
+                    status: 1,
+                };
+            } else {
+                // 🟡 Normal — WAIT FOR RESULT (synchronous style)
+                const foboResponse = await this.runFoboProcessing(resume, requestBody, runningAnalytics);
 
-                        if (foboData?.success && runningAnalytics.id) {
-                            await this.updateRunningAnalytics(runningAnalytics.id, {
-                                trialCount: count,
-                                status: 2,
-                                isDeleted: true,
-                            });
-                            return;
-                        }
-
-                        await this.updateRunningAnalytics(runningAnalytics.id!, {
-                            trialCount: count,
-                            status: 0,
-                            error: foboData?.errorMessage || "FOBO service failed",
-                        });
-                    }
-
-                    // If 3 attempts failed → mark error
-                    await this.updateRunningAnalytics(runningAnalytics.id!, {
-                        status: 2, // completed but errored
-                        error: "Retry limit reached",
+                if (foboResponse.success) {
+                    const profileData = await this.profileAnalyticsRepository.findOne({
+                        where: { resumeId },
+                        order: ['createdAt DESC'],
                     });
 
-                } catch (error) {
-                    await this.updateRunningAnalytics(runningAnalytics.id!, {
-                        status: 2,
-                        error: "Unexpected error while processing FOBO data",
-                    });
+                    return {
+                        success: true,
+                        message: "FOBO Score Generated",
+                        analytics: profileData,
+                    };
                 }
-            });
+
+                return {
+                    success: false,
+                    message: "FOBO Processing failed",
+                    status: 3,
+                };
+            }
         }
 
-        // Immediate response to client
         return {
-            success: true,
-            message: "FOBO processing started...",
-            status: 1, // 1 -> processing
+            success: false,
+            message: "No analytics found or invalid processing state.",
         };
     }
 
+    // 🔁 Extracted background retry logic into a reusable function
+    private async runFoboProcessing(resume: any, requestBody: any, runningAnalytics: any) {
+        let count = runningAnalytics.trialCount || 0;
+
+        for (; count < 3; count++) {
+            const foboData = await this.getFoboAnalytics(requestBody, resume);
+
+            if (foboData?.success) {
+                await this.updateRunningAnalytics(runningAnalytics.id, {
+                    trialCount: count,
+                    status: 2,
+                    isDeleted: true,
+                });
+                return { success: true };
+            }
+
+            await this.updateRunningAnalytics(runningAnalytics.id!, {
+                trialCount: count,
+                status: 3,
+                error: foboData?.errorMessage || "FOBO service failed",
+            });
+        }
+
+        await this.updateRunningAnalytics(runningAnalytics.id!, {
+            status: 3,
+            error: "Retry limit reached",
+        });
+
+        return { success: false };
+    }
 }
