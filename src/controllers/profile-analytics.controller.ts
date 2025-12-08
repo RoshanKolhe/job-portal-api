@@ -102,21 +102,7 @@ export class ProfileAnalyticsController {
         };
       }
 
-      console.log('requestbody', requestBody);
       const isFoboPro = requestBody.isFoboPro ?? false;
-      console.log('where condition object', JSON.stringify({
-        where: {
-          and: [
-            {
-              or: [
-                { ...(requestBody.resumeId ? { resumeId: requestBody.resumeId } : {}) },
-                { ...(requestBody.linkedInUrl ? { linkedInUrl: requestBody.linkedInUrl } : {}) },
-              ]
-            },
-            { isFoboPro: isFoboPro }
-          ]
-        }
-      }))
       const analytics = await this.profileAnalyticsRepository.findOne({
         where: {
           and: [
@@ -130,8 +116,6 @@ export class ProfileAnalyticsController {
           ]
         }
       });
-
-      console.log('analytics', analytics);
 
       if (analytics) {
         if (resume?.userId) {
@@ -148,8 +132,6 @@ export class ProfileAnalyticsController {
           { include: [{ relation: 'user' }], fields: fields },
         );
 
-        console.log('analytics', profileAnalyticsData);
-
         return {
           success: true,
           message: 'Updated Profile Analytics data',
@@ -157,10 +139,17 @@ export class ProfileAnalyticsController {
         };
       }
 
-      console.log('no existing analytics');
-
       if (requestBody.resumeId) {
         const foboResponse = await this.foboService.getFoboData(requestBody.resumeId, requestBody);
+
+        if (foboResponse.success && foboResponse.analytics) {
+          return {
+            success: true,
+            message: 'Updated Profile Analytics data',
+            data: foboResponse.analytics,
+          };
+        }
+
         return {
           success: true,
           message: 'Updated Profile Analytics data',
