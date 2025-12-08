@@ -276,7 +276,7 @@ export class ProfileAnalyticsController {
   async getProcessesFoboScore(
     @param.path.number('resumeId') resumeId: number
   ) {
-    const runningAnalytics = await this.foboService.getRunningAnalytics(resumeId);
+    const runningAnalytics = await this.foboService.getRunningAnalytics(resumeId, true);
 
     if (!runningAnalytics) {
       return {

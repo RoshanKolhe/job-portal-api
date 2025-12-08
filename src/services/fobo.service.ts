@@ -21,11 +21,11 @@ export class FOBOService {
     ) { }
 
     // get existing running analytics...
-    async getRunningAnalytics(resumeId: number) {
+    async getRunningAnalytics(resumeId: number, isFoboPro: boolean) {
         const runningAnalytics = await this.runningAnalyticsRepository.findOne({
             where: {
                 resumeId: resumeId,
-                // isDeleted: false
+                isFoboPro
             },
             order: ['createdAt DESC']
         });
@@ -33,6 +33,7 @@ export class FOBOService {
         if (!runningAnalytics) {
             const newRunningAnalytics = await this.runningAnalyticsRepository.create({
                 resumeId,
+                isFoboPro,
                 status: 0,
                 trialCount: 0,
                 isDeleted: false
@@ -175,7 +176,7 @@ export class FOBOService {
         const resume = await this.resumeRepository.findById(resumeId);
         if (!resume) throw new HttpErrors.NotFound('Resume not found');
 
-        const runningAnalytics = await this.getRunningAnalytics(resumeId);
+        const runningAnalytics = await this.getRunningAnalytics(resumeId, requestBody.isFoboPro === true);
 
         const isPro = requestBody.isFoboPro === true;
 

@@ -14,6 +14,12 @@ export class RunningAnalytics extends Entity {
   resumeId: number;
 
   @property({
+    type: 'boolean',
+    default: false
+  })
+  isFoboPro: boolean;
+
+  @property({
     type: 'number',
     required: true,
     jsonSchema: {
