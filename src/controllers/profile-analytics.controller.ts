@@ -342,7 +342,8 @@ export class ProfileAnalyticsController {
         };
 
       case 2:
-        return this.returnPartialFoboProData(resumeId);
+        const response = await this.returnPartialFoboProData(resumeId);
+        return response;
 
       case 3:
         return {
