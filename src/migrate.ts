@@ -1,4 +1,4 @@
-import {JobPortalApiApplication} from './application';
+import { JobPortalApiApplication } from './application';
 
 export async function migrate(args: string[]) {
   const existingSchema = args.includes('--rebuild') ? 'drop' : 'alter';
@@ -33,7 +33,8 @@ export async function migrate(args: string[]) {
       'PlansFaq',
       'Services',
       'CurrencyExchangeRate',
-      'CourseRegistrationInterest'
+      'CourseRegistrationInterest',
+      'RunningAnalytics'
     ],
   });
 

@@ -27,3 +27,4 @@ export * from './plans-faq.repository';
 export * from './services.repository';
 export * from './currency-exchange-rate.repository';
 export * from './course-registration-interest.repository';
+export * from './running-analytics.repository';

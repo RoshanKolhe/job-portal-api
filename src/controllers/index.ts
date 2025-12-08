@@ -29,8 +29,6 @@ export * from './user-plan.controller';
 export * from './user-subscription.controller';
 export * from './user.controller';
 export * from './wait-list.controller';
-;
-
 export * from './courses-tools.controller';
 export * from './faq-category-faq.controller';
 export * from './faq-faq-category.controller';

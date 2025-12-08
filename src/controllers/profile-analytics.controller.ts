@@ -1,12 +1,9 @@
 import { authenticate } from '@loopback/authentication';
 import { inject } from '@loopback/core';
 import { repository } from '@loopback/repository';
-import { HttpErrors, post, requestBody } from '@loopback/rest';
-import FormData from 'form-data';
-import fs from 'fs';
+import { get, HttpErrors, param, post, requestBody } from '@loopback/rest';
 import path from 'path';
 import { JobPortalDataSource } from '../datasources';
-import apiClient from '../interceptors/axios-client.interceptor';
 import { STORAGE_DIRECTORY } from '../keys';
 import {
   ProfileAnalyticsRepository,
@@ -14,6 +11,7 @@ import {
   UserRepository,
 } from '../repositories';
 import { EventHistoryService } from '../services/event-history.service';
+import { FOBOService } from '../services/fobo.service';
 
 export class ProfileAnalyticsController {
   constructor(
@@ -25,6 +23,8 @@ export class ProfileAnalyticsController {
     public userRepository: UserRepository,
     @repository(ResumeRepository)
     public resumeRepository: ResumeRepository,
+    @inject('service.foboService.service')
+    private foboService: FOBOService,
     @inject('service.eventhistory.service')
     public eventHistoryService: EventHistoryService,
     @inject(STORAGE_DIRECTORY) private storageDirectory: string,
@@ -139,108 +139,14 @@ export class ProfileAnalyticsController {
         };
       }
 
-      const formData = new FormData();
-
-      // Attach resume file if available
-      if (resume?.fileDetails?.newFileName) {
-        const filePath = this.validateFileName(resume.fileDetails.newFileName);
-        formData.append('file', fs.createReadStream(filePath));
-      }
-
-      formData.append('user_id', resume?.userId ? String(resume.userId) : '1');
-
-      if (requestBody.linkedInUrl && requestBody.linkedInUrl !== '') {
-        formData.append('linkedin_url', requestBody.linkedInUrl);
-      }
-
-      formData.append('X-apiKey', 2472118222258182);
-      if (!requestBody.isComprehensiveMode) {
-        formData.append('short_task_description', String(requestBody.viewDetails));
-      } else {
-        formData.append('comprehensive_mode', String(requestBody.isComprehensiveMode));
-      }
-      formData.append('use_resume', String(requestBody.smartInsights));
-
-      if (requestBody.isFoboPro) {
-        formData.append('pro_mode', String(true))
-      }
-
-      const response: any = await apiClient.post(`${process.env.SERVER_URL}/fobo`, formData, {
-        headers: formData.getHeaders(),
-      });
-
-      const { duration } = response;
-      console.log('Response timr for => /fobo :', duration)
-
-      console.log('response', response);
-
-      if (response?.data?.status === 'success' && response?.data?.data) {
-        console.log('data', response?.data?.data);
-        const analyticsData = await this.profileAnalyticsRepository.create({
-          ...(resume?.id && { resumeId: resume.id }),
-          ...(requestBody.linkedInUrl && { linkedInUrl: requestBody.linkedInUrl }),
-          relevant_job_class: response.data.data?.relevant_job_class,
-          FOBO_Score: response.data.data?.FOBO_Score,
-          Augmented_Score: response.data.data?.Augmented_Score,
-          Augmentation_Comment: response.data.data?.Augmentation_Comment,
-          Automated_Score: response.data.data?.Automated_Score,
-          Automated_Comment: response.data.data?.Automated_Comment,
-          Human_Score: response.data.data?.Human_Score,
-          AI_Readiness_Score: response.data.data?.AI_Readiness_Score,
-          Human_Comment: response.data.data?.Human_Comment,
-          Comment: response.data.data?.Comment,
-          Strategy: response.data.data?.Strategy,
-          Task_Distribution_Automation: response.data.data?.Task_Distribution_Automation,
-          Task_Distribution_Human: response.data.data?.Task_Distribution_Human,
-          Task_Distribution_Augmentation: response.data.data?.Task_Distribution_Augmentation,
-          ...(requestBody.isFoboPro && {
-            analysis: response?.data?.data?.analysis,
-            skill_erosion_analysis: response?.data?.data?.skill_erosion_analysis,
-            automation_potential: response?.data?.data?.automation_potential,
-            strategic_objective_count: response?.data?.data?.strategic_objective_count,
-            transformation_timeline: response?.data?.data?.transformation_timeline
-          }),
-          ...(requestBody.isComprehensiveMode && {
-            json_schema_data: response?.data?.data?.json_schema_data,
-            json_file_url: response?.data?.data?.json_file_url,
-            markdown_file_url: response?.data?.data?.markdown_file_url,
-            comprehensive_analysis: response?.data?.data?.comprehensive_analysis
-          }),
-          isFoboPro: isFoboPro
-        });
-
-        if (resume?.userId) {
-          await this.eventHistoryService.addNewEvent(
-            'FOBO score analysis',
-            'FOBO score analysis done and created new in database',
-            'Fobo-analysis-page',
-            resume.userId
-          );
-        }
-
-        const finalAnalyticsData = await this.profileAnalyticsRepository.findById(
-          analyticsData.id,
-          {
-            include: [{ relation: 'user' }],
-            fields
-          }
-        );
-
+      if (requestBody.resumeId) {
+        const foboResponse = await this.foboService.getFoboData(requestBody.resumeId, requestBody);
         return {
           success: true,
-          message: 'New Profile Analytics data',
-          data: finalAnalyticsData,
-          apiDurations: {
-            endpoint: '/fobo',
-            duration
-          }
+          message: 'Updated Profile Analytics data',
+          data: foboResponse,
         };
       }
-
-      if (response?.data?.status === 'error' && response?.data?.data === null) {
-        throw new HttpErrors.InternalServerError('FOBO service failed');
-      }
-
     } catch (error) {
       console.log('error while getting analytics', error);
 
@@ -353,6 +259,58 @@ export class ProfileAnalyticsController {
       };
     } catch (error) {
       throw error;
+    }
+  }
+
+  @authenticate({ strategy: 'jwt' })
+  @get('/last-fobo-pro-score/{resumeId}')
+  async getProcessesFoboScore(
+    @param.path.number('resumeId') resumeId: number
+  ) {
+    const runningAnalytics = await this.foboService.getRunningAnalytics(resumeId);
+
+    if (!runningAnalytics) {
+      return {
+        success: false,
+        message: "No analytics found for provided resumeId.",
+        analytics: null,
+      };
+    }
+
+    switch (runningAnalytics.status) {
+      case 1:
+        const analytics = await this.profileAnalyticsRepository.findOne({
+          where: { resumeId },
+          order: ['createdAt DESC'],
+        });
+
+        return {
+          success: true,
+          message: 'Fobo Pro score fetched successfully',
+          analytics,
+        };
+
+      case 0:
+        return {
+          success: false,
+          message: 'Generating... Please wait for 2-5 mins',
+          analytics: null,
+        };
+
+      case 2:
+        return {
+          success: false,
+          message:
+            "Your score could not be calculated due to a processing issue. We will manually reprocess your resume and revert to you within 3–4 hours with a resolution.",
+          analytics: null,
+        };
+
+      default:
+        return {
+          success: false,
+          message: "Invalid analytics status.",
+          analytics: null,
+        };
     }
   }
 }
