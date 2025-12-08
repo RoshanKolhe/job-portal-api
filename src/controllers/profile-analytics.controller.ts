@@ -306,6 +306,8 @@ export class ProfileAnalyticsController {
   ) {
     const runningAnalytics = await this.foboService.getRunningAnalytics(resumeId, true);
 
+    console.log('running analytics', runningAnalytics);
+
     if (!runningAnalytics) {
       return {
         success: false,
