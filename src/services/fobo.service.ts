@@ -146,7 +146,7 @@ export class FOBOService {
                         markdown_file_url: response?.data?.data?.markdown_file_url,
                         comprehensive_analysis: response?.data?.data?.comprehensive_analysis
                     }),
-                    isFoboPro: requestBody.isFoboPro
+                    isFoboPro: requestBody.isFoboPro ?? false
                 });
 
                 if (analyticsData) {
