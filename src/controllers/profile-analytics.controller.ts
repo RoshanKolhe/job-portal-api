@@ -134,12 +134,16 @@ export class ProfileAnalyticsController {
           { include: [{ relation: 'user' }], fields: fields },
         );
 
+        console.log('analytics', profileAnalyticsData);
+
         return {
           success: true,
           message: 'Updated Profile Analytics data',
           data: profileAnalyticsData,
         };
       }
+
+      console.log('no existing analytics');
 
       if (requestBody.resumeId) {
         const foboResponse = await this.foboService.getFoboData(requestBody.resumeId, requestBody);
