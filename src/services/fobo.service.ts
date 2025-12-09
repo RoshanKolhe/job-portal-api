@@ -301,8 +301,6 @@ export class FOBOService {
 
         const runningAnalytics = await this.getRunningAnalytics(resumeId, requestBody.isFoboPro === true);
 
-        const isPro = requestBody.isFoboPro === true;
-
         // 🔹 Case: Processing already going on
         if (runningAnalytics.status === 1) {
             return {
@@ -312,12 +310,12 @@ export class FOBOService {
             };
         }
 
-        // 🔹 Retry + process only if not errored completely
+        // 🔹 Retry
         if (runningAnalytics.id) {
-            await this.updateRunningAnalytics(runningAnalytics.id, { status: 1 });
+            await this.updateRunningAnalytics(runningAnalytics.id, { status: 1, trialCount: runningAnalytics.trialCount + 1 });
 
             setImmediate(async () => {
-                await this.runFoboProcessing(resume, requestBody, runningAnalytics);
+                await this.getFoboAnalytics(requestBody, resume);
             });
 
             return {
