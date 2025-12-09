@@ -1,4 +1,4 @@
-import {Entity, model, property, } from '@loopback/repository';
+import {Entity, model, property, belongsTo} from '@loopback/repository';
 import {User} from './user.model';
 
 @model()
@@ -36,10 +36,8 @@ export class Resume extends Entity {
   })
   isDeleted: boolean;
 
-  @property({
-    type: 'number',
-  })
-  userId?: number;
+  @belongsTo(() => User)
+  userId: number;
 
   constructor(data?: Partial<Resume>) {
     super(data);

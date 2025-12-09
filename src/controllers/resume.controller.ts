@@ -71,7 +71,7 @@ export class ResumeController {
     try {
       const user = await this.userRepository.findById(currentUser.id);
 
-      if (!user) {
+      if (!user || !user.id) {
         throw new HttpErrors.BadRequest('User not found');
       }
 

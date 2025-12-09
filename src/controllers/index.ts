@@ -38,3 +38,4 @@ export * from './plan-services.controller';
 export * from './services.controller';
 export * from './currency-exchange-rate.controller';
 export * from './course-registration-interest.controller';
+export * from './resume-user.controller';

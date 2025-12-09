@@ -1,6 +1,6 @@
 import { authenticate } from '@loopback/authentication';
 import { inject } from '@loopback/core';
-import { repository } from '@loopback/repository';
+import { FilterExcludingWhere, repository } from '@loopback/repository';
 import { get, HttpErrors, param, post, requestBody } from '@loopback/rest';
 import path from 'path';
 import { JobPortalDataSource } from '../datasources';
@@ -12,6 +12,8 @@ import {
 } from '../repositories';
 import { EventHistoryService } from '../services/event-history.service';
 import { FOBOService } from '../services/fobo.service';
+import { PermissionKeys } from '../authorization/permission-keys';
+import { RunningAnalytics } from '../models';
 
 export class ProfileAnalyticsController {
   constructor(
@@ -292,7 +294,7 @@ export class ProfileAnalyticsController {
       fields
     });
 
-    return{
+    return {
       success: true,
       message: "fobo pro data",
       analytics
@@ -347,6 +349,55 @@ export class ProfileAnalyticsController {
           message: "Invalid analytics status.",
           analytics: null,
         };
+    }
+  }
+
+  // fetch running analytics list
+  @authenticate({
+    strategy: 'jwt',
+    options: { required: [PermissionKeys.ADMIN] }
+  })
+  @get('/running-analytics/list')
+  async fetchRunningAnalytics(
+    @param.filter(RunningAnalytics, { exclude: 'where' }) filter?: FilterExcludingWhere<RunningAnalytics>
+  ): Promise<{
+    success: boolean;
+    message: string;
+    analyticsList: RunningAnalytics[];
+  }> {
+    try {
+      const result = await this.foboService.fetchRunningAnalyticsList(filter);
+
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // retry analytics
+  @authenticate({
+    strategy: 'jwt',
+    options: { required: [PermissionKeys.ADMIN] }
+  })
+  @post('/running-analytics/retry/{analyticsId}')
+  async retryRunningAnalytics(
+    @param.path.number('analyticsId') analyticsId: number
+  ) {
+    try {
+      const runningAnalytics = await this.foboService.getRunningAnalyticsById(analyticsId);
+
+      const result = await this.foboService.getRetryFoboData(runningAnalytics.resumeId, {
+        resumeId: runningAnalytics.resumeId,
+        viewDetails: true,
+        smartInsights: true,
+        isFoboPro: true,
+        isComprehensiveMode: true,
+        isSubscribed: true
+      });
+
+      return result;
+    } catch (error) {
+      throw error;
     }
   }
 }

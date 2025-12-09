@@ -1,4 +1,4 @@
-import { repository } from "@loopback/repository";
+import { Filter, repository } from "@loopback/repository";
 import { ProfileAnalyticsRepository, ResumeRepository, RunningAnalyticsRepository } from "../repositories";
 import { HttpErrors } from "@loopback/rest";
 import FormData from "form-data";
@@ -7,6 +7,7 @@ import path from 'path';
 import { STORAGE_DIRECTORY } from "../keys";
 import { inject } from "@loopback/core";
 import apiClient from "../interceptors/axios-client.interceptor";
+import { RunningAnalytics } from "../models";
 
 export class FOBOService {
     constructor(
@@ -19,6 +20,22 @@ export class FOBOService {
         @inject(STORAGE_DIRECTORY)
         private storageDirectory: string,
     ) { }
+
+    // get all running analytics...
+    async fetchRunningAnalyticsList(filter?: Filter<RunningAnalytics>) {
+        const analyticsList = await this.runningAnalyticsRepository.find({
+            ...filter, 
+            include: [
+                {relation: 'resume', scope: {include: [{relation: 'user', scope: {fields: {email: true, fullName: true}}}]}}
+            ]
+        });
+
+        return {
+            success: true,
+            message: 'Running Analytics List',
+            analyticsList
+        }
+    }
 
     // get existing running analytics...
     async getRunningAnalytics(resumeId: number, isFoboPro: boolean) {
@@ -40,6 +57,17 @@ export class FOBOService {
             });
 
             return newRunningAnalytics;
+        }
+
+        return runningAnalytics;
+    }
+
+    // async get running analytics by id...
+    async getRunningAnalyticsById(analyticsId: number) {
+        const runningAnalytics = await this.runningAnalyticsRepository.findById(analyticsId);
+
+        if (!runningAnalytics) {
+            throw new HttpErrors.NotFound('No Analytics found');
         }
 
         return runningAnalytics;
@@ -264,5 +292,44 @@ export class FOBOService {
         });
 
         return { success: false };
+    }
+
+    // get retry fobo data..
+    async getRetryFoboData(resumeId: number, requestBody: any) {
+        const resume = await this.resumeRepository.findById(resumeId);
+        if (!resume) throw new HttpErrors.NotFound('Resume not found');
+
+        const runningAnalytics = await this.getRunningAnalytics(resumeId, requestBody.isFoboPro === true);
+
+        const isPro = requestBody.isFoboPro === true;
+
+        // 🔹 Case: Processing already going on
+        if (runningAnalytics.status === 1) {
+            return {
+                success: true,
+                message: "Processing... Check again in 2-5 minutes",
+                status: 1,
+            };
+        }
+
+        // 🔹 Retry + process only if not errored completely
+        if (runningAnalytics.id) {
+            await this.updateRunningAnalytics(runningAnalytics.id, { status: 1 });
+
+            setImmediate(async () => {
+                await this.runFoboProcessing(resume, requestBody, runningAnalytics);
+            });
+
+            return {
+                success: true,
+                message: "FOBO Pro started... You can check later",
+                status: 1,
+            };
+        }
+
+        return {
+            success: false,
+            message: "No analytics found or invalid processing state.",
+        };
     }
 }
