@@ -24,9 +24,9 @@ export class FOBOService {
     // get all running analytics...
     async fetchRunningAnalyticsList(filter?: Filter<RunningAnalytics>) {
         const analyticsList = await this.runningAnalyticsRepository.find({
-            ...filter, 
+            ...filter,
             include: [
-                {relation: 'resume', scope: {include: [{relation: 'user', scope: {fields: {email: true, fullName: true}}}]}}
+                { relation: 'resume', scope: { include: [{ relation: 'user', scope: { fields: { email: true, fullName: true } } }] } }
             ]
         });
 
@@ -91,7 +91,7 @@ export class FOBOService {
     }
 
     // get fobo analytics...
-    async getFoboAnalytics(requestBody: any, resume: any) {
+    async getFoboAnalytics(requestBody: any, resume: any, analyticsId: number) {
         try {
             let fields: { [key: string]: boolean } = {
                 analysis: false,
@@ -178,6 +178,10 @@ export class FOBOService {
                     isFoboPro: requestBody.isFoboPro ?? false
                 });
 
+                await this.updateRunningAnalytics(analyticsId, {
+                    status: 2,
+                });
+
                 if (analyticsData) {
                     return {
                         success: true,
@@ -193,6 +197,10 @@ export class FOBOService {
             }
         } catch (error) {
             console.log('error while fetching fobo analytics :', error);
+            await this.updateRunningAnalytics(analyticsId, {
+                status: 3,
+                errorMessage: error?.error?.message || 'FOBO service failed',
+            });
             return {
                 success: false,
                 errorMessage: error?.error?.message || 'FOBO service failed'
@@ -268,7 +276,7 @@ export class FOBOService {
         let count = runningAnalytics.trialCount || 0;
 
         for (; count < 3; count++) {
-            const foboData = await this.getFoboAnalytics(requestBody, resume);
+            const foboData = await this.getFoboAnalytics(requestBody, resume, runningAnalytics.id);
 
             if (foboData?.success) {
                 await this.updateRunningAnalytics(runningAnalytics.id, {
@@ -315,7 +323,7 @@ export class FOBOService {
             await this.updateRunningAnalytics(runningAnalytics.id, { status: 1, trialCount: runningAnalytics.trialCount + 1 });
 
             setImmediate(async () => {
-                await this.getFoboAnalytics(requestBody, resume);
+                await this.getFoboAnalytics(requestBody, resume, runningAnalytics.id!);
             });
 
             return {
