@@ -338,8 +338,7 @@ export class ProfileAnalyticsController {
       case 3:
         return {
           success: false,
-          message:
-            "Your score could not be calculated due to a processing issue. We will manually reprocess your resume and revert to you within 3–4 hours with a resolution.",
+          message: "Your score could not be calculated due to a processing issue. A human will step in resolve this in 24 hours at the latest. Meanwhile you may reach out us at hello@altiv.ai if required, but we are on it already. Sorry for the inconvenience.",
           analytics: null,
         };
 
