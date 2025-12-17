@@ -1,19 +1,19 @@
-import { authenticate } from '@loopback/authentication';
-import { inject } from '@loopback/core';
-import { FilterExcludingWhere, repository } from '@loopback/repository';
-import { get, HttpErrors, param, post, requestBody } from '@loopback/rest';
+import {authenticate} from '@loopback/authentication';
+import {inject} from '@loopback/core';
+import {Filter, FilterExcludingWhere, repository} from '@loopback/repository';
+import {get, HttpErrors, param, post, requestBody} from '@loopback/rest';
 import path from 'path';
-import { JobPortalDataSource } from '../datasources';
-import { STORAGE_DIRECTORY } from '../keys';
+import {PermissionKeys} from '../authorization/permission-keys';
+import {JobPortalDataSource} from '../datasources';
+import {STORAGE_DIRECTORY} from '../keys';
+import {RunningAnalytics} from '../models';
 import {
   ProfileAnalyticsRepository,
   ResumeRepository,
   UserRepository,
 } from '../repositories';
-import { EventHistoryService } from '../services/event-history.service';
-import { FOBOService } from '../services/fobo.service';
-import { PermissionKeys } from '../authorization/permission-keys';
-import { RunningAnalytics } from '../models';
+import {EventHistoryService} from '../services/event-history.service';
+import {FOBOService} from '../services/fobo.service';
 
 export class ProfileAnalyticsController {
   constructor(
@@ -40,13 +40,13 @@ export class ProfileAnalyticsController {
         'application/json': {
           schema: {
             properties: {
-              resumeId: { type: 'number' },
-              linkedInUrl: { type: 'string' },
-              viewDetails: { type: 'boolean' },
-              smartInsights: { type: 'boolean' },
-              isFoboPro: { type: 'boolean' },
-              isComprehensiveMode: { type: 'boolean' },
-              isSubscribed: { type: 'boolean' },
+              resumeId: {type: 'number'},
+              linkedInUrl: {type: 'string'},
+              viewDetails: {type: 'boolean'},
+              smartInsights: {type: 'boolean'},
+              isFoboPro: {type: 'boolean'},
+              isComprehensiveMode: {type: 'boolean'},
+              isSubscribed: {type: 'boolean'},
             },
             required: [],
           },
@@ -70,7 +70,7 @@ export class ProfileAnalyticsController {
         resume = await this.resumeRepository.findById(requestBody.resumeId);
       }
 
-      let fields: { [key: string]: boolean } = {
+      let fields: {[key: string]: boolean} = {
         analysis: false,
         skill_erosion_analysis: false,
         json_schema_date: false,
@@ -110,11 +110,11 @@ export class ProfileAnalyticsController {
           and: [
             {
               or: [
-                { ...(requestBody.resumeId ? { resumeId: requestBody.resumeId } : {}) },
-                { ...(requestBody.linkedInUrl ? { linkedInUrl: requestBody.linkedInUrl } : {}) },
+                {...(requestBody.resumeId ? {resumeId: requestBody.resumeId} : {})},
+                {...(requestBody.linkedInUrl ? {linkedInUrl: requestBody.linkedInUrl} : {})},
               ]
             },
-            { isFoboPro: isFoboPro }
+            {isFoboPro: isFoboPro}
           ]
         }
       });
@@ -131,7 +131,7 @@ export class ProfileAnalyticsController {
 
         const profileAnalyticsData = await this.profileAnalyticsRepository.findById(
           analytics.id,
-          { include: [{ relation: 'user' }], fields: fields },
+          {include: [{relation: 'user'}], fields: fields},
         );
 
         return {
@@ -163,10 +163,10 @@ export class ProfileAnalyticsController {
 
       const analyticsFallback: any = await this.profileAnalyticsRepository.findOne({
         where: {
-          ...(requestBody.resumeId ? { resumeId: requestBody.resumeId } : {}),
-          ...(requestBody.linkedInUrl ? { linkedInUrl: requestBody.linkedInUrl } : {}),
+          ...(requestBody.resumeId ? {resumeId: requestBody.resumeId} : {}),
+          ...(requestBody.linkedInUrl ? {linkedInUrl: requestBody.linkedInUrl} : {}),
         },
-        include: [{ relation: 'user' }, { relation: 'resume' }],
+        include: [{relation: 'user'}, {relation: 'resume'}],
       });
 
       if (analyticsFallback) {
@@ -199,7 +199,7 @@ export class ProfileAnalyticsController {
   }
 
   // API for last FOBO analytics
-  @authenticate({ strategy: 'jwt' })
+  @authenticate({strategy: 'jwt'})
   @post('/last-fobo-score/')
   async fetchLastFoboScore(
     @requestBody({
@@ -210,7 +210,7 @@ export class ProfileAnalyticsController {
             properties: {
               resumeIds: {
                 type: 'array',
-                items: { type: 'number' },
+                items: {type: 'number'},
               },
               linkedInUrl: {
                 type: 'string'
@@ -225,9 +225,9 @@ export class ProfileAnalyticsController {
       resumeIds?: number[];
       linkedInUrl?: string;
     }
-  ): Promise<{ success: boolean; message: string; analytics: object | null }> {
+  ): Promise<{success: boolean; message: string; analytics: object | null}> {
     try {
-      const { resumeIds, linkedInUrl } = requestBody;
+      const {resumeIds, linkedInUrl} = requestBody;
 
       if ((!resumeIds || resumeIds?.length === 0) && !linkedInUrl) {
         return {
@@ -240,11 +240,11 @@ export class ProfileAnalyticsController {
       const orConditions = [];
 
       if (resumeIds && resumeIds.length > 0) {
-        orConditions.push({ resumeId: { inq: resumeIds } });
+        orConditions.push({resumeId: {inq: resumeIds}});
       }
 
       if (linkedInUrl) {
-        orConditions.push({ linkedInUrl: linkedInUrl });
+        orConditions.push({linkedInUrl: linkedInUrl});
       }
 
       const analytics = await this.profileAnalyticsRepository.find({
@@ -287,8 +287,8 @@ export class ProfileAnalyticsController {
     const analytics = await this.profileAnalyticsRepository.findOne({
       where: {
         and: [
-          { resumeId: resumeId },
-          { isFoboPro: true }
+          {resumeId: resumeId},
+          {isFoboPro: true}
         ]
       },
       fields
@@ -301,7 +301,7 @@ export class ProfileAnalyticsController {
     }
   }
 
-  @authenticate({ strategy: 'jwt' })
+  @authenticate({strategy: 'jwt'})
   @get('/last-fobo-pro-score/{resumeId}')
   async getProcessesFoboScore(
     @param.path.number('resumeId') resumeId: number
@@ -354,18 +354,22 @@ export class ProfileAnalyticsController {
   // fetch running analytics list
   @authenticate({
     strategy: 'jwt',
-    options: { required: [PermissionKeys.ADMIN] }
+    options: {required: [PermissionKeys.ADMIN]}
   })
   @get('/running-analytics/list')
   async fetchRunningAnalytics(
-    @param.filter(RunningAnalytics, { exclude: 'where' }) filter?: FilterExcludingWhere<RunningAnalytics>
+    @param.filter(RunningAnalytics, {exclude: 'where'}) filter?: FilterExcludingWhere<RunningAnalytics>
   ): Promise<{
     success: boolean;
     message: string;
     analyticsList: RunningAnalytics[];
   }> {
     try {
-      const result = await this.foboService.fetchRunningAnalyticsList(filter);
+      const finalFilter: Filter<RunningAnalytics> = {
+        ...filter,
+        order: ['createdAt DESC'],
+      };
+      const result = await this.foboService.fetchRunningAnalyticsList(finalFilter);
 
       return result;
     } catch (error) {
@@ -376,7 +380,7 @@ export class ProfileAnalyticsController {
   // retry analytics
   @authenticate({
     strategy: 'jwt',
-    options: { required: [PermissionKeys.ADMIN] }
+    options: {required: [PermissionKeys.ADMIN]}
   })
   @post('/running-analytics/retry/{analyticsId}')
   async retryRunningAnalytics(
