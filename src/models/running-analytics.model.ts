@@ -1,5 +1,5 @@
-import { Entity, model, property, belongsTo } from '@loopback/repository';
-import { Resume } from './resume.model';
+import {belongsTo, Entity, model, property} from '@loopback/repository';
+import {Resume} from './resume.model';
 
 @model()
 export class RunningAnalytics extends Entity {
@@ -12,6 +12,11 @@ export class RunningAnalytics extends Entity {
 
   @belongsTo(() => Resume)
   resumeId: number;
+
+  @property({
+    type: 'string',
+  })
+  linkedInUrl: string;
 
   @property({
     type: 'boolean',
@@ -36,7 +41,7 @@ export class RunningAnalytics extends Entity {
 
   @property({
     type: 'string',
-    mysql: { datatype: 'longtext' }
+    mysql: {datatype: 'longtext'}
   })
   error?: string;
 

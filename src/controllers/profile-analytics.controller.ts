@@ -14,6 +14,7 @@ import {
 } from '../repositories';
 import {EventHistoryService} from '../services/event-history.service';
 import {FOBOService} from '../services/fobo.service';
+import {link} from 'fs';
 
 export class ProfileAnalyticsController {
   constructor(
@@ -141,8 +142,8 @@ export class ProfileAnalyticsController {
         };
       }
 
-      if (requestBody.resumeId) {
-        const foboResponse = await this.foboService.getFoboData(requestBody.resumeId, requestBody);
+      if (requestBody.resumeId || requestBody.linkedInUrl) {
+        const foboResponse = await this.foboService.getFoboData(requestBody, requestBody.resumeId);
 
         if (foboResponse.success && foboResponse.analytics) {
           return {
@@ -306,7 +307,7 @@ export class ProfileAnalyticsController {
   async getProcessesFoboScore(
     @param.path.number('resumeId') resumeId: number
   ) {
-    const runningAnalytics = await this.foboService.getRunningAnalytics(resumeId, true);
+    const runningAnalytics = await this.foboService.getRunningAnalytics(true, resumeId);
 
     if (!runningAnalytics) {
       return {
@@ -391,6 +392,7 @@ export class ProfileAnalyticsController {
 
       const result = await this.foboService.getRetryFoboData(runningAnalytics.resumeId, {
         resumeId: runningAnalytics.resumeId,
+        linkedInUrl: runningAnalytics.linkedInUrl,
         viewDetails: true,
         smartInsights: true,
         isFoboPro: true,
