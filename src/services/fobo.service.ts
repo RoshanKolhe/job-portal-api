@@ -1,13 +1,13 @@
-import {inject} from "@loopback/core";
-import {Filter, repository} from "@loopback/repository";
-import {HttpErrors} from "@loopback/rest";
+import { inject } from "@loopback/core";
+import { Filter, repository } from "@loopback/repository";
+import { HttpErrors } from "@loopback/rest";
 import FormData from "form-data";
 import fs from 'fs';
 import path from 'path';
 
 import apiClient from "../interceptors/axios-client.interceptor";
-import {STORAGE_DIRECTORY} from "../keys";
-import {RunningAnalytics} from "../models";
+import { STORAGE_DIRECTORY } from "../keys";
+import { RunningAnalytics } from "../models";
 import {
     ProfileAnalyticsRepository,
     ResumeRepository,
@@ -42,7 +42,7 @@ export class FOBOService {
                         include: [
                             {
                                 relation: 'user',
-                                scope: {fields: {email: true, fullName: true}}
+                                scope: { fields: { email: true, fullName: true } }
                             }
                         ]
                     }
@@ -66,11 +66,11 @@ export class FOBOService {
                 and: [
                     {
                         or: [
-                            ...(resumeId ? [{resumeId}] : []),
-                            ...(linkedInUrl ? [{linkedInUrl}] : []),
+                            ...(resumeId ? [{ resumeId }] : []),
+                            ...(linkedInUrl ? [{ linkedInUrl }] : []),
                         ]
                     },
-                    {isFoboPro}
+                    { isFoboPro }
                 ]
             },
             order: ['createdAt DESC']
@@ -180,15 +180,43 @@ export class FOBOService {
                 throw new Error(response.data?.message || 'FOBO failed');
             }
             const analyticsData = await this.profileAnalyticsRepository.create({
-                ...(resume?.id && {resumeId: resume.id}),
-                ...(requestBody.linkedInUrl && {linkedInUrl: requestBody.linkedInUrl}),
-                ...response.data.data,
-                isFoboPro: requestBody.isFoboPro ?? false
+                ...(resume?.id && { resumeId: resume.id }),
+                ...(requestBody.linkedInUrl && { linkedInUrl: requestBody.linkedInUrl }),
+                ...(resume?.id && { resumeId: resume.id }),
+                ...(requestBody.linkedInUrl && { linkedInUrl: requestBody.linkedInUrl }),
+                relevant_job_class: response.data.data?.relevant_job_class,
+                FOBO_Score: response.data.data?.FOBO_Score,
+                Augmented_Score: response.data.data?.Augmented_Score,
+                Augmentation_Comment: response.data.data?.Augmentation_Comment,
+                Automated_Score: response.data.data?.Automated_Score,
+                Automated_Comment: response.data.data?.Automated_Comment,
+                Human_Score: response.data.data?.Human_Score,
+                AI_Readiness_Score: response.data.data?.AI_Readiness_Score,
+                Human_Comment: response.data.data?.Human_Comment,
+                Comment: response.data.data?.Comment,
+                Strategy: response.data.data?.Strategy,
+                Task_Distribution_Automation: response.data.data?.Task_Distribution_Automation,
+                Task_Distribution_Human: response.data.data?.Task_Distribution_Human,
+                Task_Distribution_Augmentation: response.data.data?.Task_Distribution_Augmentation,
+                ...(requestBody.isFoboPro && {
+                    analysis: response?.data?.data?.analysis,
+                    skill_erosion_analysis: response?.data?.data?.skill_erosion_analysis,
+                    automation_potential: response?.data?.data?.automation_potential,
+                    strategic_objective_count: response?.data?.data?.strategic_objective_count,
+                    transformation_timeline: response?.data?.data?.transformation_timeline
+                }),
+                ...(requestBody.isComprehensiveMode && {
+                    json_schema_data: response?.data?.data?.json_schema_data,
+                    json_file_url: response?.data?.data?.json_file_url,
+                    markdown_file_url: response?.data?.data?.markdown_file_url,
+                    comprehensive_analysis: response?.data?.data?.comprehensive_analysis
+                }),
+                isFoboPro: requestBody.isFoboPro ?? false,
             });
 
-            await this.updateRunningAnalytics(analyticsId, {status: 2});
+            await this.updateRunningAnalytics(analyticsId, { status: 2 });
 
-            return {success: true, analyticsData};
+            return { success: true, analyticsData };
         } catch (error: any) {
             // console.error('FOBO Service Error:', error?.response?.data?.message);
 
@@ -233,7 +261,7 @@ export class FOBOService {
         }
 
         if (runningAnalytics.status === 0 && runningAnalytics.id) {
-            await this.updateRunningAnalytics(runningAnalytics.id, {status: 1});
+            await this.updateRunningAnalytics(runningAnalytics.id, { status: 1 });
 
             if (requestBody.isFoboPro) {
                 setImmediate(async () => {
@@ -256,8 +284,8 @@ export class FOBOService {
             if (foboResponse.success) {
                 const profileData = await this.profileAnalyticsRepository.findOne({
                     where: {
-                        ...(resume?.id && {resumeId: resume.id}),
-                        ...(linkedInUrl && {linkedInUrl}),
+                        ...(resume?.id && { resumeId: resume.id }),
+                        ...(linkedInUrl && { linkedInUrl }),
                     },
                     order: ['createdAt DESC'],
                 });
@@ -297,7 +325,7 @@ export class FOBOService {
                     status: 2,
                     isDeleted: true,
                 });
-                return {success: true};
+                return { success: true };
             }
 
             await this.updateRunningAnalytics(runningAnalytics.id, {
@@ -310,7 +338,7 @@ export class FOBOService {
             status: 3,
         });
 
-        return {success: false};
+        return { success: false };
     }
 
     // --------------------------------------------------
