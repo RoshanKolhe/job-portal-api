@@ -1,18 +1,23 @@
-import { repository } from "@loopback/repository";
-import { CurrencyExchangeRateRepository } from "../repositories";
-import { HttpErrors } from "@loopback/rest";
+import {repository} from "@loopback/repository";
+import {HttpErrors} from "@loopback/rest";
+import {CurrencyExchangeRateRepository} from "../repositories";
 
 export class CurrencyExchange {
   constructor(
     @repository(CurrencyExchangeRateRepository)
     private currencyExchangeRepository: CurrencyExchangeRateRepository
-  ) {}
+  ) { }
+
+  private normalizePrice(value: number): number {
+    if (value < 1) return 1;
+    return Math.round(value * 100) / 100; // optional: 2 decimal rounding
+  }
 
   // Helper: get the latest exchange rate row
   private async getLatestRate() {
     const exchangeRates = await this.currencyExchangeRepository.find({
       order: ["createdAt DESC"],
-      where: { isActive: true, isDeleted: false },
+      where: {isActive: true, isDeleted: false},
     });
 
     const rate = exchangeRates[0];
@@ -34,12 +39,12 @@ export class CurrencyExchange {
 
     // If admin defined USD → INR
     if (rate.baseCurrency === "USD" && rate.targetCurrency === "INR") {
-      return price * rate.rate; // USD × rate = INR
+      return this.normalizePrice(price * rate.rate); // USD × rate = INR
     }
 
     // If admin defined INR → USD (rare)
     if (rate.baseCurrency === "INR" && rate.targetCurrency === "USD") {
-      return price / rate.rate; // INR ÷ rate = USD
+      return this.normalizePrice(price / rate.rate); // INR ÷ rate = USD
     }
 
     throw new HttpErrors.BadRequest("Invalid exchange rate configuration");
@@ -55,12 +60,12 @@ export class CurrencyExchange {
 
     // If admin defined USD → INR
     if (rate.baseCurrency === "USD" && rate.targetCurrency === "INR") {
-      return price / rate.rate; // INR ÷ rate = USD
+      return this.normalizePrice(price / rate.rate); // INR ÷ rate = USD
     }
 
     // If admin defined INR → USD
     if (rate.baseCurrency === "INR" && rate.targetCurrency === "USD") {
-      return price * rate.rate; // INR × rate = USD
+      return this.normalizePrice(price * rate.rate); // INR × rate = USD
     }
 
     throw new HttpErrors.BadRequest("Invalid exchange rate configuration");
