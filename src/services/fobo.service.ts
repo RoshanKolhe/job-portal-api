@@ -144,6 +144,8 @@ export class FOBOService {
                 headers: formData.getHeaders(),
             });
 
+            console.log('response from fobo', response);
+
             if (response?.data?.status === 'success' && response?.data?.data) {
                 const analyticsData = await this.profileAnalyticsRepository.create({
                     ...(resume?.id && { resumeId: resume.id }),
@@ -196,7 +198,7 @@ export class FOBOService {
                 throw new HttpErrors.InternalServerError('FOBO service failed');
             }
         } catch (error) {
-            console.log('error while fetching fobo analytics :', error);
+            console.error('error while fetching fobo analytics :', error);
             await this.updateRunningAnalytics(analyticsId, {
                 status: 3,
                 errorMessage: error?.error?.message || 'FOBO service failed',
