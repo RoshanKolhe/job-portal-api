@@ -288,7 +288,8 @@ export class FOBOService {
             const foboResponse = await this.runFoboProcessing(
                 resume,
                 requestBody,
-                runningAnalytics
+                runningAnalytics,
+                currentUser
             );
 
             if (foboResponse.success) {
@@ -298,29 +299,6 @@ export class FOBOService {
                         ...(linkedInUrl && {linkedInUrl}),
                     },
                     order: ['createdAt DESC'],
-                });
-
-                if (!currentUser || !currentUser.email) {
-                    return {
-                        success: false,
-                        message: 'Authenticated user required for FOBO success email',
-                    };
-                }
-
-                const siteUrl = process.env.REACT_APP_SITE_URL || 'https://www.altiv.ai';
-
-                const foboSuccessOptions = {
-                    firstName: currentUser.fullName || 'User',
-                    to: currentUser.email,
-                    foboUrl: `${siteUrl}/ai-readiness-analysis`,
-                };
-
-                const foboSuccessTemplate = generateFoboProSuccessTemplate(foboSuccessOptions);
-
-                await this.emailService.sendMail({
-                    to: currentUser.email,
-                    subject: foboSuccessTemplate.subject,
-                    html: foboSuccessTemplate.html,
                 });
 
                 return {
@@ -366,7 +344,7 @@ export class FOBOService {
     // --------------------------------------------------
     // retry processor
     // --------------------------------------------------
-    private async runFoboProcessing(resume: any, requestBody: any, runningAnalytics: any) {
+    private async runFoboProcessing(resume: any, requestBody: any, runningAnalytics: any, currentUser?: User) {
         let count = runningAnalytics.trialCount || 0;
 
         for (; count < 3; count++) {
@@ -378,6 +356,30 @@ export class FOBOService {
                     status: 2,
                     isDeleted: true,
                 });
+
+                if (!currentUser || !currentUser.email) {
+                    return {
+                        success: false,
+                        message: 'Authenticated user required for FOBO success email',
+                    };
+                }
+
+                const siteUrl = process.env.REACT_APP_SITE_URL || 'https://www.altiv.ai';
+
+                const foboSuccessOptions = {
+                    firstName: currentUser.fullName || 'User',
+                    to: currentUser.email,
+                    foboUrl: `${siteUrl}/ai-readiness-analysis`,
+                };
+
+                const foboSuccessTemplate = generateFoboProSuccessTemplate(foboSuccessOptions);
+
+                await this.emailService.sendMail({
+                    to: currentUser.email,
+                    subject: foboSuccessTemplate.subject,
+                    html: foboSuccessTemplate.html,
+                });
+
                 return {success: true};
             }
 
