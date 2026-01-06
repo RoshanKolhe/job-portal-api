@@ -34,6 +34,7 @@ import {JWTService} from '../services/jwt-service';
 import {MyUserService} from '../services/user-service';
 import {validateCredentials} from '../services/validator';
 import generateVerificationEmailTemplate from '../templates/email-verification-template';
+import generateWelcomeTemplate from '../templates/registration-welcome.template';
 import generateResetPasswordTemplate from '../templates/reset-password.template';
 import SITE_SETTINGS from '../utils/config';
 import {CredentialsRequestBody} from './specs/user-controller-spec';
@@ -131,12 +132,30 @@ export class UserController {
 
       const plan = await this.planRepository.findOne({where: {isFreePlan: true}});
       if (plan?.id) {
-        const savedUser = await this.userRepository.create({...userData, currentPlanId: plan.id}, {
-          transaction: tx,
-        });
-        const savedUserData = _.omit(savedUser, 'password');
+        const savedUser = await this.userRepository.create(
+          {...userData, currentPlanId: plan.id},
+          {transaction: tx}
+        );
+
         const userProfile = this.userService.convertToUserProfile(savedUser);
         const token = await this.jwtService.generateToken(userProfile);
+        
+        const siteUrl = process.env.REACT_APP_SITE_URL || 'https://www.altiv.ai';
+
+        const welcomeMailOptions = {
+          firstName: savedUser.fullName || 'User',
+          to: savedUser.email,
+          foboUrl: `${siteUrl}/fobo`,
+        };
+
+        const welcomeTemplate = generateWelcomeTemplate(welcomeMailOptions);
+
+        await this.emailService.sendMail({
+          to: savedUser.email,
+          subject: welcomeTemplate.subject,
+          html: welcomeTemplate.html,
+        });
+
         if (savedUser.id) {
           await this.eventHistoryService.addNewEvent(
             'registration',
@@ -145,7 +164,9 @@ export class UserController {
             savedUser.id
           );
         }
+
         tx.commit();
+
         return Promise.resolve({
           success: true,
           accessToken: token,
@@ -546,7 +567,7 @@ export class UserController {
                 description: 'The new password to be set',
               },
             },
-            required: [ 'newPassword'],
+            required: ['newPassword'],
           },
         },
       },

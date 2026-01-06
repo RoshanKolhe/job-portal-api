@@ -1,18 +1,22 @@
-import { inject } from "@loopback/core";
-import { Filter, repository } from "@loopback/repository";
-import { HttpErrors } from "@loopback/rest";
+import {inject} from "@loopback/core";
+import {Filter, repository} from "@loopback/repository";
+import {HttpErrors} from "@loopback/rest";
 import FormData from "form-data";
 import fs from 'fs';
 import path from 'path';
 
 import apiClient from "../interceptors/axios-client.interceptor";
-import { STORAGE_DIRECTORY } from "../keys";
-import { RunningAnalytics } from "../models";
+import {STORAGE_DIRECTORY} from "../keys";
+import {RunningAnalytics, User} from "../models";
 import {
     ProfileAnalyticsRepository,
     ResumeRepository,
-    RunningAnalyticsRepository
+    RunningAnalyticsRepository,
+    UserRepository
 } from "../repositories";
+import generateFoboProSuccessTemplate from '../templates/fobo-pro-successful.template';
+import {EmailService} from './email.service';
+import generateFoboProFailTemplate from '../templates/fobo-pro-fail.template';
 
 export class FOBOService {
     constructor(
@@ -24,6 +28,12 @@ export class FOBOService {
 
         @repository(ResumeRepository)
         private resumeRepository: ResumeRepository,
+
+        @repository(UserRepository)
+        private userRepository: UserRepository,
+
+        @inject('services.email.send')
+        public emailService: EmailService,
 
         @inject(STORAGE_DIRECTORY)
         private storageDirectory: string,
@@ -42,7 +52,7 @@ export class FOBOService {
                         include: [
                             {
                                 relation: 'user',
-                                scope: { fields: { email: true, fullName: true } }
+                                scope: {fields: {email: true, fullName: true}}
                             }
                         ]
                     }
@@ -66,11 +76,11 @@ export class FOBOService {
                 and: [
                     {
                         or: [
-                            ...(resumeId ? [{ resumeId }] : []),
-                            ...(linkedInUrl ? [{ linkedInUrl }] : []),
+                            ...(resumeId ? [{resumeId}] : []),
+                            ...(linkedInUrl ? [{linkedInUrl}] : []),
                         ]
                     },
-                    { isFoboPro }
+                    {isFoboPro}
                 ]
             },
             order: ['createdAt DESC']
@@ -180,10 +190,10 @@ export class FOBOService {
                 throw new Error(response.data?.message || 'FOBO failed');
             }
             const analyticsData = await this.profileAnalyticsRepository.create({
-                ...(resume?.id && { resumeId: resume.id }),
-                ...(requestBody.linkedInUrl && { linkedInUrl: requestBody.linkedInUrl }),
-                ...(resume?.id && { resumeId: resume.id }),
-                ...(requestBody.linkedInUrl && { linkedInUrl: requestBody.linkedInUrl }),
+                ...(resume?.id && {resumeId: resume.id}),
+                ...(requestBody.linkedInUrl && {linkedInUrl: requestBody.linkedInUrl}),
+                ...(resume?.id && {resumeId: resume.id}),
+                ...(requestBody.linkedInUrl && {linkedInUrl: requestBody.linkedInUrl}),
                 relevant_job_class: response.data.data?.relevant_job_class,
                 FOBO_Score: response.data.data?.FOBO_Score,
                 Augmented_Score: response.data.data?.Augmented_Score,
@@ -214,9 +224,9 @@ export class FOBOService {
                 isFoboPro: requestBody.isFoboPro ?? false,
             });
 
-            await this.updateRunningAnalytics(analyticsId, { status: 2 });
+            await this.updateRunningAnalytics(analyticsId, {status: 2});
 
-            return { success: true, analyticsData };
+            return {success: true, analyticsData};
         } catch (error: any) {
             // console.error('FOBO Service Error:', error?.response?.data?.message);
 
@@ -241,7 +251,7 @@ export class FOBOService {
     // --------------------------------------------------
     // MAIN ENTRY
     // --------------------------------------------------
-    async getFoboData(requestBody: any, resumeId?: number) {
+    async getFoboData(requestBody: any, resumeId?: number, currentUser?: User) {
         const linkedInUrl = requestBody.linkedInUrl;
 
         const resume = await this.resolveResume(resumeId);
@@ -261,7 +271,7 @@ export class FOBOService {
         }
 
         if (runningAnalytics.status === 0 && runningAnalytics.id) {
-            await this.updateRunningAnalytics(runningAnalytics.id, { status: 1 });
+            await this.updateRunningAnalytics(runningAnalytics.id, {status: 1});
 
             if (requestBody.isFoboPro) {
                 setImmediate(async () => {
@@ -284,10 +294,33 @@ export class FOBOService {
             if (foboResponse.success) {
                 const profileData = await this.profileAnalyticsRepository.findOne({
                     where: {
-                        ...(resume?.id && { resumeId: resume.id }),
-                        ...(linkedInUrl && { linkedInUrl }),
+                        ...(resume?.id && {resumeId: resume.id}),
+                        ...(linkedInUrl && {linkedInUrl}),
                     },
                     order: ['createdAt DESC'],
+                });
+
+                if (!currentUser || !currentUser.email) {
+                    return {
+                        success: false,
+                        message: 'Authenticated user required for FOBO success email',
+                    };
+                }
+
+                const siteUrl = process.env.REACT_APP_SITE_URL || 'https://www.altiv.ai';
+
+                const foboSuccessOptions = {
+                    firstName: currentUser.fullName || 'User',
+                    to: currentUser.email,
+                    foboUrl: `${siteUrl}/ai-readiness-analysis`,
+                };
+
+                const foboSuccessTemplate = generateFoboProSuccessTemplate(foboSuccessOptions);
+
+                await this.emailService.sendMail({
+                    to: currentUser.email,
+                    subject: foboSuccessTemplate.subject,
+                    html: foboSuccessTemplate.html,
                 });
 
                 return {
@@ -296,6 +329,26 @@ export class FOBOService {
                     analytics: profileData,
                 };
             }
+
+
+            if (!currentUser || !currentUser.email) {
+                return {
+                    success: false,
+                    message: 'Authenticated user required for FOBO success email',
+                };
+            }
+            const foboFailOptions = {
+                firstName: currentUser.fullName || 'User',
+                to: currentUser.email,
+            };
+
+            const foboFailTemplate = generateFoboProFailTemplate(foboFailOptions);
+
+            await this.emailService.sendMail({
+                to: currentUser.email,
+                subject: foboFailTemplate.subject,
+                html: foboFailTemplate.html,
+            });
 
             return {
                 success: false,
@@ -325,7 +378,7 @@ export class FOBOService {
                     status: 2,
                     isDeleted: true,
                 });
-                return { success: true };
+                return {success: true};
             }
 
             await this.updateRunningAnalytics(runningAnalytics.id, {
@@ -338,7 +391,7 @@ export class FOBOService {
             status: 3,
         });
 
-        return { success: false };
+        return {success: false};
     }
 
     // --------------------------------------------------

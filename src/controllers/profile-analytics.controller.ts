@@ -1,7 +1,7 @@
 import {authenticate} from '@loopback/authentication';
 import {inject} from '@loopback/core';
 import {Filter, FilterExcludingWhere, repository} from '@loopback/repository';
-import {get, HttpErrors, param, post, requestBody} from '@loopback/rest';
+import {get, HttpErrors, param, post, Request, requestBody, RestBindings} from '@loopback/rest';
 import path from 'path';
 import {PermissionKeys} from '../authorization/permission-keys';
 import {JobPortalDataSource} from '../datasources';
@@ -12,9 +12,11 @@ import {
   ResumeRepository,
   UserRepository,
 } from '../repositories';
+import {EmailService} from '../services/email.service';
 import {EventHistoryService} from '../services/event-history.service';
 import {FOBOService} from '../services/fobo.service';
-import {link} from 'fs';
+import {JWTService} from '../services/jwt-service';
+import generateFoboRunTemplate from '../templates/fobo-run.template';
 
 export class ProfileAnalyticsController {
   constructor(
@@ -30,12 +32,34 @@ export class ProfileAnalyticsController {
     private foboService: FOBOService,
     @inject('service.eventhistory.service')
     public eventHistoryService: EventHistoryService,
+    @inject('service.jwt.service')
+    public jwtService: JWTService,
+    @inject('services.email.send')
+    public emailService: EmailService,
     @inject(STORAGE_DIRECTORY) private storageDirectory: string,
   ) { }
+
+  private async validateCredentials(authHeader: string) {
+    try {
+      if (authHeader) {
+        const parts = authHeader.split(' ');
+        if (parts.length !== 2) {
+          throw new HttpErrors.BadRequest('Verify token! incorrect signature');
+        }
+        const token = parts[1];
+        const userProfile = await this.jwtService.verifyToken(token);
+
+        return userProfile
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
 
   // @authenticate('jwt')
   @post('/profile-analytics')
   async getProfileAnalytics(
+    @inject(RestBindings.Http.REQUEST) request: Request,
     @requestBody({
       content: {
         'application/json': {
@@ -66,6 +90,12 @@ export class ProfileAnalyticsController {
   ): Promise<any> {
     try {
       let resume: any = null;
+      let currentUser: any = null;
+      const authHeader = request.headers.authorization;
+
+      if (authHeader && authHeader !== '' && authHeader !== null && authHeader !== undefined && authHeader !== 'Bearer') {
+        currentUser = await this.validateCredentials(authHeader);
+      }
 
       if (requestBody.resumeId) {
         resume = await this.resumeRepository.findById(requestBody.resumeId);
@@ -142,8 +172,16 @@ export class ProfileAnalyticsController {
         };
       }
 
+      let user = null;
+
+      if (currentUser) {
+        user = await this.userRepository.findById(currentUser.id);
+      }
+
       if (requestBody.resumeId || requestBody.linkedInUrl) {
-        const foboResponse = await this.foboService.getFoboData(requestBody, requestBody.resumeId);
+        const foboResponse = user ?
+          await this.foboService.getFoboData(requestBody, requestBody.resumeId, user) :
+          await this.foboService.getFoboData(requestBody, requestBody.resumeId);
 
         if (foboResponse.success && foboResponse.analytics) {
           return {
@@ -151,6 +189,26 @@ export class ProfileAnalyticsController {
             message: 'Updated Profile Analytics data',
             data: foboResponse.analytics,
           };
+        }
+
+
+
+        if (user && !isFoboPro) {
+          const siteUrl = process.env.REACT_APP_SITE_URL || 'https://www.altiv.ai';
+
+          const foboRunOptions = {
+            firstName: user.fullName || 'User',
+            to: user.email,
+            foboUrl: `${siteUrl}/analysis`,
+          };
+
+          const foboRunTemplate = generateFoboRunTemplate(foboRunOptions);
+
+          await this.emailService.sendMail({
+            to: user.email,
+            subject: foboRunTemplate.subject,
+            html: foboRunTemplate.html,
+          });
         }
 
         return {
@@ -191,6 +249,7 @@ export class ProfileAnalyticsController {
       }
     }
   }
+
 
   private validateFileName(fileName: string) {
     const resolved = path.resolve(this.storageDirectory, fileName);
