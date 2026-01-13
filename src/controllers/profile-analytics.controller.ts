@@ -92,7 +92,7 @@ export class ProfileAnalyticsController {
       let resume: any = null;
       let currentUser: any = null;
       const authHeader = request.headers.authorization;
-      const requestId = request.headers['x-request-id'];
+      const requestId = request.headers['X-Request-Id'];
 
       if (authHeader && authHeader !== '' && authHeader !== null && authHeader !== undefined && authHeader !== 'Bearer') {
         currentUser = await this.validateCredentials(authHeader);

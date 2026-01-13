@@ -4450,7 +4450,7 @@ export class JobsController {
     // current User profile
     let currentUser: any = null;
     const authHeader = request.headers.authorization;
-    const requestId = request.headers['x-request-id'] || '';
+    const requestId = request.headers['X-Request-Id'] || '';
 
     if (authHeader && authHeader !== '' && authHeader !== null && authHeader !== undefined && authHeader !== 'Bearer') {
       currentUser = await this.validateCredentials(authHeader);
@@ -4583,7 +4583,7 @@ export class JobsController {
     }
   ): Promise<{success: boolean; message: string; data: Jobs[]; apiDurations: {endpoint: string; duration: string} | null}> {
 
-    const requestId = request.headers['x-request-id'] || '';
+    const requestId = request.headers['X-Request-Id'] || '';
     try {
       const job = await this.jobsRepository.findById(data.jobId);
 
@@ -4668,7 +4668,7 @@ export class JobsController {
       resumeId: number;
     }
   ): Promise<{success: boolean; message: string; data: object | null, apiDurations: {endpoint: string; duration: string} | null}> {
-    const requestId = request.headers['x-request-id'] || '';
+    const requestId = request.headers['X-Request-Id'] || '';
     try {
       const job = await this.jobsRepository.findById(data.jobId);
 
@@ -4749,7 +4749,7 @@ export class JobsController {
     @inject(RestBindings.Http.REQUEST) request: Request,
     @param.path.number('id') jobId: number,
   ): Promise<{success: boolean; message: string; data: object | null; apiDurations: {endpoint: string; duration: string} | null}> {
-    const requestId = request.headers['x-request-id'] || '';
+    const requestId = request.headers['X-Request-Id'] || '';
     try {
       const job = await this.jobsRepository.findById(jobId);
 

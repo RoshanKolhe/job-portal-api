@@ -71,7 +71,7 @@ export class ResumeController {
     })
     resume: Omit<Resume, 'id'>,
   ): Promise<{success: boolean; message: string; resume: Resume; apiDurations: {endpoint: string; duration: string} | null}> {
-    const requestId = request.headers['x-request-id'] || '';
+    const requestId = request.headers['X-Request-Id'] || '';
     try {
       const user = await this.userRepository.findById(currentUser.id);
 
@@ -258,7 +258,7 @@ export class ResumeController {
     })
     resume: Omit<Resume, 'id'>,
   ): Promise<{success: boolean; message: string; resume: Resume; apiDurations: Array<{endpoint: string; duration: string}> | null}> {
-    const requestId = request.headers['x-request-id'] || '';
+    const requestId = request.headers['X-Request-Id'] || '';
     try {
       const {fileDetails} = resume;
       const {data} = await this.getUserInfo(fileDetails, requestId);

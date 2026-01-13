@@ -38,7 +38,7 @@ export class CareerCompassController {
     }
   ): Promise<{success: boolean; message: string; data: object | null; apiDurations: {endpoint: string; duration: string}}> {
 
-    const requestId = request.headers['x-request-id'] || '';
+    const requestId = request.headers['X-Request-Id'] || '';
     console.log(`Request ID: ${requestId} - Received data:`, data);
     try {
       const {resumeId, designation, experience} = data;
@@ -151,7 +151,7 @@ export class CareerCompassController {
 @inject(RestBindings.Http.REQUEST) request: Request,
   ): Promise<{success: boolean; message: string; roles: string[]; apiDurations: {endpoint: string; duration: string}}> {
 
-    const requestId = request.headers['x-request-id'] || '';
+    const requestId = request.headers['X-Request-Id'] || '';
     try {
       const apiResponse: any = await apiClient.get(`${process.env.SERVER_URL}/api/knowledge-graph/roles`,
         {
@@ -222,7 +222,7 @@ export class CareerCompassController {
   ) {
     try {
 
-      const requestId = request.headers['x-request-id'] || '';
+      const requestId = request.headers['X-Request-Id'] || '';
       const form = new FormData();
       form.append('company_name', body.companyName);
       form.append('max_profiles_per_level', body.maxProfilesPerLevel?.toString() || '4');
