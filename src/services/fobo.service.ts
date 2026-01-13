@@ -1,13 +1,13 @@
-import {inject} from "@loopback/core";
-import {Filter, repository} from "@loopback/repository";
-import {HttpErrors} from "@loopback/rest";
+import { inject } from "@loopback/core";
+import { Filter, repository } from "@loopback/repository";
+import { HttpErrors } from "@loopback/rest";
 import FormData from "form-data";
 import fs from 'fs';
 import path from 'path';
 
 import apiClient from "../interceptors/axios-client.interceptor";
-import {STORAGE_DIRECTORY} from "../keys";
-import {RunningAnalytics, User} from "../models";
+import { STORAGE_DIRECTORY } from "../keys";
+import { RunningAnalytics, User } from "../models";
 import {
     ProfileAnalyticsRepository,
     ResumeRepository,
@@ -16,7 +16,7 @@ import {
 } from "../repositories";
 import generateFoboProFailTemplate from '../templates/fobo-pro-fail.template';
 import generateFoboProSuccessTemplate from '../templates/fobo-pro-successful.template';
-import {EmailService} from './email.service';
+import { EmailService } from './email.service';
 
 export class FOBOService {
     constructor(
@@ -52,7 +52,7 @@ export class FOBOService {
                         include: [
                             {
                                 relation: 'user',
-                                scope: {fields: {email: true, fullName: true}}
+                                scope: { fields: { email: true, fullName: true } }
                             }
                         ]
                     }
@@ -76,11 +76,11 @@ export class FOBOService {
                 and: [
                     {
                         or: [
-                            ...(resumeId ? [{resumeId}] : []),
-                            ...(linkedInUrl ? [{linkedInUrl}] : []),
+                            ...(resumeId ? [{ resumeId }] : []),
+                            ...(linkedInUrl ? [{ linkedInUrl }] : []),
                         ]
                     },
-                    {isFoboPro}
+                    { isFoboPro }
                 ]
             },
             order: ['createdAt DESC']
@@ -147,7 +147,7 @@ export class FOBOService {
     // --------------------------------------------------
     // get fobo analytics
     // --------------------------------------------------
-    async getFoboAnalytics(requestBody: any, resume: any, analyticsId: number) {
+    async getFoboAnalytics(requestBody: any, resume: any, analyticsId: number, requestId: any) {
         try {
             const formData = new FormData();
 
@@ -163,6 +163,7 @@ export class FOBOService {
             }
 
             formData.append('X-apiKey', process.env.X_API_KEY || '');
+            formData.append('X-apiKey', requestId);
             formData.append('use_resume', String(requestBody.smartInsights));
 
             if (requestBody.isComprehensiveMode) {
@@ -184,16 +185,14 @@ export class FOBOService {
                 }
             );
 
-            console.log('FOBO RESPONSE:', response.data);
-
             if (response.status !== 200 || response.data?.status !== 'success') {
                 throw new Error(response.data?.message || 'FOBO failed');
             }
             const analyticsData = await this.profileAnalyticsRepository.create({
-                ...(resume?.id && {resumeId: resume.id}),
-                ...(requestBody.linkedInUrl && {linkedInUrl: requestBody.linkedInUrl}),
-                ...(resume?.id && {resumeId: resume.id}),
-                ...(requestBody.linkedInUrl && {linkedInUrl: requestBody.linkedInUrl}),
+                ...(resume?.id && { resumeId: resume.id }),
+                ...(requestBody.linkedInUrl && { linkedInUrl: requestBody.linkedInUrl }),
+                ...(resume?.id && { resumeId: resume.id }),
+                ...(requestBody.linkedInUrl && { linkedInUrl: requestBody.linkedInUrl }),
                 relevant_job_class: response.data.data?.relevant_job_class,
                 FOBO_Score: response.data.data?.FOBO_Score,
                 Augmented_Score: response.data.data?.Augmented_Score,
@@ -224,9 +223,10 @@ export class FOBOService {
                 isFoboPro: requestBody.isFoboPro ?? false,
             });
 
-            await this.updateRunningAnalytics(analyticsId, {status: 2});
+            await this.getWebhookFoboData({ ...response?.data, userId: resume.userId });
+            await this.updateRunningAnalytics(analyticsId, { status: 2 });
 
-            return {success: true, analyticsData};
+            return { success: true, analyticsData };
         } catch (error: any) {
             // console.error('FOBO Service Error:', error?.response?.data?.message);
 
@@ -251,7 +251,7 @@ export class FOBOService {
     // --------------------------------------------------
     // MAIN ENTRY
     // --------------------------------------------------
-    async getFoboData(requestBody: any, resumeId?: number, currentUser?: User) {
+    async getFoboData(requestBody: any, requestId: any, resumeId?: number, currentUser?: User) {
         const linkedInUrl = requestBody.linkedInUrl;
 
         const resume = await this.resolveResume(resumeId);
@@ -271,11 +271,11 @@ export class FOBOService {
         }
 
         if (runningAnalytics.status === 0 && runningAnalytics.id) {
-            await this.updateRunningAnalytics(runningAnalytics.id, {status: 1});
+            await this.updateRunningAnalytics(runningAnalytics.id, { status: 1 });
 
             if (requestBody.isFoboPro) {
                 setImmediate(async () => {
-                    await this.runFoboProcessing(resume, requestBody, runningAnalytics);
+                    await this.runFoboProcessing(resume, requestBody, requestId, runningAnalytics);
                 });
 
                 return {
@@ -295,8 +295,8 @@ export class FOBOService {
             if (foboResponse.success) {
                 const profileData = await this.profileAnalyticsRepository.findOne({
                     where: {
-                        ...(resume?.id && {resumeId: resume.id}),
-                        ...(linkedInUrl && {linkedInUrl}),
+                        ...(resume?.id && { resumeId: resume.id }),
+                        ...(linkedInUrl && { linkedInUrl }),
                     },
                     order: ['createdAt DESC'],
                 });
@@ -344,11 +344,11 @@ export class FOBOService {
     // --------------------------------------------------
     // retry processor
     // --------------------------------------------------
-    private async runFoboProcessing(resume: any, requestBody: any, runningAnalytics: any, currentUser?: User) {
+    private async runFoboProcessing(resume: any, requestBody: any, runningAnalytics: any, requestId: any, currentUser?: User) {
         let count = runningAnalytics.trialCount || 0;
 
         for (; count < 3; count++) {
-            const foboData = await this.getFoboAnalytics(requestBody, resume, runningAnalytics.id);
+            const foboData = await this.getFoboAnalytics(requestBody, resume, runningAnalytics.id, requestId);
 
             if (foboData?.success) {
                 await this.updateRunningAnalytics(runningAnalytics.id, {
@@ -380,7 +380,7 @@ export class FOBOService {
                     html: foboSuccessTemplate.html,
                 });
 
-                return {success: true};
+                return { success: true };
             }
 
             await this.updateRunningAnalytics(runningAnalytics.id, {
@@ -393,13 +393,13 @@ export class FOBOService {
             status: 3,
         });
 
-        return {success: false};
+        return { success: false };
     }
 
     // --------------------------------------------------
     // retry API
     // --------------------------------------------------
-    async getRetryFoboData(resumeId: number, requestBody: any) {
+    async getRetryFoboData(resumeId: number, requestBody: any, requestId: any) {
         const linkedInUrl = requestBody.linkedInUrl;
 
         const resume = await this.resolveResume(resumeId);
@@ -427,7 +427,7 @@ export class FOBOService {
             });
 
             setImmediate(async () => {
-                await this.getFoboAnalytics(requestBody, resume, analyticsId);
+                await this.getFoboAnalytics(requestBody, resume, analyticsId, requestId);
             });
 
             return {
@@ -447,63 +447,38 @@ export class FOBOService {
     // Webhook Api
     // --------------------------------------------------
 
-    async getWebhookFoboData(resumeId: number) {
+    async getWebhookFoboData(data: any) {
+        console.log('data', data);
 
-        const runningAnalytics = await this.runningAnalyticsRepository.findOne({
-            where: {
-                resumeId,
-                isFoboPro: true,
-            },
-        });
+        if (data.userId) {
+            const user = await this.userRepository.findById(data.userId);
 
-        if (!runningAnalytics) {
+            const payload = {
+                EMAIL: user.email,
+                attributes: {
+                    FIRSTNAME: user.fullName,
+                    LASTNAME: user.fullName || '',
+                    PHONE: user.phoneNumber || '',
+                    FOBO_SCORE: data.foboScore,
+                    TASK_AUTO_1: data.taskAuto1,
+                    TASK_AUTO_2: data.taskAuto2,
+                    TASK_AUTO_3: data.taskAuto3,
+                },
+                updateEnabled: true,
+            };
+
+            const apiResponse: any = await apiClient.post(
+                'https://hook.us2.make.com/3y7ytrxay8isypgt7ayxhtcu27vehfaa',
+                payload
+            );
+
+            console.log('apiResponse', apiResponse);
+
             return {
-                success: false,
-                message: 'Webhook allowed only for FOBO Pro users',
+                success: true,
+                apiResponse,
             };
         }
-
-        const resume = await this.resumeRepository.findById(resumeId);
-
-        if (!resume?.userId) {
-            return {
-                success: false,
-                message: 'User not linked with resume',
-            };
-        }
-
-        const user = await this.userRepository.findById(resume.userId);
-
-        if (!user) {
-            return {
-                success: false,
-                message: 'User not found',
-            };
-        }
-
-        const payload = {
-            EMAIL: user.email,
-            attributes: {
-                FIRSTNAME: user.fullName || 'User',
-                LASTNAME: user.fullName || '',
-                PHONE: user.phoneNumber || '',
-                FOBO_SCORE: 75,
-                TASK_AUTO_1: 'Automate collection, cleaning, and preprocessing of large data sets',
-                TASK_AUTO_2: 'Develop and automate dashboards and reporting tools',
-                TASK_AUTO_3: 'Optimize batch processing systems',
-            },
-            updateEnabled: true,
-        };
-
-        const apiResponse: any = await apiClient.post(
-            'https://hook.us2.make.com/3y7ytrxay8isypgt7ayxhtcu27vehfaa',
-            payload
-        );
-
-        return {
-            success: true,
-            apiResponse,
-        };
     }
 }
 

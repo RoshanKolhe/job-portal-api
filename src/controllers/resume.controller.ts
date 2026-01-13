@@ -150,8 +150,7 @@ export class ResumeController {
   }
 
   // get user info...
-  async getUserInfo(
-    fileDetails: any): Promise<any> {
+  async getUserInfo(fileDetails: any, requestId: any): Promise<any> {
     try {
       const filePath = this.validateFileName(fileDetails.newFileName);
       if (!filePath) throw new HttpErrors.NotFound('Resume Not Found');
@@ -160,6 +159,7 @@ export class ResumeController {
       formData.append('file', fs.createReadStream(filePath));
       formData.append('user_id', `1`);
       formData.append('X-apiKey', '2472118222258182');
+      formData.append('X-request-id', requestId);
 
       const response: any = await apiClient.post(
         process.env.SERVER_URL + '/fobo/user-details',
@@ -261,7 +261,7 @@ export class ResumeController {
     const requestId = request.headers['x-request-id'] || '';
     try {
       const {fileDetails} = resume;
-      const {data} = await this.getUserInfo(fileDetails);
+      const {data} = await this.getUserInfo(fileDetails, requestId);
 
       if (data) {
         const newResume: any = await this.resumeRepository.create({...resume, userId: data?.user?.id});
