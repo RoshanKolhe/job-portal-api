@@ -163,7 +163,7 @@ export class FOBOService {
             }
 
             formData.append('X-apiKey', process.env.X_API_KEY || '');
-            formData.append('X-apiKey', requestId);
+            formData.append('X-request-id', requestId);
             formData.append('use_resume', String(requestBody.smartInsights));
 
             if (requestBody.isComprehensiveMode) {
