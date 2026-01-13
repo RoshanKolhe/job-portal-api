@@ -36,6 +36,7 @@ apiClient.interceptors.response.use(
           error.config?.url
         } → ${duration} ms`,
       );
+      console.log('error', error);
     }
     return Promise.reject(error);
   },
