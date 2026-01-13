@@ -1,5 +1,5 @@
-import { get, HttpErrors, post, requestBody } from "@loopback/rest";
-import axios from "axios";
+import {inject} from '@loopback/core';
+import {get, HttpErrors, post, Request, requestBody, RestBindings} from "@loopback/rest";
 import FormData from "form-data";
 import apiClient from '../interceptors/axios-client.interceptor';
 
@@ -8,7 +8,9 @@ export class CareerCompassController {
 
   // career compass api
   @post('/career-compass')
+
   async fetchCareerCompass(
+    @inject(RestBindings.Http.REQUEST) request: Request,
     @requestBody({
       content: {
         'application/json': {
@@ -34,9 +36,12 @@ export class CareerCompassController {
       designation?: string;
       experience?: number
     }
-  ): Promise<{ success: boolean; message: string; data: object | null; apiDurations: { endpoint: string; duration: string } }> {
+  ): Promise<{success: boolean; message: string; data: object | null; apiDurations: {endpoint: string; duration: string}}> {
+
+    const requestId = request.headers['x-request-id'] || '';
+    console.log(`Request ID: ${requestId} - Received data:`, data);
     try {
-      const { resumeId, designation, experience } = data;
+      const {resumeId, designation, experience} = data;
 
       if (!resumeId && !designation && !experience) {
         throw new HttpErrors.BadRequest('Invalid request body');
@@ -56,12 +61,13 @@ export class CareerCompassController {
           apiData,
           {
             headers: {
-              "X-apiKey": "2472118222258182",
+              "X-apiKey": process.env.X_API_KEY || '',
+              "X-request-id": requestId.toString()
             }
           }
         );
 
-        const { duration } = apiResponse;
+        const {duration} = apiResponse;
         console.log('Response time for => /api/career_path_match :', duration)
 
         console.log('api response', apiResponse);
@@ -100,11 +106,12 @@ export class CareerCompassController {
         apiData,
         {
           headers: {
-            "X-apiKey": "2472118222258182",
+            "X-apiKey": process.env.X_API_KEY || '',
+            "X-request-id": requestId.toString()
           }
         }
       );
-      const { duration } = apiResponse;
+      const {duration} = apiResponse;
       console.log('Response time for => /api/career_path_match :', duration)
 
       console.log('apiresopnse', apiResponse);
@@ -140,17 +147,23 @@ export class CareerCompassController {
   }
 
   @get('/carrer-compass/roles')
-  async getRoles(): Promise<{ success: boolean; message: string; roles: string[]; apiDurations: { endpoint: string; duration: string } }> {
+  async getRoles(
+@inject(RestBindings.Http.REQUEST) request: Request,
+  ): Promise<{success: boolean; message: string; roles: string[]; apiDurations: {endpoint: string; duration: string}}> {
+
+    const requestId = request.headers['x-request-id'] || '';
     try {
       const apiResponse: any = await apiClient.get(`${process.env.SERVER_URL}/api/knowledge-graph/roles`,
         {
           headers: {
-            "X-apiKey": "2472118222258182",
+            "X-apiKey": process.env.X_API_KEY || '',
+            "X-request-id": requestId.toString()
+
           }
         }
       );
 
-      const { duration } = apiResponse;
+      const {duration} = apiResponse;
       console.log('Response time for => /api/knowledge-graph/roles :', duration)
 
       if (apiResponse?.data.length > 0) {
@@ -184,6 +197,7 @@ export class CareerCompassController {
   // company-fobo
   @post('/company-fobo')
   async getCompanyFobo(
+    @inject(RestBindings.Http.REQUEST) request: Request,
     @requestBody({
       required: true,
       content: {
@@ -192,9 +206,9 @@ export class CareerCompassController {
             type: 'object',
             required: ['company_name'],
             properties: {
-              companyName: { type: 'string' },
-              maxProfilesPerLevel: { type: 'number' },
-              skipMissing: { type: 'boolean' },
+              companyName: {type: 'string'},
+              maxProfilesPerLevel: {type: 'number'},
+              skipMissing: {type: 'boolean'},
             },
           },
         },
@@ -207,6 +221,8 @@ export class CareerCompassController {
     }
   ) {
     try {
+
+      const requestId = request.headers['x-request-id'] || '';
       const form = new FormData();
       form.append('company_name', body.companyName);
       form.append('max_profiles_per_level', body.maxProfilesPerLevel?.toString() || '4');
@@ -215,18 +231,18 @@ export class CareerCompassController {
       console.log("➡️ External API FormData:", body);
 
       // Send request to external FOBO API
-      const apiResponse: any = await apiClient.post(
-        'http://164.52.221.77:7483/fobo/company',
+      const apiResponse: any = await apiClient.post(`${process.env.SERVER_URL}/fobo/company`,
         form,
         {
           headers: {
             ...form.getHeaders(),
-            "X-apiKey": "2472118222258182",
+            "X-apiKey": process.env.X_API_KEY || '',
+            "X-request-id": requestId.toString()
           }
         }
       );
 
-      const { duration } = apiResponse;
+      const {duration} = apiResponse;
 
       // Standardized response
       if (apiResponse?.data?.data) {

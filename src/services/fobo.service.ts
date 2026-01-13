@@ -14,9 +14,9 @@ import {
     RunningAnalyticsRepository,
     UserRepository
 } from "../repositories";
+import generateFoboProFailTemplate from '../templates/fobo-pro-fail.template';
 import generateFoboProSuccessTemplate from '../templates/fobo-pro-successful.template';
 import {EmailService} from './email.service';
-import generateFoboProFailTemplate from '../templates/fobo-pro-fail.template';
 
 export class FOBOService {
     constructor(
@@ -162,7 +162,7 @@ export class FOBOService {
                 formData.append('linkedin_url', requestBody.linkedInUrl);
             }
 
-            formData.append('X-apiKey', '2472118222258182');
+            formData.append('X-apiKey', process.env.X_API_KEY || '');
             formData.append('use_resume', String(requestBody.smartInsights));
 
             if (requestBody.isComprehensiveMode) {
@@ -442,4 +442,71 @@ export class FOBOService {
             message: "No analytics found or invalid processing state.",
         };
     }
+
+    // --------------------------------------------------
+    // Webhook Api
+    // --------------------------------------------------
+
+    async getWebhookFoboData(resumeId: number) {
+
+        const runningAnalytics = await this.runningAnalyticsRepository.findOne({
+            where: {
+                resumeId,
+                isFoboPro: true,
+            },
+        });
+
+        if (!runningAnalytics) {
+            return {
+                success: false,
+                message: 'Webhook allowed only for FOBO Pro users',
+            };
+        }
+
+        const resume = await this.resumeRepository.findById(resumeId);
+
+        if (!resume?.userId) {
+            return {
+                success: false,
+                message: 'User not linked with resume',
+            };
+        }
+
+        const user = await this.userRepository.findById(resume.userId);
+
+        if (!user) {
+            return {
+                success: false,
+                message: 'User not found',
+            };
+        }
+
+        const payload = {
+            EMAIL: user.email,
+            attributes: {
+                FIRSTNAME: user.fullName || 'User',
+                LASTNAME: user.fullName || '',
+                PHONE: user.phoneNumber || '',
+                FOBO_SCORE: 75,
+                TASK_AUTO_1: 'Automate collection, cleaning, and preprocessing of large data sets',
+                TASK_AUTO_2: 'Develop and automate dashboards and reporting tools',
+                TASK_AUTO_3: 'Optimize batch processing systems',
+            },
+            updateEnabled: true,
+        };
+
+        const apiResponse: any = await apiClient.post(
+            'https://hook.us2.make.com/3y7ytrxay8isypgt7ayxhtcu27vehfaa',
+            payload
+        );
+
+        return {
+            success: true,
+            apiResponse,
+        };
+    }
 }
+
+
+
+
