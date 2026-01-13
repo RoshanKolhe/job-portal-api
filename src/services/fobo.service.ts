@@ -223,7 +223,12 @@ export class FOBOService {
                 isFoboPro: requestBody.isFoboPro ?? false,
             });
 
-            await this.getWebhookFoboData({ ...response?.data, userId: resume.userId });
+            await this.getWebhookFoboData({
+                taskDistributionAutomation: response.data.data?.Task_Distribution_Automation,
+                taskDistributionHuman: response.data.data?.Task_Distribution_Human,
+                taskDistributionAugmentation: response.data.data?.Task_Distribution_Augmentation,
+                userId: resume.userId
+            });
             await this.updateRunningAnalytics(analyticsId, { status: 2 });
 
             return { success: true, analyticsData };
@@ -448,7 +453,7 @@ export class FOBOService {
     // --------------------------------------------------
 
     async getWebhookFoboData(data: any) {
-        console.log('data', data);
+        console.log('final data', data);
 
         if (data.userId) {
             const user = await this.userRepository.findById(data.userId);
@@ -460,9 +465,9 @@ export class FOBOService {
                     LASTNAME: user.fullName || '',
                     PHONE: user.phoneNumber || '',
                     FOBO_SCORE: data.foboScore,
-                    TASK_AUTO_1: data.taskAuto1,
-                    TASK_AUTO_2: data.taskAuto2,
-                    TASK_AUTO_3: data.taskAuto3,
+                    TASK_AUTO_1: data?.taskDistributionAutomation[0],
+                    TASK_AUTO_2: data?.taskDistributionHuman[0],
+                    TASK_AUTO_3: data?.taskDistributionAugmentation[0],
                 },
                 updateEnabled: true,
             };
