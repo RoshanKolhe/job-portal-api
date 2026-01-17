@@ -316,25 +316,20 @@ export class FOBOService {
                 };
             }
 
-
-            if (!currentUser || !currentUser.email) {
-                return {
-                    success: false,
-                    message: 'Authenticated user required for FOBO success email',
+            if (currentUser && currentUser.email) {
+                const foboFailOptions = {
+                    firstName: currentUser.fullName || 'User',
+                    to: currentUser.email,
                 };
+
+                const foboFailTemplate = generateFoboProFailTemplate(foboFailOptions);
+
+                await this.emailService.sendMail({
+                    to: currentUser.email,
+                    subject: foboFailTemplate.subject,
+                    html: foboFailTemplate.html,
+                });
             }
-            const foboFailOptions = {
-                firstName: currentUser.fullName || 'User',
-                to: currentUser.email,
-            };
-
-            const foboFailTemplate = generateFoboProFailTemplate(foboFailOptions);
-
-            await this.emailService.sendMail({
-                to: currentUser.email,
-                subject: foboFailTemplate.subject,
-                html: foboFailTemplate.html,
-            });
 
             return {
                 success: false,
@@ -365,28 +360,23 @@ export class FOBOService {
                     isDeleted: true,
                 });
 
-                if (!currentUser || !currentUser.email) {
-                    return {
-                        success: false,
-                        message: 'Authenticated user required for FOBO success email',
+                if (currentUser && currentUser.email) {
+                    const siteUrl = process.env.REACT_APP_SITE_URL || 'https://www.altiv.ai';
+
+                    const foboSuccessOptions = {
+                        firstName: currentUser.fullName || 'User',
+                        to: currentUser.email,
+                        foboUrl: `${siteUrl}/ai-readiness-analysis`,
                     };
+
+                    const foboSuccessTemplate = generateFoboProSuccessTemplate(foboSuccessOptions);
+
+                    await this.emailService.sendMail({
+                        to: currentUser.email,
+                        subject: foboSuccessTemplate.subject,
+                        html: foboSuccessTemplate.html,
+                    });
                 }
-
-                const siteUrl = process.env.REACT_APP_SITE_URL || 'https://www.altiv.ai';
-
-                const foboSuccessOptions = {
-                    firstName: currentUser.fullName || 'User',
-                    to: currentUser.email,
-                    foboUrl: `${siteUrl}/ai-readiness-analysis`,
-                };
-
-                const foboSuccessTemplate = generateFoboProSuccessTemplate(foboSuccessOptions);
-
-                await this.emailService.sendMail({
-                    to: currentUser.email,
-                    subject: foboSuccessTemplate.subject,
-                    html: foboSuccessTemplate.html,
-                });
 
                 return { success: true };
             }
