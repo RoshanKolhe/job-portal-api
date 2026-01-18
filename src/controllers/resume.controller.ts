@@ -1,5 +1,5 @@
-import {authenticate, AuthenticationBindings} from '@loopback/authentication';
-import {inject} from '@loopback/core';
+import { authenticate, AuthenticationBindings } from '@loopback/authentication';
+import { inject } from '@loopback/core';
 import {
   Count,
   CountSchema,
@@ -22,18 +22,19 @@ import {
   response,
   RestBindings,
 } from '@loopback/rest';
-import {UserProfile} from '@loopback/security';
+import { UserProfile } from '@loopback/security';
 import FormData from 'form-data';
 import fs from 'fs';
 import * as isEmail from 'isemail';
 import path from 'path';
-import {PermissionKeys} from '../authorization/permission-keys';
+import { PermissionKeys } from '../authorization/permission-keys';
 import apiClient from '../interceptors/axios-client.interceptor';
-import {STORAGE_DIRECTORY} from '../keys';
-import {Resume} from '../models';
-import {ResumeRepository, UserRepository} from '../repositories';
-import {EventHistoryService} from '../services/event-history.service';
-import {BcryptHasher} from '../services/hash.password.bcrypt';
+import { STORAGE_DIRECTORY } from '../keys';
+import { Resume } from '../models';
+import { ResumeRepository, UserRepository } from '../repositories';
+import { EventHistoryService } from '../services/event-history.service';
+import { BcryptHasher } from '../services/hash.password.bcrypt';
+import { RequesIDService } from '../services/request-id.service';
 
 export class ResumeController {
   constructor(
@@ -45,6 +46,8 @@ export class ResumeController {
     @inject('service.hasher') public hasher: BcryptHasher,
     @inject('service.eventhistory.service')
     public eventHistoryService: EventHistoryService,
+    @inject('service.RequesID.service')
+    private requestIdService: RequesIDService
   ) { }
 
   // post new resume for login users
@@ -54,7 +57,7 @@ export class ResumeController {
   @post('/resumes')
   @response(200, {
     description: 'Resume model instance',
-    content: {'application/json': {schema: getModelSchemaRef(Resume)}},
+    content: { 'application/json': { schema: getModelSchemaRef(Resume) } },
   })
   async create(
     @inject(AuthenticationBindings.CURRENT_USER) currentUser: UserProfile,
@@ -70,8 +73,10 @@ export class ResumeController {
       },
     })
     resume: Omit<Resume, 'id'>,
-  ): Promise<{success: boolean; message: string; resume: Resume; apiDurations: {endpoint: string; duration: string} | null}> {
-    const requestId = request.headers['X-Request-Id'] || '';
+  ): Promise<{ success: boolean; message: string; resume: Resume; apiDurations: { endpoint: string; duration: string } | null }> {
+    const requestId = request.headers['X-Request-Id'] || await this.requestIdService.createRequestId();
+    console.log('Request ID:', requestId);
+
     try {
       const user = await this.userRepository.findById(currentUser.id);
 
@@ -117,7 +122,7 @@ export class ResumeController {
           }
         );
 
-        const {duration} = apiResponse;
+        const { duration } = apiResponse;
         console.log('Response time for => /api/resume/upload:', duration);
 
         console.log('Response from AI server', apiResponse.data);
@@ -125,7 +130,7 @@ export class ResumeController {
           success: true,
           message: 'Resume Saved',
           resume: savedResume,
-          apiDurations: {endpoint: '/api/resume/upload', duration: duration}
+          apiDurations: { endpoint: '/api/resume/upload', duration: duration }
         };
       }
 
@@ -169,13 +174,13 @@ export class ResumeController {
         },
       );
 
-      const {duration} = response;
+      const { duration } = response;
       console.log('Response time for => /fobo/user-details:', duration);
 
-      const {Name, Email, Phone} = response.data?.data || {};
+      const { Name, Email, Phone } = response.data?.data || {};
 
       if (Name && Email && Phone && isEmail.validate(Email)) {
-        const existing = await this.userRepository.findOne({where: {email: Email}});
+        const existing = await this.userRepository.findOne({ where: { email: Email } });
 
         if (!existing) {
           const password = await this.hasher.generateRandomPassword();
@@ -206,10 +211,10 @@ export class ResumeController {
               user.id
             );
           }
-          return {user, apiDuration: {endpoint: '/fobo/user-details', duration}};
+          return { user, apiDuration: { endpoint: '/fobo/user-details', duration } };
         }
 
-        return {user: existing, apiDuration: {endpoint: '/fobo/user-details', duration}};
+        return { user: existing, apiDuration: { endpoint: '/fobo/user-details', duration } };
       }
 
       return null;
@@ -257,15 +262,17 @@ export class ResumeController {
       },
     })
     resume: Omit<Resume, 'id'>,
-    
-  ): Promise<{success: boolean; message: string; resume: Resume; apiDurations: Array<{endpoint: string; duration: string}> | null}> {
-    const requestId = request.headers['X-Request-Id'] || '';
+
+  ): Promise<{ success: boolean; message: string; resume: Resume; apiDurations: Array<{ endpoint: string; duration: string }> | null }> {
+    const requestId = request.headers['X-Request-Id'] || await this.requestIdService.createRequestId();
+    console.log('Request ID:', requestId);
+
     try {
-      const {fileDetails} = resume;
-      const {data} = await this.getUserInfo(fileDetails, requestId);
+      const { fileDetails } = resume;
+      const { data } = await this.getUserInfo(fileDetails, requestId);
 
       if (data) {
-        const newResume: any = await this.resumeRepository.create({...resume, userId: data?.user?.id});
+        const newResume: any = await this.resumeRepository.create({ ...resume, userId: data?.user?.id });
         const filePath = this.validateFileName(newResume?.fileDetails?.newFileName);
         const resumeFile = fs.createReadStream(filePath);
         const form = new FormData();
@@ -286,7 +293,7 @@ export class ResumeController {
               },
             }
           );
-          const {duration} = apiResponse;
+          const { duration } = apiResponse;
           console.log('Response time for => /api/resume/upload:', duration);
 
           console.log('Response from AI server', apiResponse.data);
@@ -330,7 +337,7 @@ export class ResumeController {
   @get('/resumes/count')
   @response(200, {
     description: 'Resume model count',
-    content: {'application/json': {schema: CountSchema}},
+    content: { 'application/json': { schema: CountSchema } },
   })
   async count(
     @param.where(Resume) where?: Where<Resume>,
@@ -345,7 +352,7 @@ export class ResumeController {
       'application/json': {
         schema: {
           type: 'array',
-          items: getModelSchemaRef(Resume, {includeRelations: true}),
+          items: getModelSchemaRef(Resume, { includeRelations: true }),
         },
       },
     },
@@ -359,13 +366,13 @@ export class ResumeController {
   @patch('/resumes')
   @response(200, {
     description: 'Resume PATCH success count',
-    content: {'application/json': {schema: CountSchema}},
+    content: { 'application/json': { schema: CountSchema } },
   })
   async updateAll(
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Resume, {partial: true}),
+          schema: getModelSchemaRef(Resume, { partial: true }),
         },
       },
     })
@@ -380,13 +387,13 @@ export class ResumeController {
     description: 'Resume model instance',
     content: {
       'application/json': {
-        schema: getModelSchemaRef(Resume, {includeRelations: true}),
+        schema: getModelSchemaRef(Resume, { includeRelations: true }),
       },
     },
   })
   async findById(
     @param.path.number('id') id: number,
-    @param.filter(Resume, {exclude: 'where'}) filter?: FilterExcludingWhere<Resume>
+    @param.filter(Resume, { exclude: 'where' }) filter?: FilterExcludingWhere<Resume>
   ): Promise<Resume> {
     return this.resumeRepository.findById(id, filter);
   }
@@ -400,7 +407,7 @@ export class ResumeController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Resume, {partial: true}),
+          schema: getModelSchemaRef(Resume, { partial: true }),
         },
       },
     })
@@ -431,14 +438,14 @@ export class ResumeController {
   // resumes by userId
   @authenticate({
     strategy: 'jwt',
-    options: {required: [PermissionKeys.ADMIN]}
+    options: { required: [PermissionKeys.ADMIN] }
   })
   @get('/resumes/resume-by-id/{userId}')
   async fetchResumesByUserId(
     @param.path.number('userId') userId: number,
   ): Promise<Resume[]> {
     try {
-      const resumes = await this.resumeRepository.find({where: {userId: userId}});
+      const resumes = await this.resumeRepository.find({ where: { userId: userId } });
 
       return resumes;
     } catch (error) {
@@ -473,7 +480,7 @@ export class ResumeController {
       resumeIds: number[];
     }
   ) {
-    await this.resumeRepository.updateAll({userId: currentUser.id}, {id: {inq: resumes.resumeIds}});
+    await this.resumeRepository.updateAll({ userId: currentUser.id }, { id: { inq: resumes.resumeIds } });
 
     return {
       success: true,

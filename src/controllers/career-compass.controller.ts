@@ -1,10 +1,14 @@
-import {inject} from '@loopback/core';
-import {get, HttpErrors, post, Request, requestBody, RestBindings} from "@loopback/rest";
+import { inject } from '@loopback/core';
+import { get, HttpErrors, post, Request, requestBody, RestBindings } from "@loopback/rest";
 import FormData from "form-data";
 import apiClient from '../interceptors/axios-client.interceptor';
+import { RequesIDService } from '../services/request-id.service';
 
 export class CareerCompassController {
-  constructor() { }
+  constructor(
+    @inject('service.RequesID.service')
+    private requestIdService: RequesIDService
+  ) { }
 
   // career compass api
   @post('/career-compass')
@@ -36,12 +40,12 @@ export class CareerCompassController {
       designation?: string;
       experience?: number
     }
-  ): Promise<{success: boolean; message: string; data: object | null; apiDurations: {endpoint: string; duration: string}}> {
+  ): Promise<{ success: boolean; message: string; data: object | null; apiDurations: { endpoint: string; duration: string } }> {
 
-    const requestId = request.headers['X-Request-Id'] || '';
-    console.log(`Request ID: ${requestId} - Received data:`, data);
+    const requestId = request.headers['X-Request-Id'] || await this.requestIdService.createRequestId();
+    console.log('Request ID:', requestId);
     try {
-      const {resumeId, designation, experience} = data;
+      const { resumeId, designation, experience } = data;
 
       if (!resumeId && !designation && !experience) {
         throw new HttpErrors.BadRequest('Invalid request body');
@@ -67,7 +71,7 @@ export class CareerCompassController {
           }
         );
 
-        const {duration} = apiResponse;
+        const { duration } = apiResponse;
         console.log('Response time for => /api/career_path_match :', duration)
 
         console.log('api response', apiResponse);
@@ -111,7 +115,7 @@ export class CareerCompassController {
           }
         }
       );
-      const {duration} = apiResponse;
+      const { duration } = apiResponse;
       console.log('Response time for => /api/career_path_match :', duration)
 
       console.log('apiresopnse', apiResponse);
@@ -148,10 +152,13 @@ export class CareerCompassController {
 
   @get('/carrer-compass/roles')
   async getRoles(
-@inject(RestBindings.Http.REQUEST) request: Request,
-  ): Promise<{success: boolean; message: string; roles: string[]; apiDurations: {endpoint: string; duration: string}}> {
+    @inject(RestBindings.Http.REQUEST) request: Request,
+  ): Promise<{ success: boolean; message: string; roles: string[]; apiDurations: { endpoint: string; duration: string } }> {
 
-    const requestId = request.headers['X-Request-Id'] || '';
+    const requestId = request.headers['X-Request-Id'] || await this.requestIdService.createRequestId();
+
+    console.log('Request ID:', requestId);
+
     try {
       const apiResponse: any = await apiClient.get(`${process.env.SERVER_URL}/api/knowledge-graph/roles`,
         {
@@ -163,7 +170,7 @@ export class CareerCompassController {
         }
       );
 
-      const {duration} = apiResponse;
+      const { duration } = apiResponse;
       console.log('Response time for => /api/knowledge-graph/roles :', duration)
 
       if (apiResponse?.data.length > 0) {
@@ -206,9 +213,9 @@ export class CareerCompassController {
             type: 'object',
             required: ['company_name'],
             properties: {
-              companyName: {type: 'string'},
-              maxProfilesPerLevel: {type: 'number'},
-              skipMissing: {type: 'boolean'},
+              companyName: { type: 'string' },
+              maxProfilesPerLevel: { type: 'number' },
+              skipMissing: { type: 'boolean' },
             },
           },
         },
@@ -222,7 +229,9 @@ export class CareerCompassController {
   ) {
     try {
 
-      const requestId = request.headers['X-Request-Id'] || '';
+      const requestId = request.headers['X-Request-Id'] || await this.requestIdService.createRequestId();
+      console.log('Request ID:', requestId);
+
       const form = new FormData();
       form.append('company_name', body.companyName);
       form.append('max_profiles_per_level', body.maxProfilesPerLevel?.toString() || '4');
@@ -242,7 +251,7 @@ export class CareerCompassController {
         }
       );
 
-      const {duration} = apiResponse;
+      const { duration } = apiResponse;
 
       // Standardized response
       if (apiResponse?.data?.data) {

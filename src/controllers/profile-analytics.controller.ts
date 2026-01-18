@@ -17,6 +17,7 @@ import { EventHistoryService } from '../services/event-history.service';
 import { FOBOService } from '../services/fobo.service';
 import { JWTService } from '../services/jwt-service';
 import generateFoboRunTemplate from '../templates/fobo-run.template';
+import { RequesIDService } from '../services/request-id.service';
 
 export class ProfileAnalyticsController {
   constructor(
@@ -37,6 +38,8 @@ export class ProfileAnalyticsController {
     @inject('services.email.send')
     public emailService: EmailService,
     @inject(STORAGE_DIRECTORY) private storageDirectory: string,
+    @inject('service.RequesID.service')
+    private requestIdService: RequesIDService
   ) { }
 
   private async validateCredentials(authHeader: string) {
@@ -92,7 +95,8 @@ export class ProfileAnalyticsController {
       let resume: any = null;
       let currentUser: any = null;
       const authHeader = request.headers.authorization;
-      const requestId = request.headers['X-Request-Id'];
+      const requestId = request.headers['X-Request-Id'] || await this.requestIdService.createRequestId();
+      console.log('Request ID:', requestId);
 
       if (authHeader && authHeader !== '' && authHeader !== null && authHeader !== undefined && authHeader !== 'Bearer') {
         currentUser = await this.validateCredentials(authHeader);

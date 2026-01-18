@@ -185,6 +185,9 @@ export class FOBOService {
                 }
             );
 
+            const { duration } = response;
+            console.log('Response time for => /fobo :', duration)
+
             if (response.status !== 200 || response.data?.status !== 'success') {
                 throw new Error(response.data?.message || 'FOBO failed');
             }
@@ -449,7 +452,6 @@ export class FOBOService {
         try {
             if (data.userId) {
                 const user = await this.userRepository.findById(data.userId);
-                console.log('user', user);
 
                 const payload = {
                     EMAIL: user.email,
@@ -465,14 +467,10 @@ export class FOBOService {
                     updateEnabled: true,
                 };
 
-                console.log('payload', payload);
-
                 const apiResponse: any = await apiClient.post(
                     'https://hook.us2.make.com/3gxgyeesevrypmt76s6n38ovsidj38bp',
                     payload
                 );
-
-                console.log('apiResponse', apiResponse);
 
                 return {
                     success: true,
@@ -484,7 +482,6 @@ export class FOBOService {
                 apiResponse: null,
             };
         } catch (error) {
-            console.log('error while calling webhook :', error);
             return {
                 success: false,
                 apiResponse: null,
