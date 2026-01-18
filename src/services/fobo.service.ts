@@ -446,38 +446,48 @@ export class FOBOService {
     // --------------------------------------------------
 
     async getWebhookFoboData(data: any) {
-        console.log('final data', data);
+        try {
+            if (data.userId) {
+                const user = await this.userRepository.findById(data.userId);
+                console.log('user', user);
 
-        if (data.userId) {
-            const user = await this.userRepository.findById(data.userId);
-            console.log('user', user);
+                const payload = {
+                    EMAIL: user.email,
+                    attributes: {
+                        FIRSTNAME: user.fullName,
+                        LASTNAME: user.fullName || '',
+                        PHONE: user.phoneNumber || '',
+                        FOBO_SCORE: data.foboScore,
+                        TASK_AUTO_1: data?.taskDistributionAutomation[0],
+                        TASK_AUTO_2: data?.taskDistributionHuman[0],
+                        TASK_AUTO_3: data?.taskDistributionAugmentation[0],
+                    },
+                    updateEnabled: true,
+                };
 
-            const payload = {
-                EMAIL: user.email,
-                attributes: {
-                    FIRSTNAME: user.fullName,
-                    LASTNAME: user.fullName || '',
-                    PHONE: user.phoneNumber || '',
-                    FOBO_SCORE: data.foboScore,
-                    TASK_AUTO_1: data?.taskDistributionAutomation[0],
-                    TASK_AUTO_2: data?.taskDistributionHuman[0],
-                    TASK_AUTO_3: data?.taskDistributionAugmentation[0],
-                },
-                updateEnabled: true,
-            };
+                console.log('payload', payload);
 
-            console.log('payload', payload);
+                const apiResponse: any = await apiClient.post(
+                    'https://hook.us2.make.com/3gxgyeesevrypmt76s6n38ovsidj38bp',
+                    payload
+                );
 
-            const apiResponse: any = await apiClient.post(
-                'https://hook.us2.make.com/3gxgyeesevrypmt76s6n38ovsidj38bp',
-                payload
-            );
+                console.log('apiResponse', apiResponse);
 
-            console.log('apiResponse', apiResponse);
-
+                return {
+                    success: true,
+                    apiResponse,
+                };
+            }
             return {
-                success: true,
-                apiResponse,
+                success: false,
+                apiResponse: null,
+            };
+        } catch (error) {
+            console.log('error while calling webhook :', error);
+            return {
+                success: false,
+                apiResponse: null,
             };
         }
     }
