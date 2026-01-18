@@ -54,10 +54,13 @@ export class JobPortalApiApplication extends BootMixin(
 
     this.static('/', path.join(__dirname, '../public'));
 
-    this.configure(RestExplorerBindings.COMPONENT).to({
-      path: '/explorer',
-    });
-    this.component(RestExplorerComponent);
+    // Only enable explorer in non-production environments
+    if (process.env.NODE_ENV !== 'production') {
+      this.configure(RestExplorerBindings.COMPONENT).to({
+        path: '/explorer',
+      });
+      this.component(RestExplorerComponent);
+    }
 
     this.projectRoot = __dirname;
     this.bootOptions = {
