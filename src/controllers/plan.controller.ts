@@ -144,16 +144,16 @@ export class PlanController {
   }
 
 
-  @get('/plans/count')
-  @response(200, {
-    description: 'Plan model count',
-    content: { 'application/json': { schema: CountSchema } },
-  })
-  async count(
-    @param.where(Plan) where?: Where<Plan>,
-  ): Promise<Count> {
-    return this.planRepository.count(where);
-  }
+  // @get('/plans/count')
+  // @response(200, {
+  //   description: 'Plan model count',
+  //   content: { 'application/json': { schema: CountSchema } },
+  // })
+  // async count(
+  //   @param.where(Plan) where?: Where<Plan>,
+  // ): Promise<Count> {
+  //   return this.planRepository.count(where);
+  // }
 
   @get('/plans')
   @response(200, {
@@ -243,32 +243,32 @@ export class PlanController {
   //   return activePlans;
   // }
 
-  @authenticate({
-    strategy: 'jwt',
-    options: {
-      required: [
-        PermissionKeys.ADMIN
-      ]
-    }
-  })
-  @patch('/plans')
-  @response(200, {
-    description: 'Plan PATCH success count',
-    content: { 'application/json': { schema: CountSchema } },
-  })
-  async updateAll(
-    @requestBody({
-      content: {
-        'application/json': {
-          schema: getModelSchemaRef(Plan, { partial: true }),
-        },
-      },
-    })
-    plan: Plan,
-    @param.where(Plan) where?: Where<Plan>,
-  ): Promise<Count> {
-    return this.planRepository.updateAll(plan, where);
-  }
+  // @authenticate({
+  //   strategy: 'jwt',
+  //   options: {
+  //     required: [
+  //       PermissionKeys.ADMIN
+  //     ]
+  //   }
+  // })
+  // @patch('/plans')
+  // @response(200, {
+  //   description: 'Plan PATCH success count',
+  //   content: { 'application/json': { schema: CountSchema } },
+  // })
+  // async updateAll(
+  //   @requestBody({
+  //     content: {
+  //       'application/json': {
+  //         schema: getModelSchemaRef(Plan, { partial: true }),
+  //       },
+  //     },
+  //   })
+  //   plan: Plan,
+  //   @param.where(Plan) where?: Where<Plan>,
+  // ): Promise<Count> {
+  //   return this.planRepository.updateAll(plan, where);
+  // }
 
   @get('/plans/{id}')
   @response(200, {
@@ -377,24 +377,24 @@ export class PlanController {
   }
 
 
-  @authenticate({
-    strategy: 'jwt',
-    options: {
-      required: [
-        PermissionKeys.ADMIN
-      ]
-    }
-  })
-  @put('/plans/{id}')
-  @response(204, {
-    description: 'Plan PUT success',
-  })
-  async replaceById(
-    @param.path.number('id') id: number,
-    @requestBody() plan: Plan,
-  ): Promise<void> {
-    await this.planRepository.replaceById(id, plan);
-  }
+  // @authenticate({
+  //   strategy: 'jwt',
+  //   options: {
+  //     required: [
+  //       PermissionKeys.ADMIN
+  //     ]
+  //   }
+  // })
+  // @put('/plans/{id}')
+  // @response(204, {
+  //   description: 'Plan PUT success',
+  // })
+  // async replaceById(
+  //   @param.path.number('id') id: number,
+  //   @requestBody() plan: Plan,
+  // ): Promise<void> {
+  //   await this.planRepository.replaceById(id, plan);
+  // }
 
   @authenticate({
     strategy: 'jwt',

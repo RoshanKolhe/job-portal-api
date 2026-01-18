@@ -12,7 +12,6 @@ export class CareerCompassController {
 
   // career compass api
   @post('/career-compass')
-
   async fetchCareerCompass(
     @inject(RestBindings.Http.REQUEST) request: Request,
     @requestBody({

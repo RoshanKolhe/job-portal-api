@@ -334,98 +334,98 @@ export class ResumeController {
     }
   }
 
-  @get('/resumes/count')
-  @response(200, {
-    description: 'Resume model count',
-    content: { 'application/json': { schema: CountSchema } },
-  })
-  async count(
-    @param.where(Resume) where?: Where<Resume>,
-  ): Promise<Count> {
-    return this.resumeRepository.count(where);
-  }
+  // @get('/resumes/count')
+  // @response(200, {
+  //   description: 'Resume model count',
+  //   content: { 'application/json': { schema: CountSchema } },
+  // })
+  // async count(
+  //   @param.where(Resume) where?: Where<Resume>,
+  // ): Promise<Count> {
+  //   return this.resumeRepository.count(where);
+  // }
 
-  @get('/resumes')
-  @response(200, {
-    description: 'Array of Resume model instances',
-    content: {
-      'application/json': {
-        schema: {
-          type: 'array',
-          items: getModelSchemaRef(Resume, { includeRelations: true }),
-        },
-      },
-    },
-  })
-  async find(
-    @param.filter(Resume) filter?: Filter<Resume>,
-  ): Promise<Resume[]> {
-    return this.resumeRepository.find(filter);
-  }
+  // @get('/resumes')
+  // @response(200, {
+  //   description: 'Array of Resume model instances',
+  //   content: {
+  //     'application/json': {
+  //       schema: {
+  //         type: 'array',
+  //         items: getModelSchemaRef(Resume, { includeRelations: true }),
+  //       },
+  //     },
+  //   },
+  // })
+  // async find(
+  //   @param.filter(Resume) filter?: Filter<Resume>,
+  // ): Promise<Resume[]> {
+  //   return this.resumeRepository.find(filter);
+  // }
 
-  @patch('/resumes')
-  @response(200, {
-    description: 'Resume PATCH success count',
-    content: { 'application/json': { schema: CountSchema } },
-  })
-  async updateAll(
-    @requestBody({
-      content: {
-        'application/json': {
-          schema: getModelSchemaRef(Resume, { partial: true }),
-        },
-      },
-    })
-    resume: Resume,
-    @param.where(Resume) where?: Where<Resume>,
-  ): Promise<Count> {
-    return this.resumeRepository.updateAll(resume, where);
-  }
+  // @patch('/resumes')
+  // @response(200, {
+  //   description: 'Resume PATCH success count',
+  //   content: { 'application/json': { schema: CountSchema } },
+  // })
+  // async updateAll(
+  //   @requestBody({
+  //     content: {
+  //       'application/json': {
+  //         schema: getModelSchemaRef(Resume, { partial: true }),
+  //       },
+  //     },
+  //   })
+  //   resume: Resume,
+  //   @param.where(Resume) where?: Where<Resume>,
+  // ): Promise<Count> {
+  //   return this.resumeRepository.updateAll(resume, where);
+  // }
 
-  @get('/resumes/{id}')
-  @response(200, {
-    description: 'Resume model instance',
-    content: {
-      'application/json': {
-        schema: getModelSchemaRef(Resume, { includeRelations: true }),
-      },
-    },
-  })
-  async findById(
-    @param.path.number('id') id: number,
-    @param.filter(Resume, { exclude: 'where' }) filter?: FilterExcludingWhere<Resume>
-  ): Promise<Resume> {
-    return this.resumeRepository.findById(id, filter);
-  }
+  // @get('/resumes/{id}')
+  // @response(200, {
+  //   description: 'Resume model instance',
+  //   content: {
+  //     'application/json': {
+  //       schema: getModelSchemaRef(Resume, { includeRelations: true }),
+  //     },
+  //   },
+  // })
+  // async findById(
+  //   @param.path.number('id') id: number,
+  //   @param.filter(Resume, { exclude: 'where' }) filter?: FilterExcludingWhere<Resume>
+  // ): Promise<Resume> {
+  //   return this.resumeRepository.findById(id, filter);
+  // }
 
-  @patch('/resumes/{id}')
-  @response(204, {
-    description: 'Resume PATCH success',
-  })
-  async updateById(
-    @param.path.number('id') id: number,
-    @requestBody({
-      content: {
-        'application/json': {
-          schema: getModelSchemaRef(Resume, { partial: true }),
-        },
-      },
-    })
-    resume: Resume,
-  ): Promise<void> {
-    await this.resumeRepository.updateById(id, resume);
-  }
+  // @patch('/resumes/{id}')
+  // @response(204, {
+  //   description: 'Resume PATCH success',
+  // })
+  // async updateById(
+  //   @param.path.number('id') id: number,
+  //   @requestBody({
+  //     content: {
+  //       'application/json': {
+  //         schema: getModelSchemaRef(Resume, { partial: true }),
+  //       },
+  //     },
+  //   })
+  //   resume: Resume,
+  // ): Promise<void> {
+  //   await this.resumeRepository.updateById(id, resume);
+  // }
 
-  @put('/resumes/{id}')
-  @response(204, {
-    description: 'Resume PUT success',
-  })
-  async replaceById(
-    @param.path.number('id') id: number,
-    @requestBody() resume: Resume,
-  ): Promise<void> {
-    await this.resumeRepository.replaceById(id, resume);
-  }
+  // @put('/resumes/{id}')
+  // @response(204, {
+  //   description: 'Resume PUT success',
+  // })
+  // async replaceById(
+  //   @param.path.number('id') id: number,
+  //   @requestBody() resume: Resume,
+  // ): Promise<void> {
+  //   await this.resumeRepository.replaceById(id, resume);
+  // }
 
   @del('/resumes/{id}')
   @response(204, {
