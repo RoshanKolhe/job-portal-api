@@ -1,4 +1,4 @@
-import {inject} from '@loopback/core';
+import { inject } from '@loopback/core';
 import {
   get,
   HttpErrors,
@@ -12,9 +12,9 @@ import {
 } from '@loopback/rest';
 import fs from 'fs';
 import path from 'path';
-import {promisify} from 'util';
-import {FILE_UPLOAD_SERVICE, STORAGE_DIRECTORY} from '../keys';
-import {FileUploadHandler} from '../types';
+import { promisify } from 'util';
+import { FILE_UPLOAD_SERVICE, STORAGE_DIRECTORY } from '../keys';
+import { FileUploadHandler } from '../types';
 
 const readdir = promisify(fs.readdir);
 
@@ -25,7 +25,7 @@ export class FileUploadController {
   constructor(
     @inject(FILE_UPLOAD_SERVICE) private handler: FileUploadHandler,
     @inject(STORAGE_DIRECTORY) private storageDirectory: string,
-  ) {}
+  ) { }
 
   // @authenticate('jwt')
   @post('/files', {
@@ -64,9 +64,32 @@ export class FileUploadController {
    * @param request - Http request
    */
   private static getFilesAndFields(request: Request) {
+    const ALLOWED_MIME_TYPES = [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/jpg',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
+
+    const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.pdf', '.doc', '.docx'];
+
     const uploadedFiles = request.files;
     const mapper = (f: globalThis.Express.Multer.File) => {
       console.log('file', f);
+      const ext = path.extname(f.originalname).toLowerCase();
+
+      if (
+        !ALLOWED_MIME_TYPES.includes(f.mimetype) ||
+        !ALLOWED_EXTENSIONS.includes(ext)
+      ) {
+        throw new HttpErrors.BadRequest(
+          `Invalid file type: ${f.originalname}. Only images, PDF, DOC allowed.`,
+        );
+      }
+
       return {
         fieldname: f.fieldname,
         fileName: f.originalname,
@@ -86,7 +109,7 @@ export class FileUploadController {
       }
     }
 
-    return {files, fields: request.body};
+    return { files, fields: request.body };
   }
 
   // @get('/files', {
