@@ -56,9 +56,9 @@ export class RazorPayService {
         callback_method: "get",
 
         customer: {
-          name: subscriptionDetails.userName,
-          email: subscriptionDetails.email,
-          contact: subscriptionDetails.mobile,
+          name: subscriptionDetails.username || 'Shubham Shahane',
+          email: subscriptionDetails.email || 'shahaneshubham64@gmail.com',
+          contact: subscriptionDetails.mobile || 9999999999,
         },
 
         notify: {
