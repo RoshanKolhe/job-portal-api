@@ -127,7 +127,7 @@ export class SubscriptionController {
       if (newSubscription.paymentMethod === 0) {
         response = await this.stripeService.createCheckoutSession(checkOutData);
       } else if (newSubscription.paymentMethod === 1) {
-        response = await this.razorpayService.createOrder(checkOutData);
+        response = await this.razorpayService.createPaymentLink(checkOutData);
       } else {
         throw new HttpErrors.BadRequest('Invalid payment method selected');
       }
@@ -461,10 +461,6 @@ export class SubscriptionController {
     };
     return this.subscriptionRepository.findById(id, updatedFilter);
   }
-
-
-
-
 
   @authenticate({
     strategy: 'jwt',
