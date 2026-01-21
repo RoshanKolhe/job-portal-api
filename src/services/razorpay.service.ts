@@ -15,30 +15,71 @@ export class RazorPayService {
     });
   }
 
-  async createOrder(subscriptionDetails: any) {
+  // async createOrder(subscriptionDetails: any) {
+  //   try {
+  //     const amountInPaise = Math.round(subscriptionDetails.planData?.price * 100); // Razorpay accepts amount in paise
+  //     const options = {
+  //       amount: amountInPaise,
+  //       currency: subscriptionDetails.currencyType === 1 ? 'USD' : 'INR',
+  //       receipt: `receipt_${subscriptionDetails.id}`,
+  //       payment_capture: 1,
+  //     };
+
+  //     const order = await this.razorpay.orders.create(options);
+
+  //     return {
+  //       orderId: order.id,
+  //       amount: order.amount,
+  //       currency: order.currency,
+  //       receipt: order.receipt,
+  //       subscriptionId: subscriptionDetails.id,
+  //       razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+  //     };
+  //   } catch (error) {
+  //     console.error('Error creating Razorpay order:', error);
+  //     throw error;
+  //   }
+  // }
+
+  async createPaymentLink(subscriptionDetails: any) {
     try {
-      console.log('subscriptionDetails', subscriptionDetails);
-      const amountInPaise = Math.round(subscriptionDetails.planData?.price * 100); // Razorpay accepts amount in paise
-      console.log('amountInPaise', amountInPaise);
-      const options = {
+      const amountInPaise = Math.round(subscriptionDetails.planData.price * 100);
+
+      const paymentLink = await this.razorpay.paymentLink.create({
         amount: amountInPaise,
         currency: subscriptionDetails.currencyType === 1 ? 'USD' : 'INR',
-        receipt: `receipt_${subscriptionDetails.id}`,
-        payment_capture: 1,
-      };
 
-      const order = await this.razorpay.orders.create(options);
+        description: `Subscription ${subscriptionDetails.id}`,
+        reference_id: `sub_${subscriptionDetails.id}`,
+
+        callback_url: `${process.env.FRONTEND_URL}/payment/success`,
+        callback_method: "get",
+
+        customer: {
+          name: subscriptionDetails.userName,
+          email: subscriptionDetails.email,
+          contact: subscriptionDetails.mobile,
+        },
+
+        notify: {
+          sms: true,
+          email: true,
+        },
+
+        notes: {
+          subscriptionId: subscriptionDetails.id,
+        },
+      });
 
       return {
-        orderId: order.id,
-        amount: order.amount,
-        currency: order.currency,
-        receipt: order.receipt,
+        paymentLinkId: paymentLink.id,
+        shortUrl: paymentLink.short_url,
+        status: paymentLink.status,
         subscriptionId: subscriptionDetails.id,
-        razorpayKeyId: process.env.RAZORPAY_KEY_ID,
       };
+
     } catch (error) {
-      console.error('Error creating Razorpay order:', error);
+      console.error("Error creating payment link:", error);
       throw error;
     }
   }
