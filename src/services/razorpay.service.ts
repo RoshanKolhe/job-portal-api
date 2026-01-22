@@ -52,13 +52,13 @@ export class RazorPayService {
         description: `Subscription ${subscriptionDetails.id}`,
         reference_id: `sub_${subscriptionDetails.id}`,
 
-        callback_url: `${process.env.REACT_APP_SITE_URL}/payment/success`,
+        callback_url: `${process.env.REACT_APP_SITE_URL}/payment/verify`,
         callback_method: "get",
 
         customer: {
-          name: subscriptionDetails.username || 'Shubham Shahane',
-          email: subscriptionDetails.email || 'shahaneshubham64@gmail.com',
-          contact: subscriptionDetails.mobile || '7249462782',
+          name: subscriptionDetails?.userData?.fullName || 'Shubham Shahane',
+          email: subscriptionDetails?.userData?.email || 'shahaneshubham64@gmail.com',
+          contact: subscriptionDetails?.userData?.phoneNumber || '7249462782',
         },
 
         notify: {
