@@ -98,7 +98,7 @@ export class SubscriptionController {
         throw new HttpErrors.NotFound(`Plan with planId ${subscription.planId} not found`);
       }
       let calculatedPrice = plan.price;
-      if(subscription.currencyType === 1){
+      if (subscription.currencyType === 1) {
         calculatedPrice = await this.currencyExchangeService.exchangeToUSD(plan.price);
       }
 
@@ -148,7 +148,7 @@ export class SubscriptionController {
   }
 
   @post('/subscriptions/callback/verify')
-  async verifyRazorpayPayment(
+  async verifyRazorpayPaymentLink(
     @requestBody({
       content: {
         'application/json': {
@@ -156,14 +156,16 @@ export class SubscriptionController {
             type: 'object',
             properties: {
               subscription_id: { type: 'number' },
-              razorpay_order_id: { type: 'string' },
               razorpay_payment_id: { type: 'string' },
+              razorpay_payment_link_id: { type: 'string' },
+              razorpay_payment_link_reference_id: { type: 'string' },
               razorpay_signature: { type: 'string' },
             },
             required: [
               'subscription_id',
-              'razorpay_order_id',
               'razorpay_payment_id',
+              'razorpay_payment_link_id',
+              'razorpay_payment_link_reference_id',
               'razorpay_signature',
             ],
           },
@@ -172,94 +174,111 @@ export class SubscriptionController {
     })
     body: {
       subscription_id: number;
-      razorpay_order_id: string;
       razorpay_payment_id: string;
+      razorpay_payment_link_id: string;
+      razorpay_payment_link_reference_id: string;
       razorpay_signature: string;
     },
-    @inject(RestBindings.Http.RESPONSE) res: Response
+    @inject(RestBindings.Http.RESPONSE) res: Response,
   ): Promise<{ success: boolean; endpoint: string | null }> {
-    const { subscription_id, razorpay_order_id, razorpay_payment_id, razorpay_signature } = body;
+    const {
+      subscription_id,
+      razorpay_payment_id,
+      razorpay_payment_link_id,
+      razorpay_payment_link_reference_id,
+      razorpay_signature,
+    } = body;
+
     const secret = process.env.RAZORPAY_KEY_SECRET;
 
-    const subscription = await this.subscriptionRepository.findById(subscription_id);
+    if (!secret) {
+      throw new HttpErrors.InternalServerError('Razorpay secret not configured');
+    }
+
+    // ✅ Find subscription
+    const subscription = await this.subscriptionRepository.findById(
+      subscription_id,
+    );
     if (!subscription) {
       throw new HttpErrors.NotFound('Subscription not found');
     }
 
-    if (!secret) {
-      throw new HttpErrors.InternalServerError('Razorpay secret key not configured');
-    }
-
+    // ✅ Verify Signature (PAYMENT LINK FORMULA)
     const hmac = crypto.createHmac('sha256', secret);
-    hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
+    hmac.update(
+      `${razorpay_payment_link_id}|${razorpay_payment_id}|${razorpay_payment_link_reference_id}`,
+    );
     const digest = hmac.digest('hex');
 
+    if (digest !== razorpay_signature) {
+      await this.subscriptionRepository.updateById(subscription.id, {
+        status: 'failed',
+      });
+      throw new HttpErrors.BadRequest('Invalid Razorpay signature');
+    }
+
     try {
+      // ✅ Fetch payment from Razorpay
       const razorpay = new Razorpay({
         key_id: process.env.RAZORPAY_KEY_ID!,
         key_secret: secret,
       });
 
-      console.log('razorpay payment id', razorpay_payment_id);
       const payment = await razorpay.payments.fetch(razorpay_payment_id);
 
       const paymentDetails = {
-        order_id: payment.order_id,
         payment_id: payment.id,
         status: payment.status,
         method: payment.method,
         email: payment.email,
         contact: payment.contact,
+        amount: payment.amount,
+        currency: payment.currency,
+        payment_link_id: razorpay_payment_link_id,
       };
 
-      console.log('')
-      console.log('payment', payment);
-
-      if (digest === razorpay_signature && payment.status === 'captured') {
-        const plan = await this.planRepository.findById(subscription.planId);
-
-        const updateData: Partial<typeof subscription> = {
-          paymentDetails,
-          status: 'success',
-        };
-
-        if (plan) {
-          const expiryDate = new Date();
-          expiryDate.setDate(expiryDate.getDate() + plan.days);
-          updateData.expiryDate = expiryDate;
-        }
-
-        await this.subscriptionRepository.updateById(subscription.id, updateData);
-        await this.userRepository.updateById(subscription.userId, {
-          activeSubscriptionId: subscription.id,
-          currentPlanId: subscription.planId,
-        });
-
-        return {
-          success: true,
-          endpoint: `payment/success?subscriptionId=${subscription.id}`
-        }
-      } else {
-        // Invalid signature or payment failed
+      if (payment.status !== 'captured') {
         await this.subscriptionRepository.updateById(subscription.id, {
           paymentDetails,
           status: 'failed',
         });
 
-        return {
-          success: false,
-          endpoint: null
-        }
+        return { success: false, endpoint: null };
       }
+
+      // ✅ Activate subscription
+      const plan = await this.planRepository.findById(subscription.planId);
+
+      const updateData: any = {
+        paymentDetails,
+        status: 'success',
+      };
+
+      if (plan) {
+        const expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + plan.days);
+        updateData.expiryDate = expiryDate;
+      }
+
+      await this.subscriptionRepository.updateById(subscription.id, updateData);
+
+      await this.userRepository.updateById(subscription.userId, {
+        activeSubscriptionId: subscription.id,
+        currentPlanId: subscription.planId,
+      });
+
+      return {
+        success: true,
+        endpoint: `payment/success?subscriptionId=${subscription.id}`,
+      };
     } catch (error) {
       console.error('Razorpay verify error:', error);
+
       await this.subscriptionRepository.updateById(subscription.id, {
         status: 'failed',
       });
-      return {
-        success: false,
-        endpoint: null
-      }
+
+      return { success: false, endpoint: null };
     }
   }
 
