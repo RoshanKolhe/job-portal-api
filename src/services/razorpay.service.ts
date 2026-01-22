@@ -50,9 +50,9 @@ export class RazorPayService {
         currency: subscriptionDetails.currencyType === 1 ? 'USD' : 'INR',
 
         description: `Subscription ${subscriptionDetails.id}`,
-        reference_id: `sub_${subscriptionDetails.id}`,
+        reference_id: `${subscriptionDetails.id}`,
 
-        callback_url: `${process.env.REACT_APP_SITE_URL}/payment/verify`,
+        callback_url: `${process.env.API_ENDPOINT}/subscriptions/callback/verify`,
         callback_method: "get",
 
         customer: {

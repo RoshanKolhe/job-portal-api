@@ -176,9 +176,7 @@ export class SubscriptionController {
     }
 
     // ✅ Extract subscription id from reference_id → sub_516 → 516
-    const subscriptionId = Number(
-      String(razorpay_payment_link_reference_id).replace('sub_', ''),
-    );
+    const subscriptionId = Number(razorpay_payment_link_reference_id);
 
     if (!subscriptionId) {
       throw new HttpErrors.BadRequest('Invalid reference id');
