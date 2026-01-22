@@ -17,6 +17,7 @@ import {
   patch,
   post,
   put,
+  Request,
   requestBody,
   response,
   Response,
@@ -147,89 +148,77 @@ export class SubscriptionController {
     }
   }
 
-  @post('/subscriptions/callback/verify')
-  async verifyRazorpayPaymentLink(
-    @requestBody({
-      content: {
-        'application/json': {
-          schema: {
-            type: 'object',
-            properties: {
-              subscription_id: { type: 'number' },
-              razorpay_payment_id: { type: 'string' },
-              razorpay_payment_link_id: { type: 'string' },
-              razorpay_payment_link_reference_id: { type: 'string' },
-              razorpay_signature: { type: 'string' },
-            },
-            required: [
-              'subscription_id',
-              'razorpay_payment_id',
-              'razorpay_payment_link_id',
-              'razorpay_payment_link_reference_id',
-              'razorpay_signature',
-            ],
-          },
-        },
-      },
-    })
-    body: {
-      subscription_id: number;
-      razorpay_payment_id: string;
-      razorpay_payment_link_id: string;
-      razorpay_payment_link_reference_id: string;
-      razorpay_signature: string;
-    },
+  @get('/subscriptions/callback/verify')
+  async verifyRazorpayRedirect(
+    @inject(RestBindings.Http.REQUEST) req: Request,
     @inject(RestBindings.Http.RESPONSE) res: Response,
-  ): Promise<{ success: boolean; endpoint: string | null }> {
+  ) {
     const {
-      subscription_id,
       razorpay_payment_id,
       razorpay_payment_link_id,
       razorpay_payment_link_reference_id,
       razorpay_signature,
-    } = body;
+      razorpay_payment_link_status,
+    } = req.query as any;
 
-    const secret = process.env.RAZORPAY_KEY_SECRET;
+    if (
+      !razorpay_payment_id ||
+      !razorpay_payment_link_id ||
+      !razorpay_payment_link_reference_id ||
+      !razorpay_signature
+    ) {
+      throw new HttpErrors.BadRequest('Missing Razorpay parameters');
+    }
 
+    const secret = process.env.RAZORPAY_KEY_SECRET!;
     if (!secret) {
       throw new HttpErrors.InternalServerError('Razorpay secret not configured');
     }
 
-    // ✅ Find subscription
-    const subscription = await this.subscriptionRepository.findById(
-      subscription_id,
+    // ✅ Extract subscription id from reference_id → sub_516 → 516
+    const subscriptionId = Number(
+      String(razorpay_payment_link_reference_id).replace('sub_', ''),
     );
+
+    if (!subscriptionId) {
+      throw new HttpErrors.BadRequest('Invalid reference id');
+    }
+
+    // ✅ Find subscription
+    const subscription = await this.subscriptionRepository.findById(subscriptionId);
     if (!subscription) {
       throw new HttpErrors.NotFound('Subscription not found');
     }
 
-    // ✅ Verify Signature (PAYMENT LINK FORMULA)
+    // ✅ Verify signature (Payment Link formula)
     const hmac = crypto.createHmac('sha256', secret);
     hmac.update(
       `${razorpay_payment_link_id}|${razorpay_payment_id}|${razorpay_payment_link_reference_id}`,
     );
     const digest = hmac.digest('hex');
 
-    console.log('signature', razorpay_signature);
-    console.log('digest', digest);
-
     if (digest !== razorpay_signature) {
-      await this.subscriptionRepository.updateById(subscription.id, {
-        status: 'failed',
-      });
+      await this.subscriptionRepository.updateById(subscription.id, { status: 'failed' });
       throw new HttpErrors.BadRequest('Invalid Razorpay signature');
     }
 
     try {
-      // ✅ Fetch payment from Razorpay
       const razorpay = new Razorpay({
         key_id: process.env.RAZORPAY_KEY_ID!,
         key_secret: secret,
       });
 
+      // ✅ Fetch payment from Razorpay
       const payment = await razorpay.payments.fetch(razorpay_payment_id);
 
-      console.log('payment', payment);
+      if (payment.status !== 'captured') {
+        await this.subscriptionRepository.updateById(subscription.id, {
+          status: 'failed',
+          paymentDetails: payment,
+        });
+
+        res.redirect(`${process.env.REACT_APP_SITE_URL}/payment/failed?subscriptionId=${subscription.id}`)
+      }
 
       const paymentDetails = {
         payment_id: payment.id,
@@ -241,15 +230,6 @@ export class SubscriptionController {
         currency: payment.currency,
         payment_link_id: razorpay_payment_link_id,
       };
-
-      if (payment.status !== 'captured') {
-        await this.subscriptionRepository.updateById(subscription.id, {
-          paymentDetails,
-          status: 'failed',
-        });
-
-        return { success: false, endpoint: null };
-      }
 
       // ✅ Activate subscription
       const plan = await this.planRepository.findById(subscription.planId);
@@ -272,18 +252,13 @@ export class SubscriptionController {
         currentPlanId: subscription.planId,
       });
 
-      return {
-        success: true,
-        endpoint: `payment/success?subscriptionId=${subscription.id}`,
-      };
-    } catch (error) {
-      console.error('Razorpay verify error:', error);
+      res.redirect(`${process.env.REACT_APP_SITE_URL}/payment/success?subscriptionId=${subscription.id}`)
 
-      await this.subscriptionRepository.updateById(subscription.id, {
-        status: 'failed',
-      });
+    } catch (err) {
+      console.error('Razorpay verify error:', err);
 
-      return { success: false, endpoint: null };
+      await this.subscriptionRepository.updateById(subscription.id, { status: 'failed' });
+      res.redirect(`${process.env.REACT_APP_SITE_URL}/payment/failed?subscriptionId=${subscription.id}`)
     }
   }
 
