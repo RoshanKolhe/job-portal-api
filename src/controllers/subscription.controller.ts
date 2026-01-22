@@ -211,6 +211,8 @@ export class SubscriptionController {
         contact: payment.contact,
       };
 
+      console.log('payment', payment);
+
       if (digest === razorpay_signature && payment.status === 'captured') {
         const plan = await this.planRepository.findById(subscription.planId);
 
