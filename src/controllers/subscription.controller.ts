@@ -194,13 +194,21 @@ export class SubscriptionController {
       }
 
       // ✅ Verify signature (Payment Link formula)
-      const plinkId = String(razorpay_payment_link_id).trim();
-      const payId = String(razorpay_payment_id).trim();
-      const refId = String(razorpay_payment_link_reference_id).trim();
+      const plinkId = decodeURIComponent(String(razorpay_payment_link_id)).trim();
+      const payId = decodeURIComponent(String(razorpay_payment_id)).trim();
+      const refId = decodeURIComponent(String(razorpay_payment_link_reference_id)).trim();
 
       const hmac = crypto.createHmac('sha256', secret);
       hmac.update(`${plinkId}|${payId}|${refId}`);
       const digest = hmac.digest('hex');
+
+      console.log("RAW URL:", req.originalUrl);
+      console.log("plink:", plinkId);
+      console.log("pay:", payId);
+      console.log("ref:", refId);
+      console.log("SIGN STRING:", `${plinkId}|${payId}|${refId}`);
+      console.log("DIGEST:", digest);
+      console.log("RAZOR SIGN:", razorpay_signature);
 
       if (digest !== razorpay_signature) {
         console.error('Signature mismatch', { digest, razorpay_signature });
