@@ -152,70 +152,77 @@ export class SubscriptionController {
   async verifyRazorpayRedirect(
     @inject(RestBindings.Http.REQUEST) req: Request,
     @inject(RestBindings.Http.RESPONSE) res: Response,
-  ) {
-    const {
-      razorpay_payment_id,
-      razorpay_payment_link_id,
-      razorpay_payment_link_reference_id,
-      razorpay_signature,
-      razorpay_payment_link_status,
-    } = req.query as any;
-
-    if (
-      !razorpay_payment_id ||
-      !razorpay_payment_link_id ||
-      !razorpay_payment_link_reference_id ||
-      !razorpay_signature
-    ) {
-      throw new HttpErrors.BadRequest('Missing Razorpay parameters');
-    }
-
-    const secret = process.env.RAZORPAY_KEY_SECRET!;
-    if (!secret) {
-      throw new HttpErrors.InternalServerError('Razorpay secret not configured');
-    }
-
-    // ✅ Extract subscription id from reference_id → sub_516 → 516
-    const subscriptionId = Number(razorpay_payment_link_reference_id);
-
-    if (!subscriptionId) {
-      throw new HttpErrors.BadRequest('Invalid reference id');
-    }
-
-    // ✅ Find subscription
-    const subscription = await this.subscriptionRepository.findById(subscriptionId);
-    if (!subscription) {
-      throw new HttpErrors.NotFound('Subscription not found');
-    }
-
-    // ✅ Verify signature (Payment Link formula)
-    const hmac = crypto.createHmac('sha256', secret);
-    hmac.update(
-      `${razorpay_payment_link_id}|${razorpay_payment_id}|${razorpay_payment_link_reference_id}`,
-    );
-    const digest = hmac.digest('hex');
-
-    if (digest !== razorpay_signature) {
-      await this.subscriptionRepository.updateById(subscription.id, { status: 'failed' });
-      throw new HttpErrors.BadRequest('Invalid Razorpay signature');
-    }
+  ): Promise<void> {
+    const FRONTEND = process.env.REACT_APP_SITE_URL || 'http://localhost:3000';
 
     try {
+      const {
+        razorpay_payment_id,
+        razorpay_payment_link_id,
+        razorpay_payment_link_reference_id,
+        razorpay_signature,
+      } = req.query as any;
+
+      if (
+        !razorpay_payment_id ||
+        !razorpay_payment_link_id ||
+        !razorpay_payment_link_reference_id ||
+        !razorpay_signature
+      ) {
+        console.error('Missing Razorpay params', req.query);
+        return res.redirect(`${FRONTEND}/payment/failed`);
+      }
+
+      const secret = process.env.RAZORPAY_KEY_SECRET;
+      if (!secret) {
+        console.error('Razorpay secret missing');
+        return res.redirect(`${FRONTEND}/payment/failed`);
+      }
+
+      // ✅ Extract subscription id (reference_id should be subscription.id)
+      const subscriptionId = Number(String(razorpay_payment_link_reference_id).trim());
+      if (!subscriptionId) {
+        console.error('Invalid reference id', razorpay_payment_link_reference_id);
+        return res.redirect(`${FRONTEND}/payment/failed`);
+      }
+
+      // ✅ Find subscription
+      const subscription = await this.subscriptionRepository.findById(subscriptionId);
+      if (!subscription) {
+        console.error('Subscription not found', subscriptionId);
+        return res.redirect(`${FRONTEND}/payment/failed`);
+      }
+
+      // ✅ Verify signature (Payment Link formula)
+      const plinkId = String(razorpay_payment_link_id).trim();
+      const payId = String(razorpay_payment_id).trim();
+      const refId = String(razorpay_payment_link_reference_id).trim();
+
+      const hmac = crypto.createHmac('sha256', secret);
+      hmac.update(`${plinkId}|${payId}|${refId}`);
+      const digest = hmac.digest('hex');
+
+      if (digest !== razorpay_signature) {
+        console.error('Signature mismatch', { digest, razorpay_signature });
+        await this.subscriptionRepository.updateById(subscription.id, { status: 'failed' });
+        return res.redirect(`${FRONTEND}/payment/failed?subscriptionId=${subscription.id}`);
+      }
+
+      // ✅ Fetch payment from Razorpay
       const razorpay = new Razorpay({
         key_id: process.env.RAZORPAY_KEY_ID!,
         key_secret: secret,
       });
 
-      // ✅ Fetch payment from Razorpay
-      const payment = await razorpay.payments.fetch(razorpay_payment_id);
+      const payment = await razorpay.payments.fetch(payId);
 
       if (payment.status !== 'captured') {
+        console.error('Payment not captured', payment.status);
         await this.subscriptionRepository.updateById(subscription.id, {
           status: 'failed',
           paymentDetails: payment,
         });
-
-        res.redirect(`${process.env.REACT_APP_SITE_URL}/payment/failed?subscriptionId=${subscription.id}`)
+        return res.redirect(`${FRONTEND}/payment/failed?subscriptionId=${subscription.id}`);
       }
 
       const paymentDetails = {
@@ -226,37 +233,38 @@ export class SubscriptionController {
         contact: payment.contact,
         amount: payment.amount,
         currency: payment.currency,
-        payment_link_id: razorpay_payment_link_id,
+        payment_link_id: plinkId,
+        livemode: payment.livemode,
       };
 
       // ✅ Activate subscription
       const plan = await this.planRepository.findById(subscription.planId);
-
-      const updateData: any = {
-        paymentDetails,
-        status: 'success',
-      };
-
-      if (plan) {
-        const expiryDate = new Date();
-        expiryDate.setDate(expiryDate.getDate() + plan.days);
-        updateData.expiryDate = expiryDate;
+      if (!plan) {
+        console.error('Plan not found', subscription.planId);
+        return res.redirect(`${FRONTEND}/payment/failed`);
       }
 
-      await this.subscriptionRepository.updateById(subscription.id, updateData);
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + plan.days);
+
+      await this.subscriptionRepository.updateById(subscription.id, {
+        paymentDetails,
+        status: 'success',
+        expiryDate,
+      });
 
       await this.userRepository.updateById(subscription.userId, {
         activeSubscriptionId: subscription.id,
         currentPlanId: subscription.planId,
       });
 
-      res.redirect(`${process.env.REACT_APP_SITE_URL}/payment/success?subscriptionId=${subscription.id}`)
-
+      // ✅ FINAL SUCCESS REDIRECT
+      return res.redirect(
+        `${FRONTEND}/payment/success?subscriptionId=${subscription.id}`,
+      );
     } catch (err) {
       console.error('Razorpay verify error:', err);
-
-      await this.subscriptionRepository.updateById(subscription.id, { status: 'failed' });
-      res.redirect(`${process.env.REACT_APP_SITE_URL}/payment/failed?subscriptionId=${subscription.id}`)
+      return res.redirect(`${FRONTEND}/payment/failed`);
     }
   }
 
