@@ -118,6 +118,11 @@ export class SubscriptionController {
 
       const checkOutData = {
         ...newSubscription,
+        userData: {
+          fullName: user.fullName,
+          email: user.email,
+          phoneNumber: user.phoneNumber?.toString()
+        }
         // ...plan,
         // ...user,
       };
