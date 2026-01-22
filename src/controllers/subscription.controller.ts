@@ -200,6 +200,7 @@ export class SubscriptionController {
         key_secret: secret,
       });
 
+      console.log('razorpay payment id', razorpay_payment_id);
       const payment = await razorpay.payments.fetch(razorpay_payment_id);
 
       const paymentDetails = {
@@ -211,6 +212,7 @@ export class SubscriptionController {
         contact: payment.contact,
       };
 
+      console.log('')
       console.log('payment', payment);
 
       if (digest === razorpay_signature && payment.status === 'captured') {
