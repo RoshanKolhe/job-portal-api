@@ -45,7 +45,7 @@ export class RazorPayService {
     try {
       const amountInPaise = Math.round(subscriptionDetails.planData.price * 100);
 
-      const paymentLink = await this.razorpay.paymentLink.create({
+      const paymentObj = {
         amount: amountInPaise,
         currency: subscriptionDetails.currencyType === 1 ? 'USD' : 'INR',
 
@@ -69,7 +69,11 @@ export class RazorPayService {
         notes: {
           subscriptionId: subscriptionDetails.id,
         },
-      });
+      };
+
+      console.log('payment object', paymentObj);
+
+      const paymentLink = await this.razorpay.paymentLink.create(paymentObj);
 
       return {
         paymentLinkId: paymentLink.id,
