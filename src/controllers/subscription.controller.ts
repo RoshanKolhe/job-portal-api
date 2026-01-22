@@ -147,12 +147,13 @@ export class SubscriptionController {
       throw error;
     }
   }
-
+  
   @get('/subscriptions/callback/verify')
   async verifyRazorpayRedirect(
     @inject(RestBindings.Http.REQUEST) req: Request,
     @inject(RestBindings.Http.RESPONSE) res: Response,
   ): Promise<void> {
+
     const FRONTEND = process.env.REACT_APP_SITE_URL || 'http://localhost:3000';
 
     try {
@@ -160,69 +161,32 @@ export class SubscriptionController {
         razorpay_payment_id,
         razorpay_payment_link_id,
         razorpay_payment_link_reference_id,
-        razorpay_signature,
       } = req.query as any;
 
-      if (
-        !razorpay_payment_id ||
-        !razorpay_payment_link_id ||
-        !razorpay_payment_link_reference_id ||
-        !razorpay_signature
-      ) {
+      if (!razorpay_payment_id || !razorpay_payment_link_id || !razorpay_payment_link_reference_id) {
         console.error('Missing Razorpay params', req.query);
         return res.redirect(`${FRONTEND}/payment/failed`);
       }
 
-      const secret = process.env.RAZORPAY_KEY_SECRET;
-      if (!secret) {
-        console.error('Razorpay secret missing');
-        return res.redirect(`${FRONTEND}/payment/failed`);
-      }
-
-      // ✅ Extract subscription id (reference_id should be subscription.id)
       const subscriptionId = Number(String(razorpay_payment_link_reference_id).trim());
       if (!subscriptionId) {
         console.error('Invalid reference id', razorpay_payment_link_reference_id);
         return res.redirect(`${FRONTEND}/payment/failed`);
       }
 
-      // ✅ Find subscription
       const subscription = await this.subscriptionRepository.findById(subscriptionId);
       if (!subscription) {
         console.error('Subscription not found', subscriptionId);
         return res.redirect(`${FRONTEND}/payment/failed`);
       }
 
-      // ✅ Verify signature (Payment Link formula)
-      const plinkId = decodeURIComponent(String(razorpay_payment_link_id)).trim();
-      const payId = decodeURIComponent(String(razorpay_payment_id)).trim();
-      const refId = decodeURIComponent(String(razorpay_payment_link_reference_id)).trim();
-
-      const hmac = crypto.createHmac('sha256', secret);
-      hmac.update(`${plinkId}|${payId}|${refId}`);
-      const digest = hmac.digest('hex');
-
-      console.log("RAW URL:", req.originalUrl);
-      console.log("plink:", plinkId);
-      console.log("pay:", payId);
-      console.log("ref:", refId);
-      console.log("SIGN STRING:", `${plinkId}|${payId}|${refId}`);
-      console.log("DIGEST:", digest);
-      console.log("RAZOR SIGN:", razorpay_signature);
-
-      if (digest !== razorpay_signature) {
-        console.error('Signature mismatch', { digest, razorpay_signature });
-        await this.subscriptionRepository.updateById(subscription.id, { status: 'failed' });
-        return res.redirect(`${FRONTEND}/payment/failed?subscriptionId=${subscription.id}`);
-      }
-
-      // ✅ Fetch payment from Razorpay
       const razorpay = new Razorpay({
         key_id: process.env.RAZORPAY_KEY_ID!,
-        key_secret: secret,
+        key_secret: process.env.RAZORPAY_KEY_SECRET!,
       });
 
-      const payment = await razorpay.payments.fetch(payId);
+      // ✅ Fetch payment
+      const payment = await razorpay.payments.fetch(String(razorpay_payment_id));
 
       if (payment.status !== 'captured') {
         console.error('Payment not captured', payment.status);
@@ -233,6 +197,15 @@ export class SubscriptionController {
         return res.redirect(`${FRONTEND}/payment/failed?subscriptionId=${subscription.id}`);
       }
 
+      // ✅ Fetch payment link
+      const paymentLink = await razorpay.paymentLink.fetch(String(razorpay_payment_link_id));
+
+      // ✅ Validate mapping
+      if (String(paymentLink.reference_id) !== String(subscriptionId)) {
+        console.error('Reference ID mismatch', paymentLink.reference_id, subscriptionId);
+        return res.redirect(`${FRONTEND}/payment/failed`);
+      }
+
       const paymentDetails = {
         payment_id: payment.id,
         status: payment.status,
@@ -241,7 +214,7 @@ export class SubscriptionController {
         contact: payment.contact,
         amount: payment.amount,
         currency: payment.currency,
-        payment_link_id: plinkId,
+        payment_link_id: paymentLink.id,
         livemode: payment.livemode,
       };
 
@@ -266,10 +239,8 @@ export class SubscriptionController {
         currentPlanId: subscription.planId,
       });
 
-      // ✅ FINAL SUCCESS REDIRECT
-      return res.redirect(
-        `${FRONTEND}/payment/success?subscriptionId=${subscription.id}`,
-      );
+      return res.redirect(`${FRONTEND}/payment/success?subscriptionId=${subscription.id}`);
+
     } catch (err) {
       console.error('Razorpay verify error:', err);
       return res.redirect(`${FRONTEND}/payment/failed`);
