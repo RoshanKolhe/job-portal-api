@@ -210,6 +210,9 @@ export class SubscriptionController {
     );
     const digest = hmac.digest('hex');
 
+    console.log('signature', razorpay_signature);
+    console.log('digest', digest);
+
     if (digest !== razorpay_signature) {
       await this.subscriptionRepository.updateById(subscription.id, {
         status: 'failed',
@@ -225,6 +228,8 @@ export class SubscriptionController {
       });
 
       const payment = await razorpay.payments.fetch(razorpay_payment_id);
+
+      console.log('payment', payment);
 
       const paymentDetails = {
         payment_id: payment.id,
