@@ -92,6 +92,7 @@ export class JobsController {
         success: true
       }
     } catch (error) {
+      console.log('error while implementing bulk job API :', error);
       await tx.rollback();
       throw error;
     }
