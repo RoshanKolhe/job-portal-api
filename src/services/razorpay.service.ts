@@ -59,7 +59,7 @@ export class RazorPayService {
         customer: {
           name: subscriptionDetails?.userData?.fullName || 'Shubham Shahane',
           email: subscriptionDetails?.userData?.email || 'shahaneshubham64@gmail.com',
-          contact: subscriptionDetails?.userData?.phoneNumber || '7249462782',
+          contact: `+91${subscriptionDetails?.userData?.phoneNumber}` || '7249462782',
         },
 
         notify: {
