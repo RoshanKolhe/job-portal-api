@@ -226,14 +226,13 @@ export class FOBOService {
                 isFoboPro: requestBody.isFoboPro ?? false,
             });
 
-            if (requestBody.isFoboPro === true) {
-                await this.getWebhookFoboData({
-                    taskDistributionAutomation: response.data.data?.Task_Distribution_Automation,
-                    taskDistributionHuman: response.data.data?.Task_Distribution_Human,
-                    taskDistributionAugmentation: response.data.data?.Task_Distribution_Augmentation,
-                    userId: resume.userId
-                });
-            }
+            await this.getWebhookFoboData({
+                taskDistributionAutomation: response.data.data?.Task_Distribution_Automation || '',
+                taskDistributionHuman: response.data.data?.Task_Distribution_Human || '',
+                taskDistributionAugmentation: response.data.data?.Task_Distribution_Augmentation || '',
+                userId: resume?.userId
+            });
+
             await this.updateRunningAnalytics(analyticsId, { status: 2 });
 
             return { success: true, analyticsData };
