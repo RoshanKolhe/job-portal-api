@@ -128,6 +128,7 @@ export class SubscriptionController {
         // ...user,
       };
 
+      console.log('checkoutData', checkOutData);
       let response;
 
       if (newSubscription.paymentMethod === 0) {

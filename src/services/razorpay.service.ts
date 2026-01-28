@@ -42,6 +42,7 @@ export class RazorPayService {
   // }
 
   async createPaymentLink(subscriptionDetails: any) {
+    console.log('subscriptionDetails', subscriptionDetails);
     try {
       const amountInPaise = Math.round(subscriptionDetails.planData.price * 100);
 
