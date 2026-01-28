@@ -67,9 +67,9 @@ export class RazorPayService {
           email: false,
         },
 
-        notes: {
-          subscriptionId: subscriptionDetails.id,
-        },
+        // notes: {
+        //   subscriptionId: subscriptionDetails.id,
+        // },
       };
 
       console.log('payment object', paymentObj);
