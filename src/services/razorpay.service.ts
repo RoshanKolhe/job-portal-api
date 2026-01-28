@@ -63,8 +63,8 @@ export class RazorPayService {
         },
 
         notify: {
-          sms: true,
-          email: true,
+          sms: false,
+          email: false,
         },
 
         notes: {
