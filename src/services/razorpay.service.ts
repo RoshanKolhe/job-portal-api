@@ -49,7 +49,7 @@ export class RazorPayService {
         amount: amountInPaise,
         currency: subscriptionDetails.currencyType === 1 ? 'USD' : 'INR',
 
-        description: `Subscription ${subscriptionDetails.id}`,
+        // description: `Subscription ${subscriptionDetails.id}`,
         reference_id: `${subscriptionDetails.id}`,
 
         callback_url: `${process.env.API_ENDPOINT}/subscriptions/callback/verify`,
