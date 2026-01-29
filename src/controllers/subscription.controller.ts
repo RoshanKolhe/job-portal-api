@@ -17,7 +17,6 @@ import {
   patch,
   post,
   put,
-  Request,
   requestBody,
   response,
   Response,
@@ -99,7 +98,7 @@ export class SubscriptionController {
         throw new HttpErrors.NotFound(`Plan with planId ${subscription.planId} not found`);
       }
       let calculatedPrice = plan.price;
-      if (subscription.currencyType === 1) {
+      if(subscription.currencyType === 1){
         calculatedPrice = await this.currencyExchangeService.exchangeToUSD(plan.price);
       }
 
@@ -119,22 +118,16 @@ export class SubscriptionController {
 
       const checkOutData = {
         ...newSubscription,
-        userData: {
-          fullName: user.fullName,
-          email: user.email,
-          phoneNumber: user.phoneNumber?.toString()
-        }
         // ...plan,
         // ...user,
       };
 
-      console.log('checkoutData', checkOutData);
       let response;
 
       if (newSubscription.paymentMethod === 0) {
         response = await this.stripeService.createCheckoutSession(checkOutData);
       } else if (newSubscription.paymentMethod === 1) {
-        response = await this.razorpayService.createPaymentLink(checkOutData);
+        response = await this.razorpayService.createOrder(checkOutData);
       } else {
         throw new HttpErrors.BadRequest('Invalid payment method selected');
       }
@@ -148,103 +141,116 @@ export class SubscriptionController {
       throw error;
     }
   }
-  
-  @get('/subscriptions/callback/verify')
-  async verifyRazorpayRedirect(
-    @inject(RestBindings.Http.REQUEST) req: Request,
-    @inject(RestBindings.Http.RESPONSE) res: Response,
-  ): Promise<void> {
 
-    const FRONTEND = process.env.REACT_APP_SITE_URL || 'http://localhost:3000';
+  @post('/subscriptions/callback/verify')
+  async verifyRazorpayPayment(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              subscription_id: { type: 'number' },
+              razorpay_order_id: { type: 'string' },
+              razorpay_payment_id: { type: 'string' },
+              razorpay_signature: { type: 'string' },
+            },
+            required: [
+              'subscription_id',
+              'razorpay_order_id',
+              'razorpay_payment_id',
+              'razorpay_signature',
+            ],
+          },
+        },
+      },
+    })
+    body: {
+      subscription_id: number;
+      razorpay_order_id: string;
+      razorpay_payment_id: string;
+      razorpay_signature: string;
+    },
+    @inject(RestBindings.Http.RESPONSE) res: Response
+  ): Promise<{ success: boolean; endpoint: string | null }> {
+    const { subscription_id, razorpay_order_id, razorpay_payment_id, razorpay_signature } = body;
+    const secret = process.env.RAZORPAY_KEY_SECRET;
+
+    const subscription = await this.subscriptionRepository.findById(subscription_id);
+    if (!subscription) {
+      throw new HttpErrors.NotFound('Subscription not found');
+    }
+
+    if (!secret) {
+      throw new HttpErrors.InternalServerError('Razorpay secret key not configured');
+    }
+
+    const hmac = crypto.createHmac('sha256', secret);
+    hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
+    const digest = hmac.digest('hex');
 
     try {
-      const {
-        razorpay_payment_id,
-        razorpay_payment_link_id,
-        razorpay_payment_link_reference_id,
-      } = req.query as any;
-
-      if (!razorpay_payment_id || !razorpay_payment_link_id || !razorpay_payment_link_reference_id) {
-        console.error('Missing Razorpay params', req.query);
-        return res.redirect(`${FRONTEND}/payment/failed`);
-      }
-
-      const subscriptionId = Number(String(razorpay_payment_link_reference_id).trim());
-      if (!subscriptionId) {
-        console.error('Invalid reference id', razorpay_payment_link_reference_id);
-        return res.redirect(`${FRONTEND}/payment/failed`);
-      }
-
-      const subscription = await this.subscriptionRepository.findById(subscriptionId);
-      if (!subscription) {
-        console.error('Subscription not found', subscriptionId);
-        return res.redirect(`${FRONTEND}/payment/failed`);
-      }
-
       const razorpay = new Razorpay({
         key_id: process.env.RAZORPAY_KEY_ID!,
-        key_secret: process.env.RAZORPAY_KEY_SECRET!,
+        key_secret: secret,
       });
 
-      // ✅ Fetch payment
-      const payment = await razorpay.payments.fetch(String(razorpay_payment_id));
-
-      if (payment.status !== 'captured') {
-        console.error('Payment not captured', payment.status);
-        await this.subscriptionRepository.updateById(subscription.id, {
-          status: 'failed',
-          paymentDetails: payment,
-        });
-        return res.redirect(`${FRONTEND}/payment/failed?subscriptionId=${subscription.id}`);
-      }
-
-      // ✅ Fetch payment link
-      const paymentLink = await razorpay.paymentLink.fetch(String(razorpay_payment_link_id));
-
-      // ✅ Validate mapping
-      if (String(paymentLink.reference_id) !== String(subscriptionId)) {
-        console.error('Reference ID mismatch', paymentLink.reference_id, subscriptionId);
-        return res.redirect(`${FRONTEND}/payment/failed`);
-      }
+      const payment = await razorpay.payments.fetch(razorpay_payment_id);
 
       const paymentDetails = {
+        order_id: payment.order_id,
         payment_id: payment.id,
         status: payment.status,
         method: payment.method,
         email: payment.email,
         contact: payment.contact,
-        amount: payment.amount,
-        currency: payment.currency,
-        payment_link_id: paymentLink.id,
-        livemode: payment.livemode,
       };
 
-      // ✅ Activate subscription
-      const plan = await this.planRepository.findById(subscription.planId);
-      if (!plan) {
-        console.error('Plan not found', subscription.planId);
-        return res.redirect(`${FRONTEND}/payment/failed`);
+      if (digest === razorpay_signature && payment.status === 'captured') {
+        const plan = await this.planRepository.findById(subscription.planId);
+
+        const updateData: Partial<typeof subscription> = {
+          paymentDetails,
+          status: 'success',
+        };
+
+        if (plan) {
+          const expiryDate = new Date();
+          expiryDate.setDate(expiryDate.getDate() + plan.days);
+          updateData.expiryDate = expiryDate;
+        }
+
+        await this.subscriptionRepository.updateById(subscription.id, updateData);
+        await this.userRepository.updateById(subscription.userId, {
+          activeSubscriptionId: subscription.id,
+          currentPlanId: subscription.planId,
+        });
+
+        return {
+          success: true,
+          endpoint: `payment/success?subscriptionId=${subscription.id}`
+        }
+      } else {
+        // Invalid signature or payment failed
+        await this.subscriptionRepository.updateById(subscription.id, {
+          paymentDetails,
+          status: 'failed',
+        });
+
+        return {
+          success: false,
+          endpoint: null
+        }
       }
-
-      const expiryDate = new Date();
-      expiryDate.setDate(expiryDate.getDate() + plan.days);
-
+    } catch (error) {
+      console.error('Razorpay verify error:', error);
       await this.subscriptionRepository.updateById(subscription.id, {
-        paymentDetails,
-        status: 'success',
-        expiryDate,
+        status: 'failed',
       });
-
-      await this.userRepository.updateById(subscription.userId, {
-        activeSubscriptionId: subscription.id,
-        currentPlanId: subscription.planId,
-      });
-
-      return res.redirect(`${FRONTEND}/payment/success?subscriptionId=${subscription.id}`);
-
-    } catch (err) {
-      console.error('Razorpay verify error:', err);
-      return res.redirect(`${FRONTEND}/payment/failed`);
+      return {
+        success: false,
+        endpoint: null
+      }
     }
   }
 
@@ -455,6 +461,10 @@ export class SubscriptionController {
     };
     return this.subscriptionRepository.findById(id, updatedFilter);
   }
+
+
+
+
 
   @authenticate({
     strategy: 'jwt',

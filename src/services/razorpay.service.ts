@@ -15,76 +15,30 @@ export class RazorPayService {
     });
   }
 
-  // async createOrder(subscriptionDetails: any) {
-  //   try {
-  //     const amountInPaise = Math.round(subscriptionDetails.planData?.price * 100); // Razorpay accepts amount in paise
-  //     const options = {
-  //       amount: amountInPaise,
-  //       currency: subscriptionDetails.currencyType === 1 ? 'USD' : 'INR',
-  //       receipt: `receipt_${subscriptionDetails.id}`,
-  //       payment_capture: 1,
-  //     };
-
-  //     const order = await this.razorpay.orders.create(options);
-
-  //     return {
-  //       orderId: order.id,
-  //       amount: order.amount,
-  //       currency: order.currency,
-  //       receipt: order.receipt,
-  //       subscriptionId: subscriptionDetails.id,
-  //       razorpayKeyId: process.env.RAZORPAY_KEY_ID,
-  //     };
-  //   } catch (error) {
-  //     console.error('Error creating Razorpay order:', error);
-  //     throw error;
-  //   }
-  // }
-
-  async createPaymentLink(subscriptionDetails: any) {
-    console.log('subscriptionDetails', subscriptionDetails);
+  async createOrder(subscriptionDetails: any) {
     try {
-      const amountInPaise = Math.round(subscriptionDetails.planData.price * 100);
-
-      const paymentObj = {
+      console.log('subscriptionDetails', subscriptionDetails);
+      const amountInPaise = Math.round(subscriptionDetails.planData?.price * 100); // Razorpay accepts amount in paise
+      console.log('amountInPaise', amountInPaise);
+      const options = {
         amount: amountInPaise,
         currency: subscriptionDetails.currencyType === 1 ? 'USD' : 'INR',
-
-        // description: `Subscription ${subscriptionDetails.id}`,
-        reference_id: `${subscriptionDetails.id}`,
-
-        callback_url: `${process.env.API_ENDPOINT}/subscriptions/callback/verify`,
-        callback_method: "get",
-
-        customer: {
-          name: subscriptionDetails?.userData?.fullName || 'Shubham Shahane',
-          email: subscriptionDetails?.userData?.email || 'shahaneshubham64@gmail.com',
-          contact: `+91${subscriptionDetails?.userData?.phoneNumber}` || '7249462782',
-        },
-
-        notify: {
-          sms: false,
-          email: false,
-        },
-
-        // notes: {
-        //   subscriptionId: subscriptionDetails.id,
-        // },
+        receipt: `receipt_${subscriptionDetails.id}`,
+        payment_capture: 1,
       };
 
-      console.log('payment object', paymentObj);
-
-      const paymentLink = await this.razorpay.paymentLink.create(paymentObj);
+      const order = await this.razorpay.orders.create(options);
 
       return {
-        paymentLinkId: paymentLink.id,
-        shortUrl: paymentLink.short_url,
-        status: paymentLink.status,
+        orderId: order.id,
+        amount: order.amount,
+        currency: order.currency,
+        receipt: order.receipt,
         subscriptionId: subscriptionDetails.id,
+        razorpayKeyId: process.env.RAZORPAY_KEY_ID,
       };
-
     } catch (error) {
-      console.error("Error creating payment link:", error);
+      console.error('Error creating Razorpay order:', error);
       throw error;
     }
   }
