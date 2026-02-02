@@ -1,4 +1,5 @@
 import { inject } from '@loopback/core';
+import crypto from 'crypto';
 import {
   get,
   HttpErrors,
@@ -15,8 +16,14 @@ import path from 'path';
 import { promisify } from 'util';
 import { FILE_UPLOAD_SERVICE, STORAGE_DIRECTORY } from '../keys';
 import { FileUploadHandler } from '../types';
+import { authenticate } from '@loopback/authentication';
 
 const readdir = promisify(fs.readdir);
+
+const fileAccessTokens = new Map<
+  string,
+  { fileName: string; expiresAt: number; userId?: string }
+>();
 
 /**
  * A controller to handle file uploads using multipart/form-data media type
@@ -59,10 +66,73 @@ export class FileUploadController {
     });
   }
 
-  /**
-   * Get files and fields for the request
-   * @param request - Http request
-   */
+  @authenticate('jwt')
+  @post('/private/files/{filename}/access', {
+    responses: {
+      200: {
+        description: 'Generate temporary access URL',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                accessUrl: { type: 'string' },
+                expiresIn: { type: 'number' },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  async generatePrivateFileAccess(
+    @param.path.string('filename') fileName: string,
+  ): Promise<{ accessUrl: string; expiresIn: number }> {
+    // TODO: add permission check if needed (owner/admin/etc)
+
+    const token = crypto.randomUUID();
+    const expiresInMs = 60 * 1000; // 60 seconds
+
+    fileAccessTokens.set(token, {
+      fileName,
+      expiresAt: Date.now() + expiresInMs,
+    });
+
+    return {
+      accessUrl: `/private/files/view?token=${token}`,
+      expiresIn: 60,
+    };
+  }
+
+  @get('/private/files/view')
+  @oas.response.file()
+  async viewPrivateFile(
+    @param.query.string('token') token: string,
+    @inject(RestBindings.Http.RESPONSE) response: Response,
+  ) {
+    const tokenData = fileAccessTokens.get(token);
+
+    if (!tokenData) {
+      throw new HttpErrors.Unauthorized('Invalid or expired link');
+    }
+
+    if (Date.now() > tokenData.expiresAt) {
+      fileAccessTokens.delete(token);
+      throw new HttpErrors.Unauthorized('Link expired');
+    }
+
+    // OPTIONAL: single-use token
+    fileAccessTokens.delete(token);
+
+    const filePath = this.validateFileName(tokenData.fileName);
+
+    response.setHeader('Content-Disposition', 'inline');
+    response.setHeader('Content-Type', 'application/octet-stream');
+
+    fs.createReadStream(filePath).pipe(response);
+    return response;
+  }
+
   private static getFilesAndFields(request: Request) {
     const ALLOWED_MIME_TYPES = [
       'image/jpeg',
@@ -112,29 +182,6 @@ export class FileUploadController {
     return { files, fields: request.body };
   }
 
-  // @get('/files', {
-  //   responses: {
-  //     200: {
-  //       content: {
-  //         // string[]
-  //         'application/json': {
-  //           schema: {
-  //             type: 'array',
-  //             items: {
-  //               type: 'string',
-  //             },
-  //           },
-  //         },
-  //       },
-  //       description: 'A list of files',
-  //     },
-  //   },
-  // })
-  // async listFiles() {
-  //   const files = await readdir(this.storageDirectory);
-  //   return files;
-  // }
-
   @get('/files/{filename}')
   @oas.response.file()
   downloadFile(
@@ -154,10 +201,6 @@ export class FileUploadController {
     return response;
   }
 
-  /**
-   * Validate file names to prevent them goes beyond the designated directory
-   * @param fileName - File name
-   */
   private validateFileName(fileName: string) {
     const resolved = path.resolve(this.storageDirectory, fileName);
     if (resolved.startsWith(this.storageDirectory)) return resolved;
