@@ -35,6 +35,7 @@ import { ResumeRepository, UserRepository } from '../repositories';
 import { EventHistoryService } from '../services/event-history.service';
 import { BcryptHasher } from '../services/hash.password.bcrypt';
 import { RequesIDService } from '../services/request-id.service';
+import _ from 'lodash';
 
 export class ResumeController {
   constructor(
@@ -73,7 +74,7 @@ export class ResumeController {
       },
     })
     resume: Omit<Resume, 'id'>,
-  ): Promise<{ success: boolean; message: string; resume: Resume; apiDurations: { endpoint: string; duration: string } | null }> {
+  ): Promise<{ success: boolean; message: string; resume: Partial<Resume>; apiDurations: { endpoint: string; duration: string } | null }> {
     const requestId = request.headers['X-Request-Id'] || await this.requestIdService.createRequestId();
     console.log('Request ID:', requestId);
 
@@ -126,10 +127,12 @@ export class ResumeController {
         console.log('Response time for => /api/resume/upload:', duration);
 
         console.log('Response from AI server', apiResponse.data);
+
+        const resumeWithoutURL = _.omit(savedResume, 'fileUrl');
         return {
           success: true,
           message: 'Resume Saved',
-          resume: savedResume,
+          resume: resumeWithoutURL,
           apiDurations: { endpoint: '/api/resume/upload', duration: duration }
         };
       }
