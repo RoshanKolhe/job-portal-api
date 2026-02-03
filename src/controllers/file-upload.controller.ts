@@ -18,6 +18,7 @@ import { FILE_UPLOAD_SERVICE, STORAGE_DIRECTORY } from '../keys';
 import { FileUploadHandler } from '../types';
 import { authenticate } from '@loopback/authentication';
 
+
 const readdir = promisify(fs.readdir);
 
 const fileAccessTokens = new Map<
@@ -121,15 +122,26 @@ export class FileUploadController {
       throw new HttpErrors.Unauthorized('Link expired');
     }
 
-    // OPTIONAL: single-use token
-    fileAccessTokens.delete(token);
-
     const filePath = this.validateFileName(tokenData.fileName);
 
-    response.setHeader('Content-Disposition', 'inline');
-    response.setHeader('Content-Type', 'application/octet-stream');
+    // 🔴 Important safety check
+    if (!fs.existsSync(filePath)) {
+      fileAccessTokens.delete(token);
+      throw new HttpErrors.NotFound('File not found');
+    }
 
-    fs.createReadStream(filePath).pipe(response);
+    fs.readFile(filePath, function (err, data) {
+      if (err) {
+        response.writeHead(404);
+        response.end('Something Went Wrong');
+      } else {
+        response.writeHead(200);
+        response.end(data); // Send the file data to the browser.
+      }
+    });
+
+    // ✅ single-use token (delete AFTER stream starts)
+    fileAccessTokens.delete(token);
     return response;
   }
 
