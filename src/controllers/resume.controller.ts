@@ -272,9 +272,9 @@ export class ResumeController {
 
     try {
       const { fileDetails } = resume;
-      const data = await this.getUserInfo(fileDetails, requestId);
+      const {data} = await this.getUserInfo(fileDetails, requestId);
       console.log('data', data);
-      if (data?.user) {
+      if (data) {
         const newResume: any = await this.resumeRepository.create({ ...resume, userId: data?.user?.id });
         const filePath = this.validateFileName(newResume?.fileDetails?.newFileName);
         const resumeFile = fs.createReadStream(filePath);
