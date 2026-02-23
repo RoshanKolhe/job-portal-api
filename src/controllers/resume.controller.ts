@@ -166,7 +166,7 @@ export class ResumeController {
       const formData = new FormData();
       formData.append('file', fs.createReadStream(filePath));
       formData.append('user_id', `1`);
-      formData.append('X-apiKey', '2472118222258182');
+      formData.append('X-apiKey', process.env.X_API_KEY);
       formData.append('X-request-id', requestId);
 
       const response: any = await apiClient.post(
@@ -290,7 +290,7 @@ export class ResumeController {
             form,
             {
               headers: {
-                "X-apiKey": "2472118222258182",
+                "X-apiKey": process.env.X_API_KEY,
                 ...form.getHeaders(),
                 "X-request-id": requestId.toString()
               },
