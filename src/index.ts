@@ -52,9 +52,13 @@ if (require.main === module) {
       port: +(process.env.PORT ?? 3034),
       host: process.env.HOST ?? '127.0.0.1',
       gracePeriodForClose: 5000,
-      openApiSpec: {
-        setServersFromRequest: true,
-      },
+      openApiSpec: process.env.NODE_ENV === 'production' 
+        ? {
+            disabled: true,
+          }
+        : {
+            setServersFromRequest: true,
+          },
     },
   };
   main(config).catch(err => {

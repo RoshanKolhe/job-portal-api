@@ -316,16 +316,16 @@ export class SubscriptionController {
     this.res.redirect(`http://localhost:3030/payment/cancel?subscriptionId=${id}`);
   }
 
-  @get('/subscriptions/count')
-  @response(200, {
-    description: 'Subscription model count',
-    content: { 'application/json': { schema: CountSchema } },
-  })
-  async count(
-    @param.where(Subscription) where?: Where<Subscription>,
-  ): Promise<Count> {
-    return this.subscriptionRepository.count(where);
-  }
+  // @get('/subscriptions/count')
+  // @response(200, {
+  //   description: 'Subscription model count',
+  //   content: { 'application/json': { schema: CountSchema } },
+  // })
+  // async count(
+  //   @param.where(Subscription) where?: Where<Subscription>,
+  // ): Promise<Count> {
+  //   return this.subscriptionRepository.count(where);
+  // }
 
   @authenticate({
     strategy: 'jwt',
@@ -399,32 +399,32 @@ export class SubscriptionController {
     }
   }
 
-  @authenticate({
-    strategy: 'jwt',
-    options: {
-      required: [
-        PermissionKeys.ADMIN,
-      ]
-    }
-  })
-  @patch('/subscriptions')
-  @response(200, {
-    description: 'Subscription PATCH success count',
-    content: { 'application/json': { schema: CountSchema } },
-  })
-  async updateAll(
-    @requestBody({
-      content: {
-        'application/json': {
-          schema: getModelSchemaRef(Subscription, { partial: true }),
-        },
-      },
-    })
-    subscription: Subscription,
-    @param.where(Subscription) where?: Where<Subscription>,
-  ): Promise<Count> {
-    return this.subscriptionRepository.updateAll(subscription, where);
-  }
+  // @authenticate({
+  //   strategy: 'jwt',
+  //   options: {
+  //     required: [
+  //       PermissionKeys.ADMIN,
+  //     ]
+  //   }
+  // })
+  // @patch('/subscriptions')
+  // @response(200, {
+  //   description: 'Subscription PATCH success count',
+  //   content: { 'application/json': { schema: CountSchema } },
+  // })
+  // async updateAll(
+  //   @requestBody({
+  //     content: {
+  //       'application/json': {
+  //         schema: getModelSchemaRef(Subscription, { partial: true }),
+  //       },
+  //     },
+  //   })
+  //   subscription: Subscription,
+  //   @param.where(Subscription) where?: Where<Subscription>,
+  // ): Promise<Count> {
+  //   return this.subscriptionRepository.updateAll(subscription, where);
+  // }
 
 
 
@@ -492,24 +492,24 @@ export class SubscriptionController {
     await this.subscriptionRepository.updateById(id, subscription);
   }
 
-  @authenticate({
-    strategy: 'jwt',
-    options: {
-      required: [
-        PermissionKeys.ADMIN,
-      ]
-    }
-  })
-  @put('/subscriptions/{id}')
-  @response(204, {
-    description: 'Subscription PUT success',
-  })
-  async replaceById(
-    @param.path.number('id') id: number,
-    @requestBody() subscription: Subscription,
-  ): Promise<void> {
-    await this.subscriptionRepository.replaceById(id, subscription);
-  }
+  // @authenticate({
+  //   strategy: 'jwt',
+  //   options: {
+  //     required: [
+  //       PermissionKeys.ADMIN,
+  //     ]
+  //   }
+  // })
+  // @put('/subscriptions/{id}')
+  // @response(204, {
+  //   description: 'Subscription PUT success',
+  // })
+  // async replaceById(
+  //   @param.path.number('id') id: number,
+  //   @requestBody() subscription: Subscription,
+  // ): Promise<void> {
+  //   await this.subscriptionRepository.replaceById(id, subscription);
+  // }
 
   @authenticate({
     strategy: 'jwt',

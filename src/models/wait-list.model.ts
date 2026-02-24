@@ -1,4 +1,4 @@
-import {Entity, model, property} from '@loopback/repository';
+import { Entity, model, property } from '@loopback/repository';
 
 @model()
 export class WaitList extends Entity {
@@ -21,7 +21,7 @@ export class WaitList extends Entity {
   })
   type: string;
 
-   @property({
+  @property({
     type: 'date',
   })
   createdAt?: Date;
@@ -42,8 +42,10 @@ export class WaitList extends Entity {
   })
   isDeleted: boolean;
 
-
-
+  @property({
+    type: 'string',
+  })
+  metadata?: string;
 
   constructor(data?: Partial<WaitList>) {
     super(data);

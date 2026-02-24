@@ -293,7 +293,7 @@ export class UserController {
       where: {
         id: currentUser.id,
       },
-      include: [{relation: 'resumes'}],
+      include: [{relation: 'resumes', scope: {fields: {fileUrl: false}}}],
     });
 
     if (!user) {

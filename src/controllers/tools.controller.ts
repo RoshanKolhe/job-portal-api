@@ -32,127 +32,127 @@ export class ToolsController {
     public dataSource: JobPortalDataSource,
   ) { }
 
-  @post('/tools')
-  @response(200, {
-    description: 'Tools model instance',
-    content: {'application/json': {schema: getModelSchemaRef(Tools)}},
-  })
-  async create(
-    @requestBody({
-      content: {
-        'application/json': {
-          schema: getModelSchemaRef(Tools, {
-            title: 'NewTools',
-            exclude: ['id'],
-          }),
-        },
-      },
-    })
-    tools: Omit<Tools, 'id'>,
-  ): Promise<Tools> {
-    return this.toolsRepository.create(tools);
-  }
+  // @post('/tools')
+  // @response(200, {
+  //   description: 'Tools model instance',
+  //   content: {'application/json': {schema: getModelSchemaRef(Tools)}},
+  // })
+  // async create(
+  //   @requestBody({
+  //     content: {
+  //       'application/json': {
+  //         schema: getModelSchemaRef(Tools, {
+  //           title: 'NewTools',
+  //           exclude: ['id'],
+  //         }),
+  //       },
+  //     },
+  //   })
+  //   tools: Omit<Tools, 'id'>,
+  // ): Promise<Tools> {
+  //   return this.toolsRepository.create(tools);
+  // }
 
-  @get('/tools/count')
-  @response(200, {
-    description: 'Tools model count',
-    content: {'application/json': {schema: CountSchema}},
-  })
-  async count(
-    @param.where(Tools) where?: Where<Tools>,
-  ): Promise<Count> {
-    return this.toolsRepository.count(where);
-  }
+  // @get('/tools/count')
+  // @response(200, {
+  //   description: 'Tools model count',
+  //   content: {'application/json': {schema: CountSchema}},
+  // })
+  // async count(
+  //   @param.where(Tools) where?: Where<Tools>,
+  // ): Promise<Count> {
+  //   return this.toolsRepository.count(where);
+  // }
 
-  @get('/tools')
-  @response(200, {
-    description: 'Array of Tools model instances',
-    content: {
-      'application/json': {
-        schema: {
-          type: 'array',
-          items: getModelSchemaRef(Tools, {includeRelations: true}),
-        },
-      },
-    },
-  })
-  async find(
-    @param.filter(Tools) filter?: Filter<Tools>,
-  ): Promise<Tools[]> {
-    return this.toolsRepository.find(filter);
-  }
+  // @get('/tools')
+  // @response(200, {
+  //   description: 'Array of Tools model instances',
+  //   content: {
+  //     'application/json': {
+  //       schema: {
+  //         type: 'array',
+  //         items: getModelSchemaRef(Tools, {includeRelations: true}),
+  //       },
+  //     },
+  //   },
+  // })
+  // async find(
+  //   @param.filter(Tools) filter?: Filter<Tools>,
+  // ): Promise<Tools[]> {
+  //   return this.toolsRepository.find(filter);
+  // }
 
-  @patch('/tools')
-  @response(200, {
-    description: 'Tools PATCH success count',
-    content: {'application/json': {schema: CountSchema}},
-  })
-  async updateAll(
-    @requestBody({
-      content: {
-        'application/json': {
-          schema: getModelSchemaRef(Tools, {partial: true}),
-        },
-      },
-    })
-    tools: Tools,
-    @param.where(Tools) where?: Where<Tools>,
-  ): Promise<Count> {
-    return this.toolsRepository.updateAll(tools, where);
-  }
+  // @patch('/tools')
+  // @response(200, {
+  //   description: 'Tools PATCH success count',
+  //   content: {'application/json': {schema: CountSchema}},
+  // })
+  // async updateAll(
+  //   @requestBody({
+  //     content: {
+  //       'application/json': {
+  //         schema: getModelSchemaRef(Tools, {partial: true}),
+  //       },
+  //     },
+  //   })
+  //   tools: Tools,
+  //   @param.where(Tools) where?: Where<Tools>,
+  // ): Promise<Count> {
+  //   return this.toolsRepository.updateAll(tools, where);
+  // }
 
-  @get('/tools/{id}')
-  @response(200, {
-    description: 'Tools model instance',
-    content: {
-      'application/json': {
-        schema: getModelSchemaRef(Tools, {includeRelations: true}),
-      },
-    },
-  })
-  async findById(
-    @param.path.number('id') id: number,
-    @param.filter(Tools, {exclude: 'where'}) filter?: FilterExcludingWhere<Tools>
-  ): Promise<Tools> {
-    return this.toolsRepository.findById(id, filter);
-  }
+  // @get('/tools/{id}')
+  // @response(200, {
+  //   description: 'Tools model instance',
+  //   content: {
+  //     'application/json': {
+  //       schema: getModelSchemaRef(Tools, {includeRelations: true}),
+  //     },
+  //   },
+  // })
+  // async findById(
+  //   @param.path.number('id') id: number,
+  //   @param.filter(Tools, {exclude: 'where'}) filter?: FilterExcludingWhere<Tools>
+  // ): Promise<Tools> {
+  //   return this.toolsRepository.findById(id, filter);
+  // }
 
-  @patch('/tools/{id}')
-  @response(204, {
-    description: 'Tools PATCH success',
-  })
-  async updateById(
-    @param.path.number('id') id: number,
-    @requestBody({
-      content: {
-        'application/json': {
-          schema: getModelSchemaRef(Tools, {partial: true}),
-        },
-      },
-    })
-    tools: Tools,
-  ): Promise<void> {
-    await this.toolsRepository.updateById(id, tools);
-  }
+  // @patch('/tools/{id}')
+  // @response(204, {
+  //   description: 'Tools PATCH success',
+  // })
+  // async updateById(
+  //   @param.path.number('id') id: number,
+  //   @requestBody({
+  //     content: {
+  //       'application/json': {
+  //         schema: getModelSchemaRef(Tools, {partial: true}),
+  //       },
+  //     },
+  //   })
+  //   tools: Tools,
+  // ): Promise<void> {
+  //   await this.toolsRepository.updateById(id, tools);
+  // }
 
-  @put('/tools/{id}')
-  @response(204, {
-    description: 'Tools PUT success',
-  })
-  async replaceById(
-    @param.path.number('id') id: number,
-    @requestBody() tools: Tools,
-  ): Promise<void> {
-    await this.toolsRepository.replaceById(id, tools);
-  }
+  // @put('/tools/{id}')
+  // @response(204, {
+  //   description: 'Tools PUT success',
+  // })
+  // async replaceById(
+  //   @param.path.number('id') id: number,
+  //   @requestBody() tools: Tools,
+  // ): Promise<void> {
+  //   await this.toolsRepository.replaceById(id, tools);
+  // }
 
-  @del('/tools/{id}')
-  @response(204, {
-    description: 'Tools DELETE success',
-  })
-  async deleteById(@param.path.number('id') id: number): Promise<void> {
-    await this.toolsRepository.deleteById(id);
-  }
+  // @del('/tools/{id}')
+  // @response(204, {
+  //   description: 'Tools DELETE success',
+  // })
+  // async deleteById(@param.path.number('id') id: number): Promise<void> {
+  //   await this.toolsRepository.deleteById(id);
+  // }
 
 
   @post('/tools/create-all')

@@ -49,20 +49,20 @@ export class CourseRegistrationInterestController {
     return this.courseRegistrationInterestRepository.create(courseRegistrationInterest);
   }
 
-  @authenticate({
-    strategy: 'jwt',
-    options: { required: [PermissionKeys.ADMIN] }
-  })
-  @get('/course-registration-interests/count')
-  @response(200, {
-    description: 'CourseRegistrationInterest model count',
-    content: { 'application/json': { schema: CountSchema } },
-  })
-  async count(
-    @param.where(CourseRegistrationInterest) where?: Where<CourseRegistrationInterest>,
-  ): Promise<Count> {
-    return this.courseRegistrationInterestRepository.count(where);
-  }
+  // @authenticate({
+  //   strategy: 'jwt',
+  //   options: { required: [PermissionKeys.ADMIN] }
+  // })
+  // @get('/course-registration-interests/count')
+  // @response(200, {
+  //   description: 'CourseRegistrationInterest model count',
+  //   content: { 'application/json': { schema: CountSchema } },
+  // })
+  // async count(
+  //   @param.where(CourseRegistrationInterest) where?: Where<CourseRegistrationInterest>,
+  // ): Promise<Count> {
+  //   return this.courseRegistrationInterestRepository.count(where);
+  // }
 
   @authenticate({
     strategy: 'jwt',
@@ -86,28 +86,28 @@ export class CourseRegistrationInterestController {
     return this.courseRegistrationInterestRepository.find(filter);
   }
 
-  @authenticate({
-    strategy: 'jwt',
-    options: { required: [PermissionKeys.ADMIN] }
-  })
-  @patch('/course-registration-interests')
-  @response(200, {
-    description: 'CourseRegistrationInterest PATCH success count',
-    content: { 'application/json': { schema: CountSchema } },
-  })
-  async updateAll(
-    @requestBody({
-      content: {
-        'application/json': {
-          schema: getModelSchemaRef(CourseRegistrationInterest, { partial: true }),
-        },
-      },
-    })
-    courseRegistrationInterest: CourseRegistrationInterest,
-    @param.where(CourseRegistrationInterest) where?: Where<CourseRegistrationInterest>,
-  ): Promise<Count> {
-    return this.courseRegistrationInterestRepository.updateAll(courseRegistrationInterest, where);
-  }
+  // @authenticate({
+  //   strategy: 'jwt',
+  //   options: { required: [PermissionKeys.ADMIN] }
+  // })
+  // @patch('/course-registration-interests')
+  // @response(200, {
+  //   description: 'CourseRegistrationInterest PATCH success count',
+  //   content: { 'application/json': { schema: CountSchema } },
+  // })
+  // async updateAll(
+  //   @requestBody({
+  //     content: {
+  //       'application/json': {
+  //         schema: getModelSchemaRef(CourseRegistrationInterest, { partial: true }),
+  //       },
+  //     },
+  //   })
+  //   courseRegistrationInterest: CourseRegistrationInterest,
+  //   @param.where(CourseRegistrationInterest) where?: Where<CourseRegistrationInterest>,
+  // ): Promise<Count> {
+  //   return this.courseRegistrationInterestRepository.updateAll(courseRegistrationInterest, where);
+  // }
 
   @authenticate({
     strategy: 'jwt',
@@ -129,52 +129,52 @@ export class CourseRegistrationInterestController {
     return this.courseRegistrationInterestRepository.findById(id, filter);
   }
 
-  @authenticate({
-    strategy: 'jwt',
-    options: { required: [PermissionKeys.ADMIN] }
-  })
-  @patch('/course-registration-interests/{id}')
-  @response(204, {
-    description: 'CourseRegistrationInterest PATCH success',
-  })
-  async updateById(
-    @param.path.number('id') id: number,
-    @requestBody({
-      content: {
-        'application/json': {
-          schema: getModelSchemaRef(CourseRegistrationInterest, { partial: true }),
-        },
-      },
-    })
-    courseRegistrationInterest: CourseRegistrationInterest,
-  ): Promise<void> {
-    await this.courseRegistrationInterestRepository.updateById(id, courseRegistrationInterest);
-  }
+  // @authenticate({
+  //   strategy: 'jwt',
+  //   options: { required: [PermissionKeys.ADMIN] }
+  // })
+  // @patch('/course-registration-interests/{id}')
+  // @response(204, {
+  //   description: 'CourseRegistrationInterest PATCH success',
+  // })
+  // async updateById(
+  //   @param.path.number('id') id: number,
+  //   @requestBody({
+  //     content: {
+  //       'application/json': {
+  //         schema: getModelSchemaRef(CourseRegistrationInterest, { partial: true }),
+  //       },
+  //     },
+  //   })
+  //   courseRegistrationInterest: CourseRegistrationInterest,
+  // ): Promise<void> {
+  //   await this.courseRegistrationInterestRepository.updateById(id, courseRegistrationInterest);
+  // }
 
-  @authenticate({
-    strategy: 'jwt',
-    options: { required: [PermissionKeys.ADMIN] }
-  })
-  @put('/course-registration-interests/{id}')
-  @response(204, {
-    description: 'CourseRegistrationInterest PUT success',
-  })
-  async replaceById(
-    @param.path.number('id') id: number,
-    @requestBody() courseRegistrationInterest: CourseRegistrationInterest,
-  ): Promise<void> {
-    await this.courseRegistrationInterestRepository.replaceById(id, courseRegistrationInterest);
-  }
+  // @authenticate({
+  //   strategy: 'jwt',
+  //   options: { required: [PermissionKeys.ADMIN] }
+  // })
+  // @put('/course-registration-interests/{id}')
+  // @response(204, {
+  //   description: 'CourseRegistrationInterest PUT success',
+  // })
+  // async replaceById(
+  //   @param.path.number('id') id: number,
+  //   @requestBody() courseRegistrationInterest: CourseRegistrationInterest,
+  // ): Promise<void> {
+  //   await this.courseRegistrationInterestRepository.replaceById(id, courseRegistrationInterest);
+  // }
 
-  @authenticate({
-    strategy: 'jwt',
-    options: { required: [PermissionKeys.ADMIN] }
-  })
-  @del('/course-registration-interests/{id}')
-  @response(204, {
-    description: 'CourseRegistrationInterest DELETE success',
-  })
-  async deleteById(@param.path.number('id') id: number): Promise<void> {
-    await this.courseRegistrationInterestRepository.deleteById(id);
-  }
+  // @authenticate({
+  //   strategy: 'jwt',
+  //   options: { required: [PermissionKeys.ADMIN] }
+  // })
+  // @del('/course-registration-interests/{id}')
+  // @response(204, {
+  //   description: 'CourseRegistrationInterest DELETE success',
+  // })
+  // async deleteById(@param.path.number('id') id: number): Promise<void> {
+  //   await this.courseRegistrationInterestRepository.deleteById(id);
+  // }
 }

@@ -34,6 +34,7 @@ import { CheckDailyEntriesAtNoon } from './services/cronjob.service';
 import { RazorPayService } from './services/razorpay.service';
 import { CurrencyExchange } from './services/currency.service';
 import { FOBOService } from './services/fobo.service';
+import { RequesIDService } from './services/request-id.service';
 export { ApplicationConfig };
 
 export class JobPortalApiApplication extends BootMixin(
@@ -53,10 +54,13 @@ export class JobPortalApiApplication extends BootMixin(
 
     this.static('/', path.join(__dirname, '../public'));
 
-    this.configure(RestExplorerBindings.COMPONENT).to({
-      path: '/explorer',
-    });
-    this.component(RestExplorerComponent);
+    // Only enable explorer in non-production environments
+    if (process.env.NODE_ENV !== 'production') {
+      this.configure(RestExplorerBindings.COMPONENT).to({
+        path: '/explorer',
+      });
+      this.component(RestExplorerComponent);
+    }
 
     this.projectRoot = __dirname;
     this.bootOptions = {
@@ -82,6 +86,7 @@ export class JobPortalApiApplication extends BootMixin(
     this.bind('service.cronjob.service').toClass(CheckDailyEntriesAtNoon);
     this.bind('service.currency.service').toClass(CurrencyExchange);
     this.bind('service.foboService.service').toClass(FOBOService);
+    this.bind('service.RequesID.service').toClass(RequesIDService);
     this.bind(EmailManagerBindings.SEND_MAIL).toClass(EmailService);
   }
 

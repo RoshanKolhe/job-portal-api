@@ -59,19 +59,39 @@ export class WaitListController {
         return {
           success: true,
           isNew: false,
-          message: 'You’re already subscribed.',
+          message: "You are already subscribed.",
           data: existingWaitlist
         };
       } else if (existingWaitlist.type === "notification") {
         return {
           success: true,
           isNew: false,
-          message: 'You’ve already registered for notifications.',
+          message: "You have already registered for notifications.",
+          data: existingWaitlist
+        };
+      } else if (existingWaitlist.type === "reminder-fobo_resume") {
+        return {
+          success: true,
+          isNew: false,
+          message: "You have already registered for a FOBO resume reminder.",
+          data: existingWaitlist
+        };
+      } else if (existingWaitlist.type === "lead-enterprise") {
+        return {
+          success: true,
+          isNew: false,
+          message: "Welcome back! You already have access to the benchmark report.",
           data: existingWaitlist
         };
       }
 
-      throw new HttpErrors.BadRequest('Invalid waitlist type.');
+      // For any other type, return generic duplicate message
+      return {
+        success: true,
+        isNew: false,
+        message: "You have already registered with this email.",
+        data: existingWaitlist
+      };
     }
 
     const newWaitList = await this.waitListRepository.create(waitList);
@@ -80,19 +100,39 @@ export class WaitListController {
       return {
         success: true,
         isNew: true,
-        message: 'Your subscription has been added successfully.',
+        message: "Your subscription has been added successfully.",
         data: newWaitList
       };
     } else if (newWaitList.type === "notification") {
       return {
         success: true,
         isNew: true,
-        message: 'Thank you. Your registration for notifications was successful. You’ll be the first to know about important updates.',
+        message: "Thank you. Your registration for notifications was successful. You will be the first to know about important updates.",
+        data: newWaitList
+      };
+    } else if (newWaitList.type === "reminder-fobo_resume") {
+      return {
+        success: true,
+        isNew: true,
+        message: "Thank you! We will send you a reminder link to complete your FOBO risk assessment.",
+        data: newWaitList
+      };
+    } else if (newWaitList.type === "lead-enterprise") {
+      return {
+        success: true,
+        isNew: true,
+        message: "Access granted! Your benchmark report is ready for download.",
         data: newWaitList
       };
     }
 
-    throw new HttpErrors.BadRequest('Invalid waitlist type.');
+    // For any other type, return generic success message
+    return {
+      success: true,
+      isNew: true,
+      message: "Registration successful.",
+      data: newWaitList
+    };
   }
 
   @get('/wait-lists/count')

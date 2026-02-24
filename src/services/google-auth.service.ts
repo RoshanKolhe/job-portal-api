@@ -5,6 +5,8 @@ import { PermissionKeys } from '../authorization/permission-keys';
 import { PlanRepository, UserRepository } from '../repositories';
 import { JWTService } from '../services/jwt-service';
 import { MyUserService } from '../services/user-service';
+import generateWelcomeTemplate from '../templates/registration-welcome.template';
+import { EmailService } from './email.service';
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 @injectable({ scope: BindingScope.SINGLETON })
@@ -18,6 +20,8 @@ export class GoogleAuthService {
     public jwtService: JWTService,
     @inject('service.user.service')
     public userService: MyUserService,
+    @inject('services.email.send')
+    public emailService: EmailService,
   ) {
     this.configureGoogleStrategy();
   }
@@ -64,6 +68,22 @@ export class GoogleAuthService {
                   permissions: [PermissionKeys.CUSTOMER],
                   password: 'google-oauth',
                   isActive: true,
+                });
+
+                const siteUrl = process.env.REACT_APP_SITE_URL || 'https://www.altiv.ai';
+
+                const welcomeMailOptions = {
+                  firstName: user.fullName || 'User',
+                  to: user.email,
+                  foboUrl: `${siteUrl}/fobo`,
+                };
+
+                const welcomeTemplate = generateWelcomeTemplate(welcomeMailOptions);
+
+                await this.emailService.sendMail({
+                  to: user.email,
+                  subject: welcomeTemplate.subject,
+                  html: welcomeTemplate.html,
                 });
               }
             }

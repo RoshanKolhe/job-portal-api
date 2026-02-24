@@ -185,6 +185,9 @@ export class FOBOService {
                 }
             );
 
+            const { duration } = response;
+            console.log('Response time for => /fobo :', duration)
+
             if (response.status !== 200 || response.data?.status !== 'success') {
                 throw new Error(response.data?.message || 'FOBO failed');
             }
@@ -223,12 +226,13 @@ export class FOBOService {
                 isFoboPro: requestBody.isFoboPro ?? false,
             });
 
-            // await this.getWebhookFoboData({
-            //     taskDistributionAutomation: response.data.data?.Task_Distribution_Automation,
-            //     taskDistributionHuman: response.data.data?.Task_Distribution_Human,
-            //     taskDistributionAugmentation: response.data.data?.Task_Distribution_Augmentation,
-            //     userId: resume.userId
-            // });
+            await this.getWebhookFoboData({
+                taskDistributionAutomation: response.data.data?.Task_Distribution_Automation || '',
+                taskDistributionHuman: response.data.data?.Task_Distribution_Human || '',
+                taskDistributionAugmentation: response.data.data?.Task_Distribution_Augmentation || '',
+                userId: resume?.userId
+            });
+
             await this.updateRunningAnalytics(analyticsId, { status: 2 });
 
             return { success: true, analyticsData };
@@ -314,25 +318,20 @@ export class FOBOService {
                 };
             }
 
-
-            if (!currentUser || !currentUser.email) {
-                return {
-                    success: false,
-                    message: 'Authenticated user required for FOBO success email',
+            if (currentUser && currentUser.email) {
+                const foboFailOptions = {
+                    firstName: currentUser.fullName || 'User',
+                    to: currentUser.email,
                 };
+
+                const foboFailTemplate = generateFoboProFailTemplate(foboFailOptions);
+
+                await this.emailService.sendMail({
+                    to: currentUser.email,
+                    subject: foboFailTemplate.subject,
+                    html: foboFailTemplate.html,
+                });
             }
-            const foboFailOptions = {
-                firstName: currentUser.fullName || 'User',
-                to: currentUser.email,
-            };
-
-            const foboFailTemplate = generateFoboProFailTemplate(foboFailOptions);
-
-            await this.emailService.sendMail({
-                to: currentUser.email,
-                subject: foboFailTemplate.subject,
-                html: foboFailTemplate.html,
-            });
 
             return {
                 success: false,
@@ -363,28 +362,23 @@ export class FOBOService {
                     isDeleted: true,
                 });
 
-                if (!currentUser || !currentUser.email) {
-                    return {
-                        success: false,
-                        message: 'Authenticated user required for FOBO success email',
+                if (currentUser && currentUser.email) {
+                    const siteUrl = process.env.REACT_APP_SITE_URL || 'https://www.altiv.ai';
+
+                    const foboSuccessOptions = {
+                        firstName: currentUser.fullName || 'User',
+                        to: currentUser.email,
+                        foboUrl: `${siteUrl}/ai-readiness-analysis`,
                     };
+
+                    const foboSuccessTemplate = generateFoboProSuccessTemplate(foboSuccessOptions);
+
+                    await this.emailService.sendMail({
+                        to: currentUser.email,
+                        subject: foboSuccessTemplate.subject,
+                        html: foboSuccessTemplate.html,
+                    });
                 }
-
-                const siteUrl = process.env.REACT_APP_SITE_URL || 'https://www.altiv.ai';
-
-                const foboSuccessOptions = {
-                    firstName: currentUser.fullName || 'User',
-                    to: currentUser.email,
-                    foboUrl: `${siteUrl}/ai-readiness-analysis`,
-                };
-
-                const foboSuccessTemplate = generateFoboProSuccessTemplate(foboSuccessOptions);
-
-                await this.emailService.sendMail({
-                    to: currentUser.email,
-                    subject: foboSuccessTemplate.subject,
-                    html: foboSuccessTemplate.html,
-                });
 
                 return { success: true };
             }
@@ -453,39 +447,46 @@ export class FOBOService {
     // Webhook Api
     // --------------------------------------------------
 
-    // async getWebhookFoboData(data: any) {
-    //     console.log('final data', data);
+    async getWebhookFoboData(data: any) {
+        try {
+            if (data.userId) {
+                const user = await this.userRepository.findById(data.userId);
 
-    //     if (data.userId) {
-    //         const user = await this.userRepository.findById(data.userId);
+                const payload = {
+                    EMAIL: user.email,
+                    attributes: {
+                        FIRSTNAME: user.fullName,
+                        LASTNAME: user.fullName || '',
+                        PHONE: user.phoneNumber || '',
+                        FOBO_SCORE: data.foboScore,
+                        TASK_AUTO_1: data?.taskDistributionAutomation[0],
+                        TASK_AUTO_2: data?.taskDistributionHuman[0],
+                        TASK_AUTO_3: data?.taskDistributionAugmentation[0],
+                    },
+                    updateEnabled: true,
+                };
 
-    //         const payload = {
-    //             EMAIL: user.email,
-    //             attributes: {
-    //                 FIRSTNAME: user.fullName,
-    //                 LASTNAME: user.fullName || '',
-    //                 PHONE: user.phoneNumber || '',
-    //                 FOBO_SCORE: data.foboScore,
-    //                 TASK_AUTO_1: data?.taskDistributionAutomation[0],
-    //                 TASK_AUTO_2: data?.taskDistributionHuman[0],
-    //                 TASK_AUTO_3: data?.taskDistributionAugmentation[0],
-    //             },
-    //             updateEnabled: true,
-    //         };
+                const apiResponse: any = await apiClient.post(
+                    'https://hook.us2.make.com/3gxgyeesevrypmt76s6n38ovsidj38bp',
+                    payload
+                );
 
-    //         const apiResponse: any = await apiClient.post(
-    //             'https://hook.us2.make.com/3y7ytrxay8isypgt7ayxhtcu27vehfaa',
-    //             payload
-    //         );
-
-    //         console.log('apiResponse', apiResponse);
-
-    //         return {
-    //             success: true,
-    //             apiResponse,
-    //         };
-    //     }
-    // }
+                return {
+                    success: true,
+                    apiResponse,
+                };
+            }
+            return {
+                success: false,
+                apiResponse: null,
+            };
+        } catch (error) {
+            return {
+                success: false,
+                apiResponse: null,
+            };
+        }
+    }
 }
 
 
