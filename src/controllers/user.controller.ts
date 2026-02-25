@@ -139,7 +139,7 @@ export class UserController {
 
         const userProfile = this.userService.convertToUserProfile(savedUser);
         const token = await this.jwtService.generateToken(userProfile);
-        
+
         const siteUrl = process.env.REACT_APP_SITE_URL || 'https://www.altiv.ai';
 
         const welcomeMailOptions = {
@@ -181,6 +181,23 @@ export class UserController {
         const savedUserData = _.omit(savedUser, 'password');
         const userProfile = this.userService.convertToUserProfile(savedUser);
         const token = await this.jwtService.generateToken(userProfile);
+
+        const siteUrl = process.env.REACT_APP_SITE_URL || 'https://www.altiv.ai';
+
+        const welcomeMailOptions = {
+          firstName: savedUser.fullName || 'User',
+          to: savedUser.email,
+          foboUrl: `${siteUrl}/fobo`,
+        };
+
+        const welcomeTemplate = generateWelcomeTemplate(welcomeMailOptions);
+
+        await this.emailService.sendMail({
+          to: savedUser.email,
+          subject: welcomeTemplate.subject,
+          html: welcomeTemplate.html,
+        });
+
         if (savedUser.id) {
           await this.eventHistoryService.addNewEvent(
             'registration',
