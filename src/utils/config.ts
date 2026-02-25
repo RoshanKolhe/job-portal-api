@@ -1,7 +1,7 @@
 const SITE_SETTINGS = {
   email: {
     type: 'smtp',
-    host: 'smtp-relay.gmail.com',
+    host: 'smtp.gmail.com',
     secure: false,
     port: 587,
     tls: {
