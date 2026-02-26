@@ -14,7 +14,6 @@ export default function generateWelcomeTemplate(mailOptions: any) {
         }
 
         .box {
-          background-color: #f9f9f9;
           padding: 24px;
           margin: 20px auto;
           max-width: 600px;
