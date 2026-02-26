@@ -1,16 +1,9 @@
 const SITE_SETTINGS = {
   email: {
-    type: 'smtp',
-    host: 'smtp.gmail.com',
+    host: 'smtp-relay.gmail.com',
     secure: false,
+    requireTLS: true,
     port: 587,
-    tls: {
-      rejectUnauthorized: false,
-    },
-    auth: {
-      user: 'hello@altiv.ai',
-      pass: 'bhhcgqinsevzcodl',
-    },
   },
   fromMail: 'hello@altiv.ai',
 };
