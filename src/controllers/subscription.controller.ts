@@ -288,11 +288,11 @@ export class SubscriptionController {
           console.log('user data updated and redirected to success');
           await this.userRepository.updateById(subscription.userId, { activeSubscriptionId: subscription.id, currentPlanId: subscription.planId });
           console.log('subscription data updated and redirected to success');
-          res.redirect(`http://localhost:3030/payment/success?subscriptionId=${id}`);
+          res.redirect(`${process.env.REACT_APP_SITE_URL}/payment/success?subscriptionId=${id}`);
         }
       } else {
         await this.subscriptionRepository.updateById(subscription.id, { paymentDetails: session, status: 'failed' });
-        res.redirect(`http://localhost:3030/payment/cancel?subscriptionId=${id}`);
+        res.redirect(`${process.env.REACT_APP_SITE_URL}/payment/cancel?subscriptionId=${id}`);
       }
 
     } catch (error) {
@@ -313,7 +313,7 @@ export class SubscriptionController {
     }
     await this.subscriptionRepository.updateById(subscription.id, { status: 'failed' });
 
-    this.res.redirect(`http://localhost:3030/payment/cancel?subscriptionId=${id}`);
+    this.res.redirect(`${process.env.REACT_APP_SITE_URL}/payment/cancel?subscriptionId=${id}`);
   }
 
   // @get('/subscriptions/count')
