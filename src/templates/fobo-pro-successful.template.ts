@@ -97,7 +97,7 @@ export default function generateFoboProSuccessTemplate(mailOptions: any) {
         </ul>
 
         <p class="cta">
-          👉 <a href="${mailOptions.foboProUrl}" target="_blank">
+          👉 <a href="${mailOptions.foboUrl}" target="_blank">
             Access Your AI Action Plan Results
           </a>
         </p>
