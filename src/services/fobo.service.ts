@@ -451,6 +451,7 @@ export class FOBOService {
 
     async getWebhookFoboData(data: any) {
         try {
+            console.log('data', data);
             if (data.userId) {
                 const user = await this.userRepository.findById(data.userId);
 
