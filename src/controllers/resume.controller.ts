@@ -305,7 +305,7 @@ export class ResumeController {
             message: 'Guest resume saved',
             resume: newResume,
             apiDurations: [
-              ...data?.apiDuration,
+              data?.apiDuration,
               {
                 endpoint: '/api/resume/upload',
                 duration: duration
