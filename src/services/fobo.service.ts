@@ -483,6 +483,7 @@ export class FOBOService {
                 apiResponse: null,
             };
         } catch (error) {
+            console.log('error while calling webhook:', error);
             return {
                 success: false,
                 apiResponse: null,
