@@ -210,9 +210,10 @@ export class CareerCompassController {
         'application/json': {
           schema: {
             type: 'object',
-            required: ['company_name'],
+            required: ['companyName', 'companySlug'],
             properties: {
               companyName: { type: 'string' },
+              companySlug: { type: 'string' },
               maxProfilesPerLevel: { type: 'number' },
               skipMissing: { type: 'boolean' },
             },
@@ -222,6 +223,7 @@ export class CareerCompassController {
     })
     body: {
       companyName: string;
+      companySlug: string;
       maxProfilesPerLevel?: number;
       skipMissing?: boolean;
     }
@@ -233,6 +235,7 @@ export class CareerCompassController {
 
       const form = new FormData();
       form.append('company_name', body.companyName);
+      form.append('company_slug', body.companySlug);
       form.append('max_profiles_per_level', body.maxProfilesPerLevel?.toString() || '4');
       form.append('skip_missing', body.skipMissing?.toString() || 'true');
 
