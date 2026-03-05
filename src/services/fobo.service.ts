@@ -231,7 +231,8 @@ export class FOBOService {
                     taskDistributionAutomation: response.data.data?.Task_Distribution_Automation || '',
                     taskDistributionHuman: response.data.data?.Task_Distribution_Human || '',
                     taskDistributionAugmentation: response.data.data?.Task_Distribution_Augmentation || '',
-                    userId: resume?.userId
+                    userId: resume?.userId,
+                    foboScore: response.data.data?.FOBO_Score
                 });
             }
 
