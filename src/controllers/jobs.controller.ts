@@ -308,6 +308,7 @@ export class JobsController {
           }
         }
       );
+      console.log('apiResponse', apiResponse);
       const { duration } = apiResponse;
       console.log('Response time for => /api/job_boost/job_match_insights :', duration)
 
