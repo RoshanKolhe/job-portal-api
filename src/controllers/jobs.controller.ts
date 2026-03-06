@@ -84,7 +84,7 @@ export class JobsController {
   ): Promise<{ success: boolean; message: string; }> {
     const tx = await this.jobsRepository.dataSource.beginTransaction({ IsolationLevel: IsolationLevel.READ_COMMITTED });
     try {
-      await this.jobsRepository.createAll(jobsData, {transaction: tx});
+      await this.jobsRepository.createAll(jobsData, { transaction: tx });
 
       await tx.commit();
       return {
@@ -271,79 +271,84 @@ export class JobsController {
     @param.path.number('id') id: number,
     @param.filter(Jobs, { exclude: 'where' }) filter?: FilterExcludingWhere<Jobs>
   ): Promise<{ data: Jobs, matchScore: number | null, isSaved: boolean, apiDurations: { endpoint: string; duration: string } | null }> {
-    const job = await this.jobsRepository.findById(id, filter);
+    try {
+      const job = await this.jobsRepository.findById(id, filter);
 
-    // current User profile
-    let currentUser: any = null;
-    const authHeader = request.headers.authorization;
-    const requestId = request.headers['X-Request-Id'] || await this.requestIdService.createRequestId();
-    console.log('Request ID:', requestId);
+      // current User profile
+      let currentUser: any = null;
+      const authHeader = request.headers.authorization;
+      const requestId = request.headers['X-Request-Id'] || await this.requestIdService.createRequestId();
+      console.log('Request ID:', requestId);
 
-    if (authHeader && authHeader !== '' && authHeader !== null && authHeader !== undefined && authHeader !== 'Bearer') {
-      currentUser = await this.validateCredentials(authHeader);
-    }
+      if (authHeader && authHeader !== '' && authHeader !== null && authHeader !== undefined && authHeader !== 'Bearer') {
+        currentUser = await this.validateCredentials(authHeader);
+      }
 
-    let user: any = null;
-    let resume: any = null;
+      let user: any = null;
+      let resume: any = null;
 
-    if (currentUser) {
-      user = await this.userRepository.findById(currentUser.id);
-      resume = await this.resumeRepository.findOne({ where: { userId: user.id } });
-    }
+      if (currentUser) {
+        user = await this.userRepository.findById(currentUser.id);
+        resume = await this.resumeRepository.findOne({ where: { userId: user.id } });
+      }
 
-    if (job && user && resume) {
-      const apiData = {
-        resume_id: resume?.id?.toString(),
-        job_id: job?.id?.toString(),
-        job_boost: false
-      };
+      if (job && user && resume) {
+        const apiData = {
+          resume_id: resume?.id?.toString(),
+          job_id: job?.id?.toString(),
+          job_boost: false
+        };
 
-      console.log(`${process.env.SERVER_URL}/api/job_boost/job_match_insights`);
-      const apiResponse: any = await apiClient.post(`${process.env.SERVER_URL}/api/job_boost/job_match_insights`,
-        apiData,
-        {
-          headers: {
-            "X-apiKey": process.env.X_API_KEY || '',
-            "X-Request-Id": requestId.toString()
+        console.log(`${process.env.SERVER_URL}/api/job_boost/job_match_insights`);
+        const apiResponse: any = await apiClient.post(`${process.env.SERVER_URL}/api/job_boost/job_match_insights`,
+          apiData,
+          {
+            headers: {
+              "X-apiKey": process.env.X_API_KEY || '',
+              "X-Request-Id": requestId.toString()
+            }
           }
-        }
-      );
-      console.log('apiResponse', apiResponse);
-      const { duration } = apiResponse;
-      console.log('Response time for => /api/job_boost/job_match_insights :', duration)
+        );
+        console.log('apiResponse', apiResponse);
+        const { duration } = apiResponse;
+        console.log('Response time for => /api/job_boost/job_match_insights :', duration)
 
-      const savedJob = await this.savedJobsUsersLinkRepository.findOne({
-        where: { and: [{ jobsId: job.id }, { userId: user.id }] },
-      });
+        const savedJob = await this.savedJobsUsersLinkRepository.findOne({
+          where: { and: [{ jobsId: job.id }, { userId: user.id }] },
+        });
 
-      if (apiResponse.data) {
-        return {
-          data: job,
-          matchScore: apiResponse?.data?.match_score,
-          isSaved: !!savedJob,
-          apiDurations: {
-            endpoint: '/api/job_boost/job_match_insights',
-            duration
+        if (apiResponse.data) {
+          return {
+            data: job,
+            matchScore: apiResponse?.data?.match_score,
+            isSaved: !!savedJob,
+            apiDurations: {
+              endpoint: '/api/job_boost/job_match_insights',
+              duration
+            }
           }
-        }
-      } else {
-        return {
-          data: job,
-          matchScore: null,
-          isSaved: !!savedJob,
-          apiDurations: {
-            endpoint: '/api/job_boost/job_match_insights',
-            duration
+        } else {
+          return {
+            data: job,
+            matchScore: null,
+            isSaved: !!savedJob,
+            apiDurations: {
+              endpoint: '/api/job_boost/job_match_insights',
+              duration
+            }
           }
         }
       }
-    }
 
-    return {
-      data: job,
-      matchScore: null,
-      isSaved: false,
-      apiDurations: null
+      return {
+        data: job,
+        matchScore: null,
+        isSaved: false,
+        apiDurations: null
+      }
+    } catch (error) {
+      console.log('error', error);
+      throw error;
     }
   }
 
