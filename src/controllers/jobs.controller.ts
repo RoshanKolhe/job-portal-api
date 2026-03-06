@@ -270,29 +270,32 @@ export class JobsController {
     @inject(RestBindings.Http.REQUEST) request: Request,
     @param.path.number('id') id: number,
     @param.filter(Jobs, { exclude: 'where' }) filter?: FilterExcludingWhere<Jobs>
-  ): Promise<{ data: Jobs, matchScore: number | null, isSaved: boolean, apiDurations: { endpoint: string; duration: string } | null }> {
-    try {
-      const job = await this.jobsRepository.findById(id, filter);
+  ): Promise<{ data: Jobs, matchScore: number | null, isSaved: boolean, apiDurations: { endpoint: string; duration: string | null } | null }> {
+    const job = await this.jobsRepository.findById(id, filter);
 
-      // current User profile
-      let currentUser: any = null;
-      const authHeader = request.headers.authorization;
-      const requestId = request.headers['X-Request-Id'] || await this.requestIdService.createRequestId();
-      console.log('Request ID:', requestId);
+    // current User profile
+    let currentUser: any = null;
+    const authHeader = request.headers.authorization;
+    const requestId = request.headers['X-Request-Id'] || await this.requestIdService.createRequestId();
+    console.log('Request ID:', requestId);
 
-      if (authHeader && authHeader !== '' && authHeader !== null && authHeader !== undefined && authHeader !== 'Bearer') {
-        currentUser = await this.validateCredentials(authHeader);
-      }
+    if (authHeader && authHeader !== '' && authHeader !== null && authHeader !== undefined && authHeader !== 'Bearer') {
+      currentUser = await this.validateCredentials(authHeader);
+    }
 
-      let user: any = null;
-      let resume: any = null;
+    let user: any = null;
+    let resume: any = null;
 
-      if (currentUser) {
-        user = await this.userRepository.findById(currentUser.id);
-        resume = await this.resumeRepository.findOne({ where: { userId: user.id } });
-      }
+    if (currentUser) {
+      user = await this.userRepository.findById(currentUser.id);
+      resume = await this.resumeRepository.findOne({ where: { userId: user.id } });
+    }
 
-      if (job && user && resume) {
+    if (job && user && resume) {
+      const savedJob = await this.savedJobsUsersLinkRepository.findOne({
+        where: { and: [{ jobsId: job.id }, { userId: user.id }] },
+      });
+      try {
         const apiData = {
           resume_id: resume?.id?.toString(),
           job_id: job?.id?.toString(),
@@ -312,10 +315,6 @@ export class JobsController {
         console.log('apiResponse', apiResponse);
         const { duration } = apiResponse;
         console.log('Response time for => /api/job_boost/job_match_insights :', duration)
-
-        const savedJob = await this.savedJobsUsersLinkRepository.findOne({
-          where: { and: [{ jobsId: job.id }, { userId: user.id }] },
-        });
 
         if (apiResponse.data) {
           return {
@@ -338,17 +337,25 @@ export class JobsController {
             }
           }
         }
+      } catch (error) {
+        console.log('error while fetching match score', error);
+        return {
+          data: job,
+          matchScore: null,
+          isSaved: !!savedJob,
+          apiDurations: {
+            endpoint: '/api/job_boost/job_match_insights',
+            duration: null
+          }
+        }
       }
+    }
 
-      return {
-        data: job,
-        matchScore: null,
-        isSaved: false,
-        apiDurations: null
-      }
-    } catch (error) {
-      console.log('error', error);
-      throw error;
+    return {
+      data: job,
+      matchScore: null,
+      isSaved: false,
+      apiDurations: null
     }
   }
 
