@@ -28,7 +28,7 @@ export class LinkedinAuthService {
         {
           clientID: process.env.LINKEDIN_CLIENT_ID!,
           clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
-          callbackURL: 'http://localhost:3000/auth/linkedin/callback',
+          callbackURL: `${process.env.REACT_APP_SITE_URL}/auth/linkedin/callback`,
           scope: ['openid', 'profile', 'email'],
 
           passReqToCallback: true,

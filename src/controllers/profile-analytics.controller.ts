@@ -95,7 +95,7 @@ export class ProfileAnalyticsController {
       let resume: any = null;
       let currentUser: any = null;
       const authHeader = request.headers.authorization;
-      const requestId = request.headers['X-Request-Id'] || await this.requestIdService.createRequestId();
+      const requestId = request.headers['x-request-id'] || await this.requestIdService.createRequestId();
       console.log('Request ID:', requestId);
 
       if (authHeader && authHeader !== '' && authHeader !== null && authHeader !== undefined && authHeader !== 'Bearer') {
@@ -468,5 +468,90 @@ export class ProfileAnalyticsController {
     } catch (error) {
       throw error;
     }
+  }
+
+  @get('/fobo/job-title-insight')
+  async getJobTitleInsight(
+    @param.query.string('job_title') jobTitle: string,
+  ): Promise<any> {
+    try {
+      if (!jobTitle || jobTitle.trim() === '') {
+        throw new HttpErrors.BadRequest('Job title is required');
+      }
+
+      const result = await this.foboService.getJobTitleInsight(jobTitle.trim());
+
+      if (result.success) {
+        return result.data;
+      } else {
+        return {
+          status: 'error',
+          message: result.message || 'Failed to fetch job title insight',
+        };
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  @post('/fobo/quick-preview', {
+    responses: {
+      200: {
+        description: 'Quick preview of AI readiness analysis',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+            },
+          },
+        },
+      },
+    },
+  })
+  async getQuickPreview(
+    @requestBody.file()
+    request: Request,
+  ): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const multer = require('multer');
+      const upload = multer({ storage: multer.memoryStorage() }).single('file');
+
+      upload(request, {} as any, async (err: any) => {
+        if (err) {
+          return reject(new HttpErrors.BadRequest('File upload failed'));
+        }
+
+        try {
+          const file = (request as any).file;
+          if (!file) {
+            return reject(new HttpErrors.BadRequest('Resume file is required'));
+          }
+
+          const userId = (request as any).body?.user_id || `campaign_${Date.now()}`;
+          const transformationTimelineMonths = parseInt((request as any).body?.transformation_timeline_months || '36', 10);
+          const quick = (request as any).body?.quick !== 'false';
+
+          const result = await this.foboService.getQuickPreview(
+            file.buffer,
+            file.originalname,
+            userId,
+            transformationTimelineMonths,
+            quick
+          );
+
+          if (result.success) {
+            resolve(result.data);
+          } else {
+            resolve({
+              status: 'error',
+              message: result.message || 'Failed to generate quick preview',
+            });
+          }
+        } catch (error: any) {
+          console.error('Error in quick preview:', error);
+          reject(new HttpErrors.InternalServerError(error.message || 'Failed to process quick preview'));
+        }
+      });
+    });
   }
 }

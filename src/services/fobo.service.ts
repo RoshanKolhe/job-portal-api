@@ -494,6 +494,85 @@ export class FOBOService {
             };
         }
     }
+
+    // --------------------------------------------------
+    // Get job title insight from AI backend
+    // --------------------------------------------------
+    async getJobTitleInsight(jobTitle: string) {
+        try {
+            const foboServerUrl = process.env.SERVER_URL || 'http://localhost:7483';
+            const url = `${foboServerUrl}/fobo/job-title-insight`;
+
+            console.log(`[FOBO] Calling job-title-insight: ${url} with job_title=${jobTitle}`);
+
+            const response = await apiClient.get(url, {
+                params: { job_title: jobTitle },
+                headers: {
+                    'X-API-Key': process.env.FOBO_API_KEY || '2472118222258182',
+                },
+                baseURL: '', // Override baseURL to use full URL
+            });
+
+            console.log(`[FOBO] job-title-insight response:`, response.data);
+
+            return {
+                success: true,
+                data: response.data,
+            };
+        } catch (error: any) {
+            console.error('Error fetching job title insight:', error?.message);
+            console.error('Error details:', error?.response?.data);
+            return {
+                success: false,
+                message: error?.response?.data?.message || 'Failed to fetch job title insight',
+                data: null,
+            };
+        }
+    }
+
+    // --------------------------------------------------
+    // Get quick preview from AI backend
+    // --------------------------------------------------
+    async getQuickPreview(
+        file: Buffer,
+        fileName: string,
+        userId: string,
+        transformationTimelineMonths: number = 36,
+        quick: boolean = true
+    ) {
+        try {
+            const foboServerUrl = process.env.SERVER_URL || 'http://localhost:7483';
+            const url = `${foboServerUrl}/fobo/quick-preview`;
+
+            console.log(`[FOBO] Calling quick-preview: ${url}`);
+
+            const formData = new FormData();
+            formData.append('user_id', userId);
+            formData.append('file', file, { filename: fileName });
+            formData.append('transformation_timeline_months', String(transformationTimelineMonths));
+            formData.append('quick', String(quick));
+
+            const response = await apiClient.post(url, formData, {
+                headers: {
+                    ...formData.getHeaders(),
+                    'X-API-Key': process.env.FOBO_API_KEY || '2472118222258182',
+                },
+                baseURL: '', // Override baseURL to use full URL
+            });
+
+            return {
+                success: true,
+                data: response.data,
+            };
+        } catch (error: any) {
+            console.error('Error fetching quick preview:', error?.message);
+            return {
+                success: false,
+                message: error?.response?.data?.message || 'Failed to fetch quick preview',
+                data: null,
+            };
+        }
+    }
 }
 
 
